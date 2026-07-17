@@ -1,0 +1,9 @@
+std.rnnn is the standard RNNoise model originally distributed with the
+Xiph.Org RNNoise examples. This copy was obtained from:
+https://github.com/richardpl/arnndn-models/blob/master/std.rnnn
+
+RNNoise source and license:
+https://github.com/xiph/rnnoise
+
+SHA-256:
+6b8943dc4a9b6b24425873992a44f29c0577503276456af46a8854774faeb294

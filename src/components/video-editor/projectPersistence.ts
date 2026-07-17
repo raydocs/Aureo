@@ -1145,12 +1145,13 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		exportBackendPreference: normalizeExportBackendPreference(editor.exportBackendPreference),
 		exportPipelineModel: normalizeExportPipelineModel(editor.exportPipelineModel),
 		exportQuality:
-			editor.exportQuality === "medium" ||
-			editor.exportQuality === "good" ||
-			editor.exportQuality === "high" ||
 			editor.exportQuality === "source"
-				? editor.exportQuality
-				: "source",
+				? "source"
+				: editor.exportQuality === "medium" ||
+						editor.exportQuality === "good" ||
+						editor.exportQuality === "high"
+					? "good"
+					: "source",
 		mp4FrameRate: normalizeExportMp4FrameRate(editor.mp4FrameRate),
 		exportFormat: editor.exportFormat === "gif" ? "gif" : "mp4",
 		gifFrameRate:

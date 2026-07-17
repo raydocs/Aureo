@@ -197,6 +197,11 @@
 			"high": "Alta",
 			"original": "Original"
 		},
+		"resolutionTitle": "Resolução",
+		"resolution": {
+			"standard": "1080p",
+			"device": "Dispositivo"
+		},
 		"fpsTitle": "FPS",
 		"loop": "Repetir",
 		"outputDimensions": "Saída: {{dimensions}}px",

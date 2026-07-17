@@ -197,6 +197,11 @@
 			"high": "高",
 			"original": "原始"
 		},
+		"resolutionTitle": "解析度",
+		"resolution": {
+			"standard": "1080p",
+			"device": "設備"
+		},
 		"fpsTitle": "FPS",
 		"loop": "循環",
 		"outputDimensions": "輸出：{{dimensions}}px",

@@ -217,6 +217,11 @@
 			"high": "Высокое",
 			"original": "Исходное"
 		},
+		"resolutionTitle": "Разрешение",
+		"resolution": {
+			"standard": "1080p",
+			"device": "Устройство"
+		},
 		"fpsTitle": "FPS",
 		"loop": "Зациклить",
 		"outputDimensions": "Размер: {{dimensions}}px",

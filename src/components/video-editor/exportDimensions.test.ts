@@ -60,6 +60,35 @@ describe("calculateMp4SourceDimensions", () => {
 });
 
 describe("calculateMp4ExportDimensions", () => {
+	it("offers a standard 1080p landscape output alongside device resolution", () => {
+		expect(calculateMp4ExportDimensions(3456, 1944, "good")).toEqual({
+			width: 1920,
+			height: 1080,
+		});
+		expect(calculateMp4ExportDimensions(3456, 1944, "source")).toEqual({
+			width: 3456,
+			height: 1944,
+		});
+	});
+
+	it("keeps the project aspect ratio inside the standard 1080p bounds", () => {
+		expect(calculateMp4ExportDimensions(1440, 1080, "good")).toEqual({
+			width: 1440,
+			height: 1080,
+		});
+		expect(calculateMp4ExportDimensions(1080, 1920, "good")).toEqual({
+			width: 1080,
+			height: 1920,
+		});
+	});
+
+	it("upscales smaller 16:9 sources to the standard 1080p option", () => {
+		expect(calculateMp4ExportDimensions(1280, 720, "good")).toEqual({
+			width: 1920,
+			height: 1080,
+		});
+	});
+
 	it("normalizes odd source dimensions to even export dimensions", () => {
 		const sourceDimensions = calculateMp4SourceDimensions(1919, 1079, "native");
 

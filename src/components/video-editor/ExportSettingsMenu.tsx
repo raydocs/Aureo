@@ -176,13 +176,22 @@ export function ExportSettingsMenu({
 							);
 						})}
 					</div>
-					<div className="mb-3 grid min-h-12 w-full grid-cols-4 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
+					<div className="mb-1 flex items-center justify-between px-1">
+						<span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
+							{tSettings("export.resolutionTitle", "Resolution")}
+						</span>
+					</div>
+					<div className="mb-3 grid min-h-12 w-full grid-cols-2 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
 						{(
 							[
-								{ value: "medium", label: tSettings("export.quality.low") },
-								{ value: "good", label: tSettings("export.quality.medium") },
-								{ value: "high", label: tSettings("export.quality.high") },
-								{ value: "source", label: tSettings("export.quality.original") },
+								{
+									value: "good",
+									label: tSettings("export.resolution.standard", "1080p"),
+								},
+								{
+									value: "source",
+									label: tSettings("export.resolution.device", "Device"),
+								},
 							] as const
 						).map((option) => {
 							const isActive = exportQuality === option.value;

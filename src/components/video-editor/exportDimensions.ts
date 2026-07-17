@@ -96,9 +96,20 @@ export function calculateMp4ExportDimensions(
 		};
 	}
 
-	const qualityScale = quality === "medium" ? 0.6 : quality === "good" ? 0.75 : 0.9;
+	if (quality === "good") {
+		const safeWidth = normalizeEvenDimension(baseWidth);
+		const safeHeight = normalizeEvenDimension(baseHeight);
+		const isLandscape = safeWidth >= safeHeight;
+		return fitAspectRatioWithinBounds(
+			isLandscape ? 1920 : 1080,
+			isLandscape ? 1080 : 1920,
+			safeWidth / safeHeight,
+		);
+	}
+
+	const legacyQualityScale = quality === "medium" ? 0.6 : 0.9;
 	return {
-		width: normalizeEvenDimension(baseWidth * qualityScale),
-		height: normalizeEvenDimension(baseHeight * qualityScale),
+		width: normalizeEvenDimension(baseWidth * legacyQualityScale),
+		height: normalizeEvenDimension(baseHeight * legacyQualityScale),
 	};
 }

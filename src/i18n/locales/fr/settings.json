@@ -197,6 +197,11 @@
 			"high": "Élevée",
 			"original": "Originale"
 		},
+		"resolutionTitle": "Résolution",
+		"resolution": {
+			"standard": "1080p",
+			"device": "Appareil"
+		},
 		"fpsTitle": "IPS",
 		"loop": "Boucle",
 		"outputDimensions": "Sortie : {{dimensions}} px",

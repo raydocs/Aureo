@@ -19,6 +19,13 @@ describe("normalizeProjectEditor", () => {
 		expect(normalizeProjectEditor({ removeCursorShakes: true }).removeCursorShakes).toBe(true);
 	});
 
+	it("migrates legacy MP4 resolution tiers to the standard 1080p option", () => {
+		expect(normalizeProjectEditor({ exportQuality: "medium" }).exportQuality).toBe("good");
+		expect(normalizeProjectEditor({ exportQuality: "good" }).exportQuality).toBe("good");
+		expect(normalizeProjectEditor({ exportQuality: "high" }).exportQuality).toBe("good");
+		expect(normalizeProjectEditor({ exportQuality: "source" }).exportQuality).toBe("source");
+	});
+
 	it("persists advanced cursor-type controls while keeping them opt-in", () => {
 		expect(normalizeProjectEditor({})).toMatchObject({
 			alwaysUseDefaultCursor: false,

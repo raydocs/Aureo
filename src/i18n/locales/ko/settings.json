@@ -197,6 +197,11 @@
 			"high": "높음",
 			"original": "원본"
 		},
+		"resolutionTitle": "해상도",
+		"resolution": {
+			"standard": "1080p",
+			"device": "기기"
+		},
 		"fpsTitle": "FPS",
 		"loop": "반복",
 		"outputDimensions": "출력: {{dimensions}}px",

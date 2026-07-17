@@ -197,6 +197,11 @@
 			"high": "Hoog",
 			"original": "Origineel"
 		},
+		"resolutionTitle": "Resolutie",
+		"resolution": {
+			"standard": "1080p",
+			"device": "Apparaat"
+		},
 		"fpsTitle": "FPS",
 		"loop": "Herhalen",
 		"outputDimensions": "Uitvoer: {{dimensions}}px",

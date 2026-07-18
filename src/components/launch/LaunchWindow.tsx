@@ -1,7 +1,7 @@
 import {
 	ArrowClockwiseIcon,
 	CaretUpIcon,
-	DotsThreeVerticalIcon,
+	GearSixIcon,
 	MicrophoneIcon,
 	MicrophoneSlashIcon,
 	MinusIcon,
@@ -367,7 +367,7 @@ function LaunchWindowContent() {
 	);
 
 	const audioControls = (
-		<div className={styles.barGroup}>
+		<div className={styles.barGroup} role="group" aria-label={t("recording.microphone")}>
 			<MicPopover
 				disabled={recording}
 				systemAudioEnabled={systemAudioEnabled}
@@ -387,32 +387,31 @@ function LaunchWindowContent() {
 				}}
 				trigger={
 					<Button
-						variant="outline"
-						size="lg"
+						variant="ghost"
 						disabled={recording}
 						title={micPillLabel}
 						aria-pressed={microphoneEnabled}
-						className={`${styles.electronNoDrag} relative group gap-2 px-3 min-w-0 max-w-[172px] rounded-[11px] font-medium text-[12px] shrink-0 border-[var(--launch-border)] bg-[var(--launch-surface)] text-[var(--launch-text)] hover:border-[var(--launch-border-strong)] hover:bg-[var(--launch-hover)] transition-all ${microphoneEnabled ? "border-[var(--launch-border-strong)] bg-[var(--launch-selected)] text-[var(--launch-accent)] hover:bg-[var(--launch-selected)]" : ""} ${openId === "mic" ? "border-[var(--launch-border-strong)] bg-[var(--launch-hover)]" : ""}`}
+						className={`${styles.electronNoDrag} ${styles.toolbarControl} ${styles.deviceControl} ${microphoneEnabled || openId === "mic" ? styles.toolbarControlActive : ""}`}
 					>
 						{microphoneEnabled ? (
-							<MicrophoneIcon size={16} className="shrink-0" />
+							<MicrophoneIcon size={20} className="shrink-0" />
 						) : (
-							<MicrophoneSlashIcon size={16} className="shrink-0" />
+							<MicrophoneSlashIcon size={20} className="shrink-0" />
 						)}
-						<div className="flex-1 min-w-0 max-w-[120px] overflow-hidden">
+						<div className={`${styles.controlText} flex-1`}>
 							<MarqueeText text={micPillLabel} />
 						</div>
 						<CaretUpIcon
-							size={10}
-							className={`text-[#6b6b78] ml-0.5 shrink-0 transition-transform duration-200 ${
+							size={11}
+							className={`ml-auto shrink-0 opacity-60 transition-transform duration-200 ${
 								openId === "mic" ? "" : "rotate-180"
 							}`}
 						/>
 						{microphoneEnabled && (
-							<div className="absolute inset-x-2 bottom-[3px] h-0.5 overflow-hidden rounded-full bg-[var(--launch-border-strong)]">
+							<div className="absolute inset-x-3 bottom-[4px] h-0.5 overflow-hidden rounded-full bg-white/15">
 								<div
 									ref={attachMicPillMeter}
-									className="absolute inset-0 origin-left rounded-full bg-[var(--launch-accent)]"
+									className="absolute inset-0 origin-left rounded-full bg-white/70"
 									style={{ transform: "scaleX(0)" }}
 								/>
 							</div>
@@ -420,28 +419,11 @@ function LaunchWindowContent() {
 					</Button>
 				}
 			/>
-
-			<Button
-				variant="ghost"
-				size="icon"
-				iconSize="lg"
-				onClick={() => setSystemAudioEnabled(!systemAudioEnabled)}
-				disabled={recording}
-				title={
-					systemAudioEnabled
-						? t("recording.disableSystemAudio")
-						: t("recording.enableSystemAudio")
-				}
-				aria-pressed={systemAudioEnabled}
-				className={`${systemAudioEnabled ? styles.ibActive : styles.ib}`}
-			>
-				{systemAudioEnabled ? <SpeakerHighIcon size={18} /> : <SpeakerXIcon size={18} />}
-			</Button>
 		</div>
 	);
 
 	const videoControls = (
-		<div className={styles.barGroup}>
+		<div className={styles.barGroup} role="group" aria-label={t("recording.webcam")}>
 			<WebcamPopover
 				disabled={recording}
 				webcamEnabled={webcamEnabled}
@@ -466,24 +448,23 @@ function LaunchWindowContent() {
 				}}
 				trigger={
 					<Button
-						variant="outline"
-						size="lg"
+						variant="ghost"
 						disabled={recording}
 						title={webcamPillLabel}
 						aria-pressed={webcamEnabled}
-						className={`${styles.electronNoDrag} group gap-2 px-3 min-w-0 max-w-[172px] rounded-[11px] font-medium text-[12px] shrink-0 border-[var(--launch-border)] bg-[var(--launch-surface)] text-[var(--launch-text)] hover:border-[var(--launch-border-strong)] hover:bg-[var(--launch-hover)] transition-all ${webcamEnabled ? "border-[var(--launch-border-strong)] bg-[var(--launch-selected)] text-[var(--launch-accent)] hover:bg-[var(--launch-selected)]" : ""} ${openId === "webcam" ? "border-[var(--launch-border-strong)] bg-[var(--launch-hover)]" : ""}`}
+						className={`${styles.electronNoDrag} ${styles.toolbarControl} ${styles.deviceControl} ${webcamEnabled || openId === "webcam" ? styles.toolbarControlActive : ""}`}
 					>
 						{webcamEnabled ? (
-							<VideoCameraIcon size={16} className="shrink-0" />
+							<VideoCameraIcon size={20} className="shrink-0" />
 						) : (
-							<VideoCameraSlashIcon size={16} className="shrink-0" />
+							<VideoCameraSlashIcon size={20} className="shrink-0" />
 						)}
-						<div className="flex-1 min-w-0 max-w-[120px] overflow-hidden">
+						<div className={`${styles.controlText} flex-1`}>
 							<MarqueeText text={webcamPillLabel} />
 						</div>
 						<CaretUpIcon
-							size={10}
-							className={`text-[#6b6b78] ml-0.5 shrink-0 transition-transform duration-200 ${
+							size={11}
+							className={`ml-auto shrink-0 opacity-60 transition-transform duration-200 ${
 								openId === "webcam" ? "" : "rotate-180"
 							}`}
 						/>
@@ -493,57 +474,101 @@ function LaunchWindowContent() {
 		</div>
 	);
 
-	const captureOptions = (
-		<div className={styles.barGroup}>
-			<CountdownPopover
-				countdownDelay={countdownDelay}
-				onSelectDelay={setCountdownDelay}
+	const sourceControls = (
+		<div className={styles.barGroup} role="group" aria-label={selectedSource}>
+			<SourcePopover
+				selectedSource={selectedSource}
+				onSourceSelect={handleSourceSelect}
+				onOpen={beginInteractiveHudAction}
 				trigger={
 					<Button
 						variant="ghost"
-						size="icon"
-						iconSize="lg"
-						title={t("recording.countdownDelay")}
-						aria-pressed={countdownDelay > 0}
-						className={`${countdownDelay > 0 ? styles.ibActive : styles.ib}`}
+						className={`${styles.electronNoDrag} ${styles.toolbarControl} ${styles.sourceControl} ${openId === "sources" ? styles.toolbarControlActive : ""}`}
+						title={selectedSource}
+						aria-haspopup="listbox"
+						aria-expanded={openId === "sources"}
 					>
-						<TimerIcon size={18} />
+						<MonitorIcon size={22} className="shrink-0" />
+						<div className={`${styles.controlText} flex-1`}>
+							<MarqueeText text={selectedSource} />
+						</div>
+						<CaretUpIcon
+							size={11}
+							className={`ml-auto shrink-0 opacity-60 transition-transform duration-200 ${
+								openId === "sources" ? "" : "rotate-180"
+							}`}
+						/>
 					</Button>
 				}
 			/>
 		</div>
 	);
 
-	const primaryRecordAction = (
-		<div className={styles.barGroup}>
-			<RecordConfirmPopover
-				onRecordAnyway={toggleRecording}
-				trigger={
-					<button
-						type="button"
-						className={`${styles.recBtn} ${styles.electronNoDrag}`}
-						onClick={handleRecordClick}
-						disabled={countdownActive}
-						title={t("recording.record")}
-						aria-label={t("recording.record")}
-					>
-						<div className={styles.recDot} />
-					</button>
-				}
-			/>
-		</div>
+	const systemAudioControl = (
+		<Button
+			variant="ghost"
+			onClick={() => setSystemAudioEnabled(!systemAudioEnabled)}
+			disabled={recording}
+			title={
+				systemAudioEnabled
+					? t("recording.disableSystemAudio")
+					: t("recording.enableSystemAudio")
+			}
+			aria-label={
+				systemAudioEnabled
+					? t("recording.disableSystemAudio")
+					: t("recording.enableSystemAudio")
+			}
+			aria-pressed={systemAudioEnabled}
+			className={`${styles.toolbarControl} ${styles.systemAudioControl} ${systemAudioEnabled ? styles.toolbarControlActive : ""}`}
+		>
+			{systemAudioEnabled ? <SpeakerHighIcon size={20} /> : <SpeakerXIcon size={20} />}
+			<span className={styles.systemAudioLabel}>
+				{t("recording.systemAudio", "System audio")}
+			</span>
+		</Button>
 	);
 
-	const secondaryControls = (
-		<div className={styles.barGroup}>
-			<div className="relative w-0 h-0">
-				<ProjectPopover
-					entries={projectLibraryEntries}
-					onOpenProject={openProjectFromLibrary}
-					trigger={<div className="absolute inset-0 pointer-events-none opacity-0" />}
-				/>
-			</div>
+	const captureControls = (
+		<CountdownPopover
+			countdownDelay={countdownDelay}
+			onSelectDelay={setCountdownDelay}
+			trigger={
+				<Button
+					variant="ghost"
+					size="icon"
+					iconSize="lg"
+					title={t("recording.countdownDelay")}
+					aria-pressed={countdownDelay > 0}
+					className={`${countdownDelay > 0 ? styles.ibActive : styles.ib}`}
+				>
+					<TimerIcon size={18} />
+				</Button>
+			}
+		/>
+	);
 
+	const primaryRecordAction = (
+		<RecordConfirmPopover
+			onRecordAnyway={toggleRecording}
+			trigger={
+				<button
+					type="button"
+					className={`${styles.recBtn} ${styles.electronNoDrag}`}
+					onClick={handleRecordClick}
+					disabled={countdownActive}
+					title={t("recording.record")}
+					aria-label={t("recording.record")}
+				>
+					<div className={styles.recDot} />
+				</button>
+			}
+		/>
+	);
+
+	const actionControls = (
+		<div className={styles.barGroup} role="group" aria-label={t("recording.record")}>
+			{captureControls}
 			<MorePopover
 				supportsHudCaptureProtection={supportsHudCaptureProtection}
 				hideHudFromCapture={hideHudFromCapture}
@@ -572,95 +597,87 @@ function LaunchWindowContent() {
 				trigger={
 					<Button
 						variant="ghost"
-						size="icon"
-						iconSize="lg"
 						title={t("recording.more")}
 						aria-label={t("recording.more")}
-						className={styles.ib}
+						className={`${styles.toolbarControl} w-[54px] justify-center px-2 ${openId === "more" ? styles.toolbarControlActive : ""}`}
 					>
-						<DotsThreeVerticalIcon size={18} />
+						<GearSixIcon size={20} />
+						<CaretUpIcon
+							size={10}
+							className={`opacity-60 transition-transform duration-200 ${
+								openId === "more" ? "" : "rotate-180"
+							}`}
+						/>
 					</Button>
 				}
 			/>
-
-			<Button
-				variant="ghost"
-				size="icon"
-				iconSize="lg"
-				onClick={() => window.electronAPI?.hudOverlayHide?.()}
-				title={t("recording.hideHud")}
-				aria-label={t("recording.hideHud")}
-				className={styles.ib}
-			>
-				<MinusIcon size={16} />
-			</Button>
-
-			<Button
-				variant="ghost"
-				size="icon"
-				iconSize="lg"
-				onClick={() => window.electronAPI?.hudOverlayClose?.()}
-				title={t("recording.closeApp")}
-				aria-label={t("recording.closeApp")}
-				className={styles.ib}
-			>
-				<XIcon size={16} />
-			</Button>
+			{primaryRecordAction}
 		</div>
+	);
+
+	const projectPopoverAnchor = (
+		<div className="relative h-0 w-0">
+			<ProjectPopover
+				entries={projectLibraryEntries}
+				onOpenProject={openProjectFromLibrary}
+				trigger={<div className="pointer-events-none absolute inset-0 opacity-0" />}
+			/>
+		</div>
+	);
+
+	const closeControl = (
+		<Button
+			variant="ghost"
+			size="icon"
+			iconSize="lg"
+			onClick={() => window.electronAPI?.hudOverlayClose?.()}
+			title={t("recording.closeApp")}
+			aria-label={t("recording.closeApp")}
+			className={`${styles.ib} ${styles.closeButton}`}
+		>
+			<XIcon size={20} />
+		</Button>
+	);
+
+	const hideControl = (
+		<Button
+			variant="ghost"
+			size="icon"
+			iconSize="lg"
+			onClick={() => window.electronAPI?.hudOverlayHide?.()}
+			title={t("recording.hideHud")}
+			aria-label={t("recording.hideHud")}
+			className={styles.ib}
+		>
+			<MinusIcon size={18} />
+		</Button>
 	);
 
 	const idleControls = (
 		<>
+			{projectPopoverAnchor}
+			{closeControl}
+
+			<div className={styles.sep} role="separator" aria-orientation="vertical" />
+
 			{platform !== "linux" && (
 				<>
-					<div className={styles.barGroup}>
-						<SourcePopover
-							selectedSource={selectedSource}
-							onSourceSelect={handleSourceSelect}
-							onOpen={beginInteractiveHudAction}
-							trigger={
-								<Button
-									variant="outline"
-									size="lg"
-									className={`${styles.electronNoDrag} group gap-2 px-3 min-w-0 max-w-[180px] rounded-[11px] font-medium text-[12px] shrink-0 border-[var(--launch-border)] bg-[var(--launch-surface)] text-[var(--launch-text)] hover:border-[var(--launch-border-strong)] hover:bg-[var(--launch-hover)] transition-all ${openId === "sources" ? "border-[var(--launch-border-strong)] bg-[var(--launch-hover)]" : ""}`}
-									title={selectedSource}
-									aria-haspopup="listbox"
-									aria-expanded={openId === "sources"}
-								>
-									<MonitorIcon size={16} className="shrink-0" />
-									<div className="flex-1 min-w-0 overflow-hidden">
-										<MarqueeText text={selectedSource} />
-									</div>
-									<CaretUpIcon
-										size={10}
-										className={`text-[#6b6b78] ml-0.5 shrink-0 transition-transform duration-200 ${
-											openId === "sources" ? "" : "rotate-180"
-										}`}
-									/>
-								</Button>
-							}
-						/>
-					</div>
-
+					{sourceControls}
 					<div className={styles.sep} role="separator" aria-orientation="vertical" />
 				</>
 			)}
 
-			{audioControls}
-
-			<div className={styles.sep} role="separator" aria-orientation="vertical" />
-
 			{videoControls}
+			{audioControls}
+			{systemAudioControl}
 
 			<div className={styles.sep} role="separator" aria-orientation="vertical" />
 
-			{captureOptions}
-
-			{primaryRecordAction}
+			{actionControls}
 
 			<div className={styles.sep} role="separator" aria-orientation="vertical" />
 
-			{secondaryControls}
+			{hideControl}
 		</>
 	);
 
@@ -710,13 +727,14 @@ function LaunchWindowContent() {
 								layout={!showRecordingWebcamPreview && !isHudDragging}
 								transition={hudStateTransition}
 								className={`${styles.bar} launch-theme mb-2`}
+								data-hud-interactive
 								{...a11yDataAttrs}
 							>
 								<div
 									// Linux compositors and non-passthrough Windows fallback windows
 									// need native window dragging; the JS drag path only translates
 									// content inside the HUD window.
-									className={`flex items-center px-0.5 cursor-grab active:cursor-grabbing ${
+									className={`${styles.dragHandle} ${
 										useNativeHudBarDrag ? styles.electronDrag : ""
 									}`}
 									onPointerDown={handleHudBarPointerDown}
@@ -726,7 +744,7 @@ function LaunchWindowContent() {
 									title={t("recording.dragHud", "Drag HUD")}
 									aria-hidden="true"
 								>
-									<RxDragHandleDots2 size={14} className="text-[#6b6b78]" />
+									<RxDragHandleDots2 size={12} />
 								</div>
 
 								<div className={styles.barStateViewport}>

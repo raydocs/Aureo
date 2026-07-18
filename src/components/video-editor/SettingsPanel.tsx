@@ -4689,7 +4689,12 @@ export function SettingsPanel({
 	return (
 		<aside
 			aria-labelledby={inspectorHeadingId}
-			className="flex h-full w-[332px] min-w-[280px] max-w-[332px] flex-[2] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-panel text-surface-foreground shadow-aureo-2"
+			className={cn(
+				"flex h-full flex-col overflow-hidden bg-surface-panel text-surface-foreground",
+				isBackgroundPanel
+					? "w-[332px] min-w-[280px] max-w-[332px] flex-[2] rounded-2xl border border-hairline shadow-aureo-2"
+					: "w-[320px] min-w-[260px] max-w-[320px] rounded-surface border border-hairline shadow-aureo-1",
+			)}
 		>
 			<header className="flex h-11 shrink-0 items-center border-b border-hairline px-4">
 				<h2

@@ -1,11 +1,50 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
+	HUD_INTERACTIVE_TARGET_SELECTOR,
+	isHudInteractiveTarget,
 	mergeHudInteractiveBounds,
 	shouldRestoreHudMousePassthroughAfterDrag,
 } from "./hudMousePassthrough";
 
 const hudBounds = { left: 100, top: 200, right: 300, bottom: 260 };
+
+function createClosestTarget(match: boolean) {
+	return {
+		closest: vi.fn((selector: string) => {
+			expect(selector).toBe(HUD_INTERACTIVE_TARGET_SELECTOR);
+			return match ? {} : null;
+		}),
+	} as unknown as EventTarget;
+}
+
+describe("isHudInteractiveTarget", () => {
+	it("returns false for non-element targets", () => {
+		expect(isHudInteractiveTarget(null)).toBe(false);
+		expect(isHudInteractiveTarget(undefined)).toBe(false);
+		expect(isHudInteractiveTarget({} as EventTarget)).toBe(false);
+	});
+
+	it("returns true for explicit HUD interactive regions", () => {
+		const target = createClosestTarget(true);
+		expect(isHudInteractiveTarget(target)).toBe(true);
+		expect((target as { closest: ReturnType<typeof vi.fn> }).closest).toHaveBeenCalledWith(
+			"[data-hud-interactive], [data-radix-popper-content-wrapper]",
+		);
+	});
+
+	it("returns true for Radix popper content wrappers", () => {
+		// Same selector covers both explicit HUD chrome and Radix poppers.
+		expect(isHudInteractiveTarget(createClosestTarget(true))).toBe(true);
+	});
+
+	it("ignores generic pointer-events-auto layout classes", () => {
+		// Closest only matches explicit interactive selectors, never layout classes.
+		const target = createClosestTarget(false);
+		expect(isHudInteractiveTarget(target)).toBe(false);
+		expect(HUD_INTERACTIVE_TARGET_SELECTOR).not.toContain("pointer-events-auto");
+	});
+});
 
 describe("mergeHudInteractiveBounds", () => {
 	it("returns null when there are no interactive bounds", () => {

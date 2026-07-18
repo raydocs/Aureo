@@ -15,9 +15,9 @@ import {
 	Plus,
 	PuzzlePiece,
 	ArrowClockwise as Redo2,
+	SidebarSimple,
 	Sparkle,
 	ArrowCounterClockwise as Undo2,
-	UserCircle as User,
 	MagicWand as WandSparkles,
 	X,
 	MagnifyingGlassPlus as ZoomIn,
@@ -714,9 +714,14 @@ export default function VideoEditor() {
 	const [previewVersion, setPreviewVersion] = useState(0);
 	const [isPreviewReady, setIsPreviewReady] = useState(false);
 	const [autoSuggestZoomsTrigger, setAutoSuggestZoomsTrigger] = useState(0);
+	const [inspectorOpen, setInspectorOpen] = useState(false);
+	const [isInspectorDocked, setIsInspectorDocked] = useState(
+		() => typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches,
+	);
 	const headerLeftControlsPaddingClass = appPlatform === "darwin" ? "pl-[76px]" : "";
 
 	const videoPlaybackRef = useRef<VideoPlaybackRef>(null);
+	const inspectorToggleRef = useRef<HTMLButtonElement | null>(null);
 	const projectBrowserTriggerRef = useRef<HTMLButtonElement | null>(null);
 	const projectBrowserFallbackTriggerRef = useRef<HTMLButtonElement | null>(null);
 	const projectNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -756,6 +761,18 @@ export default function VideoEditor() {
 		const secs = Math.floor(seconds % 60);
 		return `${mins}:${secs.toString().padStart(2, "0")}`;
 	}
+
+	useEffect(() => {
+		const mediaQuery = window.matchMedia("(min-width: 1280px)");
+		const syncInspectorLayout = () => {
+			setIsInspectorDocked(mediaQuery.matches);
+			if (mediaQuery.matches) setInspectorOpen(false);
+		};
+
+		syncInspectorLayout();
+		mediaQuery.addEventListener("change", syncInspectorLayout);
+		return () => mediaQuery.removeEventListener("change", syncInspectorLayout);
+	}, []);
 
 	useEffect(() => {
 		void window.electronAPI?.getPlatform?.()?.then((platform) => {
@@ -6557,6 +6574,306 @@ export default function VideoEditor() {
 		);
 	}
 
+	const closeInspectorOverlay = () => {
+		setInspectorOpen(false);
+		inspectorToggleRef.current?.focus();
+	};
+
+	const inspectorPanel =
+		activeEffectSection === "extensions" ? (
+			<div className="h-full w-[320px] overflow-hidden [&>div]:h-full [&>div]:w-full [&>div]:min-w-0 [&>div]:max-w-none">
+				<ExtensionManager />
+			</div>
+		) : (
+			<SettingsPanel
+				panelMode="editor"
+				activeEffectSection={activeEffectSection}
+				selected={wallpaper}
+				onWallpaperChange={setWallpaper}
+				selectedZoomDepth={
+					selectedZoomId ? zoomRegions.find((z) => z.id === selectedZoomId)?.depth : null
+				}
+				onZoomDepthChange={(depth) => selectedZoomId && handleZoomDepthChange(depth)}
+				selectedZoomId={selectedZoomId}
+				selectedZoomMode={
+					selectedZoomId
+						? (zoomRegions.find((z) => z.id === selectedZoomId)?.mode ?? "auto")
+						: null
+				}
+				onZoomModeChange={(mode) => selectedZoomId && handleZoomModeChange(mode)}
+				onZoomDelete={handleZoomDelete}
+				selectedClipId={selectedClipId}
+				selectedClipSpeed={
+					selectedClipId
+						? (clipRegions.find((c) => c.id === selectedClipId)?.speed ?? 1)
+						: null
+				}
+				selectedClipMuted={
+					selectedClipId
+						? (clipRegions.find((c) => c.id === selectedClipId)?.muted ?? false)
+						: null
+				}
+				selectedClipShowSourceAudio={
+					selectedClipId
+						? (clipRegions.find((c) => c.id === selectedClipId)?.showSourceAudio ??
+							false)
+						: null
+				}
+				selectedClipHideCursor={
+					selectedClipId
+						? (clipRegions.find((clip) => clip.id === selectedClipId)?.hideCursor ??
+							false)
+						: null
+				}
+				selectedClipDisableCursorSmoothing={
+					selectedClipId
+						? (clipRegions.find((clip) => clip.id === selectedClipId)
+								?.disableCursorSmoothing ?? false)
+						: null
+				}
+				onClipSpeedChange={handleClipSpeedChange}
+				onClipMutedChange={handleClipMutedChange}
+				onClipShowSourceAudioChange={handleClipShowSourceAudioChange}
+				onClipHideCursorChange={handleClipHideCursorChange}
+				onClipDisableCursorSmoothingChange={handleClipDisableCursorSmoothingChange}
+				selectedSpeedRegionSpeed={
+					selectedSpeedId
+						? (speedRegions.find((region) => region.id === selectedSpeedId)?.speed ??
+							null)
+						: null
+				}
+				onSpeedRegionSpeedChange={handleSpeedRegionSpeedChange}
+				onSpeedRegionDelete={() => {
+					if (selectedSpeedId) handleSpeedDelete(selectedSpeedId);
+				}}
+				onSuggestSmartTyping={handleSuggestSmartTyping}
+				typingTelemetryAvailable={typingTelemetryAvailable}
+				onClipDelete={handleClipDelete}
+				hasClipSourceAudio={hasClipSourceAudio}
+				sourceAudioTrackMeta={audio.sourceAudioTrackMeta}
+				sourceAudioTrackSettings={audio.selectedClipSourceAudioTrackSettings}
+				onSourceAudioTrackVolumeChange={audio.onSelectedClipSourceAudioTrackVolumeChange}
+				onSourceAudioTrackNormalizeChange={
+					audio.onSelectedClipSourceAudioTrackNormalizeChange
+				}
+				selectedAudioId={selectedAudioId}
+				selectedAudioVolume={
+					selectedAudioId
+						? (audioRegions.find((r) => r.id === selectedAudioId)?.volume ?? null)
+						: null
+				}
+				selectedAudioNormalize={
+					selectedAudioId
+						? (audioRegions.find((r) => r.id === selectedAudioId)?.normalize ?? false)
+						: null
+				}
+				onAudioVolumeChange={handleAudioVolumeChange}
+				onAudioNormalizeChange={handleAudioNormalizeChange}
+				onAudioDelete={handleAudioDelete}
+				shadowIntensity={shadowIntensity}
+				onShadowChange={setShadowIntensity}
+				backgroundBlur={backgroundBlur}
+				onBackgroundBlurChange={setBackgroundBlur}
+				backgroundEnabled={backgroundEnabled}
+				onBackgroundEnabledChange={setBackgroundEnabled}
+				zoomMotionBlurTuning={zoomMotionBlurTuning}
+				onZoomMotionBlurTuningChange={setZoomMotionBlurTuning}
+				zoomTemporalMotionBlur={zoomTemporalMotionBlur}
+				onZoomTemporalMotionBlurChange={setZoomTemporalMotionBlur}
+				zoomMotionBlurSampleCount={zoomMotionBlurSampleCount}
+				onZoomMotionBlurSampleCountChange={setZoomMotionBlurSampleCount}
+				zoomMotionBlurShutterFraction={zoomMotionBlurShutterFraction}
+				onZoomMotionBlurShutterFractionChange={setZoomMotionBlurShutterFraction}
+				autoApplyFreshRecordingAutoZooms={autoApplyFreshRecordingAutoZooms}
+				onAutoApplyFreshRecordingAutoZoomsChange={setAutoApplyFreshRecordingAutoZooms}
+				connectZooms={connectZooms}
+				onConnectZoomsChange={setConnectZooms}
+				zoomInDurationMs={zoomInDurationMs}
+				onZoomInDurationMsChange={setZoomInDurationMs}
+				zoomInOverlapMs={zoomInOverlapMs}
+				onZoomInOverlapMsChange={setZoomInOverlapMs}
+				zoomOutDurationMs={zoomOutDurationMs}
+				onZoomOutDurationMsChange={setZoomOutDurationMs}
+				connectedZoomGapMs={connectedZoomGapMs}
+				onConnectedZoomGapMsChange={setConnectedZoomGapMs}
+				connectedZoomDurationMs={connectedZoomDurationMs}
+				onConnectedZoomDurationMsChange={setConnectedZoomDurationMs}
+				zoomInEasing={zoomInEasing}
+				onZoomInEasingChange={setZoomInEasing}
+				zoomOutEasing={zoomOutEasing}
+				onZoomOutEasingChange={setZoomOutEasing}
+				connectedZoomEasing={connectedZoomEasing}
+				onConnectedZoomEasingChange={setConnectedZoomEasing}
+				showCursor={effectiveShowCursor}
+				onShowCursorChange={handleShowCursorChange}
+				hideCursorWhenIdle={hideCursorWhenIdle}
+				onHideCursorWhenIdleChange={setHideCursorWhenIdle}
+				stopCursorAtEnd={stopCursorAtEnd}
+				onStopCursorAtEndChange={setStopCursorAtEnd}
+				removeCursorShakes={removeCursorShakesEnabled}
+				onRemoveCursorShakesChange={setRemoveCursorShakesEnabled}
+				alwaysUseDefaultCursor={alwaysUseDefaultCursor}
+				onAlwaysUseDefaultCursorChange={setAlwaysUseDefaultCursor}
+				optimizeCursorTypes={optimizeCursorTypes}
+				onOptimizeCursorTypesChange={setOptimizeCursorTypes}
+				loopCursor={loopCursor}
+				onLoopCursorChange={setLoopCursor}
+				cursorStyle={cursorStyle}
+				onCursorStyleChange={setCursorStyle}
+				cursorSize={cursorSize}
+				onCursorSizeChange={setCursorSize}
+				cursorSmoothing={cursorSmoothing}
+				onCursorSmoothingChange={setCursorSmoothing}
+				cursorSpringStiffnessMultiplier={cursorSpringStiffnessMultiplier}
+				onCursorSpringStiffnessMultiplierChange={setCursorSpringStiffnessMultiplier}
+				cursorSpringDampingMultiplier={cursorSpringDampingMultiplier}
+				onCursorSpringDampingMultiplierChange={setCursorSpringDampingMultiplier}
+				cursorSpringMassMultiplier={cursorSpringMassMultiplier}
+				onCursorSpringMassMultiplierChange={setCursorSpringMassMultiplier}
+				cameraSpringStiffnessMultiplier={cameraSpringStiffnessMultiplier}
+				onCameraSpringStiffnessMultiplierChange={setCameraSpringStiffnessMultiplier}
+				cameraSpringDampingMultiplier={cameraSpringDampingMultiplier}
+				onCameraSpringDampingMultiplierChange={setCameraSpringDampingMultiplier}
+				cameraSpringMassMultiplier={cameraSpringMassMultiplier}
+				onCameraSpringMassMultiplierChange={setCameraSpringMassMultiplier}
+				zoomClassicMode={zoomClassicMode}
+				onZoomClassicModeChange={setZoomClassicMode}
+				cursorMotionBlur={cursorMotionBlur}
+				onCursorMotionBlurChange={setCursorMotionBlur}
+				cursorClickEffect={cursorClickEffect}
+				cursorClickEffectColor={cursorClickEffectColor}
+				onCursorClickEffectChange={setCursorClickEffect}
+				onCursorClickEffectColorChange={setCursorClickEffectColor}
+				cursorClickEffectScale={cursorClickEffectScale}
+				onCursorClickEffectScaleChange={setCursorClickEffectScale}
+				cursorClickEffectOpacity={cursorClickEffectOpacity}
+				onCursorClickEffectOpacityChange={setCursorClickEffectOpacity}
+				cursorClickEffectDurationMs={cursorClickEffectDurationMs}
+				onCursorClickEffectDurationMsChange={setCursorClickEffectDurationMs}
+				cursorClickBounce={cursorClickBounce}
+				onCursorClickBounceChange={setCursorClickBounce}
+				cursorClickBounceDuration={cursorClickBounceDuration}
+				onCursorClickBounceDurationChange={setCursorClickBounceDuration}
+				cursorSway={cursorSway}
+				onCursorSwayChange={setCursorSway}
+				borderRadius={borderRadius}
+				onBorderRadiusChange={setBorderRadius}
+				webcam={webcam}
+				webcamPreviewSrc={webcam.sourcePath ? resolvedWebcamVideoUrl : null}
+				webcamPreviewCurrentTime={currentTime}
+				webcamPreviewPlaying={isPlaying}
+				onWebcamChange={setWebcam}
+				selectedWebcamLayoutId={selectedWebcamLayoutId}
+				onWebcamLayoutModeChange={handleWebcamLayoutModeChange}
+				onWebcamLayoutDelete={handleWebcamLayoutDelete}
+				onUploadWebcam={handleUploadWebcam}
+				onClearWebcam={handleClearWebcam}
+				padding={padding}
+				onPaddingChange={setPadding}
+				frame={frame}
+				onFrameChange={setFrame}
+				cropRegion={cropRegion}
+				onCropChange={setCropRegion}
+				aspectRatio={aspectRatio}
+				onAspectRatioChange={setAspectRatio}
+				selectedAnnotationId={selectedAnnotationId}
+				annotationRegions={annotationRegions}
+				autoCaptions={autoCaptions}
+				autoCaptionSettings={autoCaptionSettings}
+				whisperExecutablePath={whisperExecutablePath}
+				whisperModelPath={whisperModelPath}
+				whisperModelDownloadStatus={whisperModelDownloadStatus}
+				whisperModelDownloadProgress={whisperModelDownloadProgress}
+				isGeneratingCaptions={isGeneratingCaptions}
+				onAutoCaptionSettingsChange={setAutoCaptionSettings}
+				onPickWhisperExecutable={handlePickWhisperExecutable}
+				onPickWhisperModel={handlePickWhisperModel}
+				onGenerateAutoCaptions={handleGenerateAutoCaptions}
+				onClearAutoCaptions={handleClearAutoCaptions}
+				captionCurrentTimeMs={Math.round(currentTime * 1000)}
+				selectedCaptionId={selectedCaptionId}
+				onBeginCaptionEdit={handleBeginCaptionEdit}
+				onCaptionTextEdit={handleCaptionTextEdit}
+				onCaptionRetime={handleCaptionRetime}
+				onCaptionSplit={handleCaptionSplit}
+				onCaptionMerge={handleCaptionMerge}
+				onCaptionDelete={handleCaptionDelete}
+				onDownloadWhisperSmallModel={handleDownloadWhisperSmallModel}
+				onDeleteWhisperSmallModel={handleDeleteWhisperSmallModel}
+				nativeCaptureUnavailableSession={sessionNativeCaptureUnavailable}
+				onOpenNativeCaptureUnavailableModal={() =>
+					setNativeCaptureUnavailableModalOpen(true)
+				}
+				onAnnotationContentChange={handleAnnotationContentChange}
+				onAnnotationTypeChange={handleAnnotationTypeChange}
+				onAnnotationStyleChange={handleAnnotationStyleChange}
+				onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
+				onAnnotationBlurIntensityChange={handleAnnotationBlurIntensityChange}
+				onAnnotationBlurColorChange={handleAnnotationBlurColorChange}
+				onAnnotationHighlightOpacityChange={handleAnnotationHighlightOpacityChange}
+				onAnnotationDisabledChange={handleAnnotationDisabledChange}
+				onAnnotationDelete={handleAnnotationDelete}
+			/>
+		);
+
+	const inspectorSectionSwitcher = (
+		<div
+			className="custom-scrollbar flex w-[320px] max-w-[320px] flex-shrink-0 items-center gap-1 overflow-x-auto rounded-xl border border-hairline bg-surface-panel p-1 shadow-aureo-1"
+			role="toolbar"
+			aria-label={t("editor.toolbar.inspector", "Inspector sections")}
+			aria-orientation="horizontal"
+		>
+			{editorSectionButtons.map((section) => {
+				const isActive = activeEffectSection === section.id;
+				return (
+					<motion.button
+						key={section.id}
+						type="button"
+						onClick={() => setActiveEffectSection(section.id)}
+						title={section.label}
+						aria-label={section.label}
+						aria-pressed={isActive}
+						className="group relative flex h-8 w-8 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-editor-bg"
+						animate={{ opacity: isActive ? 1 : 0.55 }}
+						transition={{ duration: reduceMotion ? 0 : 0.14 }}
+					>
+						{isActive && (
+							<motion.span
+								layoutId="section-switcher-active-bg"
+								className="absolute inset-0 rounded-lg bg-foreground/[0.08]"
+								transition={
+									reduceMotion
+										? { duration: 0 }
+										: { type: "spring", stiffness: 450, damping: 35 }
+								}
+							/>
+						)}
+						<span
+							className={cn(
+								"relative z-10 transition-colors",
+								isActive ? "text-primary" : "text-foreground",
+								reduceMotion && "transition-none",
+							)}
+						>
+							{typeof section.icon === "string" ? (
+								<ExtensionIcon
+									icon={section.icon}
+									extensionPath={section.extensionPath}
+									className="h-5 w-5"
+								/>
+							) : (
+								<section.icon
+									className="h-5 w-5"
+									weight={isActive ? "fill" : "regular"}
+								/>
+							)}
+						</span>
+					</motion.button>
+				);
+			})}
+		</div>
+	);
+
 	return (
 		<div className="editor-liquid-shell flex h-screen flex-col overflow-hidden bg-editor-bg text-foreground selection:bg-primary/30">
 			<EditorHeaderLayout
@@ -6839,6 +7156,25 @@ export default function VideoEditor() {
 								{isMac ? "⌘ K" : "Ctrl K"}
 							</kbd>
 						</Button>
+						<div
+							aria-hidden="true"
+							className="mx-1 h-4 w-px shrink-0 bg-hairline xl:hidden"
+						/>
+						<Button
+							ref={inspectorToggleRef}
+							type="button"
+							variant="toolbar"
+							size="icon-sm"
+							onClick={() => setInspectorOpen((open) => !open)}
+							aria-pressed={inspectorOpen}
+							aria-expanded={inspectorOpen}
+							aria-controls="editor-inspector"
+							title={t("editor.inspector.toggle", "Toggle inspector")}
+							aria-label={t("editor.inspector.toggle", "Toggle inspector")}
+							className="xl:hidden"
+						>
+							<SidebarSimple className="h-4 w-4" />
+						</Button>
 						<div aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-hairline" />
 						<DropdownMenu
 							open={showExportDropdown}
@@ -7049,439 +7385,63 @@ export default function VideoEditor() {
 				}
 			/>
 
-			<div className="relative flex min-h-0 flex-1 flex-col gap-3 p-4">
-				<div className="flex min-h-0 flex-1 gap-3 relative z-10">
-					{/* Settings sidebar */}
-					<div className="flex flex-shrink-0 gap-1.5">
-						{/* Icon rail */}
-						<div
-							className="glass-clear flex flex-shrink-0 flex-col items-center gap-0.5 rounded-surface border border-hairline px-2 py-2 shadow-aureo-1"
-							role="toolbar"
-							aria-label={t("editor.toolbar.inspector", "Inspector sections")}
-							aria-orientation="vertical"
-						>
-							{editorSectionButtons.map((section) => {
-								const isActive = activeEffectSection === section.id;
-								return (
-									<div key={section.id} className="flex items-center">
-										<motion.button
-											type="button"
-											onClick={() => setActiveEffectSection(section.id)}
-											title={section.label}
-											aria-label={section.label}
-											aria-pressed={isActive}
-											className="group relative flex h-9 w-9 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-editor-bg"
-											animate={{ opacity: isActive ? 1 : 0.55 }}
-											transition={{ duration: reduceMotion ? 0 : 0.14 }}
+			<div className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4">
+				<div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
+					{/* Main workspace */}
+					<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+						{/* Canvas */}
+						<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-surface border border-hairline bg-editor-surface">
+							{/* Top canvas toolbar */}
+							<div className="flex flex-shrink-0 items-center justify-center gap-2 border-b border-hairline bg-editor-surface-alt px-3 py-2">
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
 										>
-											{isActive && (
-												<motion.span
-													layoutId="rail-active-bg"
-													className="absolute inset-0 rounded-lg bg-foreground/[0.08]"
-													transition={
-														reduceMotion
-															? { duration: 0 }
-															: {
-																	type: "spring",
-																	stiffness: 450,
-																	damping: 35,
-																}
-													}
-												/>
-											)}
-											<span
-												className={cn(
-													"relative z-10 transition-colors",
-													isActive ? "text-primary" : "text-foreground",
-													reduceMotion && "transition-none",
-												)}
-											>
-												{typeof section.icon === "string" ? (
-													<ExtensionIcon
-														icon={section.icon}
-														extensionPath={section.extensionPath}
-														className="h-[27px] w-[27px]"
-													/>
-												) : (
-													<section.icon
-														className="h-[27px] w-[27px]"
-														weight={isActive ? "fill" : "regular"}
-													/>
-												)}
+											<span className="font-medium">
+												{getAspectRatioLabel(aspectRatio)}
 											</span>
-										</motion.button>
-										<div className="ml-1.5 h-1.5 w-1.5 flex-shrink-0">
-											{isActive && (
-												<motion.span
-													layoutId="rail-active-dot"
-													className="block h-1.5 w-1.5 rounded-full bg-primary"
-													initial={
-														reduceMotion
-															? false
-															: { opacity: 0, scale: 0.5 }
-													}
-													animate={{ opacity: 1, scale: 1 }}
-													exit={
-														reduceMotion
-															? { opacity: 1, scale: 1 }
-															: { opacity: 0, scale: 0.5 }
-													}
-													transition={
-														reduceMotion
-															? { duration: 0 }
-															: {
-																	type: "spring",
-																	stiffness: 500,
-																	damping: 32,
-																}
-													}
-												/>
-											)}
-										</div>
-									</div>
-								);
-							})}
-							<div className="mt-auto flex flex-col items-center gap-0.5 pt-3">
-								<button
-									type="button"
-									onClick={() => toast.info("Account coming soon")}
-									title={t("editor.account.title", "Account")}
-									aria-label={t("editor.account.title", "Account")}
-									className="group relative flex h-9 w-9 items-center justify-center rounded-lg text-foreground/55 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-editor-bg"
-								>
-									<span className="absolute inset-0 rounded-lg bg-foreground/[0.04] opacity-0 transition-opacity group-hover:opacity-100" />
-									<User className="relative z-10 h-[22px] w-[22px]" />
-								</button>
-							</div>
-						</div>
-						{/* Panel */}
-						{activeEffectSection === "extensions" ? (
-							<ExtensionManager />
-						) : (
-							<SettingsPanel
-								panelMode="editor"
-								activeEffectSection={activeEffectSection}
-								selected={wallpaper}
-								onWallpaperChange={setWallpaper}
-								selectedZoomDepth={
-									selectedZoomId
-										? zoomRegions.find((z) => z.id === selectedZoomId)?.depth
-										: null
-								}
-								onZoomDepthChange={(depth) =>
-									selectedZoomId && handleZoomDepthChange(depth)
-								}
-								selectedZoomId={selectedZoomId}
-								selectedZoomMode={
-									selectedZoomId
-										? (zoomRegions.find((z) => z.id === selectedZoomId)?.mode ??
-											"auto")
-										: null
-								}
-								onZoomModeChange={(mode) =>
-									selectedZoomId && handleZoomModeChange(mode)
-								}
-								onZoomDelete={handleZoomDelete}
-								selectedClipId={selectedClipId}
-								selectedClipSpeed={
-									selectedClipId
-										? (clipRegions.find((c) => c.id === selectedClipId)
-												?.speed ?? 1)
-										: null
-								}
-								selectedClipMuted={
-									selectedClipId
-										? (clipRegions.find((c) => c.id === selectedClipId)
-												?.muted ?? false)
-										: null
-								}
-								selectedClipShowSourceAudio={
-									selectedClipId
-										? (clipRegions.find((c) => c.id === selectedClipId)
-												?.showSourceAudio ?? false)
-										: null
-								}
-								selectedClipHideCursor={
-									selectedClipId
-										? (clipRegions.find((clip) => clip.id === selectedClipId)
-												?.hideCursor ?? false)
-										: null
-								}
-								selectedClipDisableCursorSmoothing={
-									selectedClipId
-										? (clipRegions.find((clip) => clip.id === selectedClipId)
-												?.disableCursorSmoothing ?? false)
-										: null
-								}
-								onClipSpeedChange={handleClipSpeedChange}
-								onClipMutedChange={handleClipMutedChange}
-								onClipShowSourceAudioChange={handleClipShowSourceAudioChange}
-								onClipHideCursorChange={handleClipHideCursorChange}
-								onClipDisableCursorSmoothingChange={
-									handleClipDisableCursorSmoothingChange
-								}
-								selectedSpeedRegionSpeed={
-									selectedSpeedId
-										? (speedRegions.find(
-												(region) => region.id === selectedSpeedId,
-											)?.speed ?? null)
-										: null
-								}
-								onSpeedRegionSpeedChange={handleSpeedRegionSpeedChange}
-								onSpeedRegionDelete={() => {
-									if (selectedSpeedId) handleSpeedDelete(selectedSpeedId);
-								}}
-								onSuggestSmartTyping={handleSuggestSmartTyping}
-								typingTelemetryAvailable={typingTelemetryAvailable}
-								onClipDelete={handleClipDelete}
-								hasClipSourceAudio={hasClipSourceAudio}
-								sourceAudioTrackMeta={audio.sourceAudioTrackMeta}
-								sourceAudioTrackSettings={
-									audio.selectedClipSourceAudioTrackSettings
-								}
-								onSourceAudioTrackVolumeChange={
-									audio.onSelectedClipSourceAudioTrackVolumeChange
-								}
-								onSourceAudioTrackNormalizeChange={
-									audio.onSelectedClipSourceAudioTrackNormalizeChange
-								}
-								selectedAudioId={selectedAudioId}
-								selectedAudioVolume={
-									selectedAudioId
-										? (audioRegions.find((r) => r.id === selectedAudioId)
-												?.volume ?? null)
-										: null
-								}
-								selectedAudioNormalize={
-									selectedAudioId
-										? (audioRegions.find((r) => r.id === selectedAudioId)
-												?.normalize ?? false)
-										: null
-								}
-								onAudioVolumeChange={handleAudioVolumeChange}
-								onAudioNormalizeChange={handleAudioNormalizeChange}
-								onAudioDelete={handleAudioDelete}
-								shadowIntensity={shadowIntensity}
-								onShadowChange={setShadowIntensity}
-								backgroundBlur={backgroundBlur}
-								onBackgroundBlurChange={setBackgroundBlur}
-								backgroundEnabled={backgroundEnabled}
-								onBackgroundEnabledChange={setBackgroundEnabled}
-								zoomMotionBlurTuning={zoomMotionBlurTuning}
-								onZoomMotionBlurTuningChange={setZoomMotionBlurTuning}
-								zoomTemporalMotionBlur={zoomTemporalMotionBlur}
-								onZoomTemporalMotionBlurChange={setZoomTemporalMotionBlur}
-								zoomMotionBlurSampleCount={zoomMotionBlurSampleCount}
-								onZoomMotionBlurSampleCountChange={setZoomMotionBlurSampleCount}
-								zoomMotionBlurShutterFraction={zoomMotionBlurShutterFraction}
-								onZoomMotionBlurShutterFractionChange={
-									setZoomMotionBlurShutterFraction
-								}
-								autoApplyFreshRecordingAutoZooms={autoApplyFreshRecordingAutoZooms}
-								onAutoApplyFreshRecordingAutoZoomsChange={
-									setAutoApplyFreshRecordingAutoZooms
-								}
-								connectZooms={connectZooms}
-								onConnectZoomsChange={setConnectZooms}
-								zoomInDurationMs={zoomInDurationMs}
-								onZoomInDurationMsChange={setZoomInDurationMs}
-								zoomInOverlapMs={zoomInOverlapMs}
-								onZoomInOverlapMsChange={setZoomInOverlapMs}
-								zoomOutDurationMs={zoomOutDurationMs}
-								onZoomOutDurationMsChange={setZoomOutDurationMs}
-								connectedZoomGapMs={connectedZoomGapMs}
-								onConnectedZoomGapMsChange={setConnectedZoomGapMs}
-								connectedZoomDurationMs={connectedZoomDurationMs}
-								onConnectedZoomDurationMsChange={setConnectedZoomDurationMs}
-								zoomInEasing={zoomInEasing}
-								onZoomInEasingChange={setZoomInEasing}
-								zoomOutEasing={zoomOutEasing}
-								onZoomOutEasingChange={setZoomOutEasing}
-								connectedZoomEasing={connectedZoomEasing}
-								onConnectedZoomEasingChange={setConnectedZoomEasing}
-								showCursor={effectiveShowCursor}
-								onShowCursorChange={handleShowCursorChange}
-								hideCursorWhenIdle={hideCursorWhenIdle}
-								onHideCursorWhenIdleChange={setHideCursorWhenIdle}
-								stopCursorAtEnd={stopCursorAtEnd}
-								onStopCursorAtEndChange={setStopCursorAtEnd}
-								removeCursorShakes={removeCursorShakesEnabled}
-								onRemoveCursorShakesChange={setRemoveCursorShakesEnabled}
-								alwaysUseDefaultCursor={alwaysUseDefaultCursor}
-								onAlwaysUseDefaultCursorChange={setAlwaysUseDefaultCursor}
-								optimizeCursorTypes={optimizeCursorTypes}
-								onOptimizeCursorTypesChange={setOptimizeCursorTypes}
-								loopCursor={loopCursor}
-								onLoopCursorChange={setLoopCursor}
-								cursorStyle={cursorStyle}
-								onCursorStyleChange={setCursorStyle}
-								cursorSize={cursorSize}
-								onCursorSizeChange={setCursorSize}
-								cursorSmoothing={cursorSmoothing}
-								onCursorSmoothingChange={setCursorSmoothing}
-								cursorSpringStiffnessMultiplier={cursorSpringStiffnessMultiplier}
-								onCursorSpringStiffnessMultiplierChange={
-									setCursorSpringStiffnessMultiplier
-								}
-								cursorSpringDampingMultiplier={cursorSpringDampingMultiplier}
-								onCursorSpringDampingMultiplierChange={
-									setCursorSpringDampingMultiplier
-								}
-								cursorSpringMassMultiplier={cursorSpringMassMultiplier}
-								onCursorSpringMassMultiplierChange={setCursorSpringMassMultiplier}
-								cameraSpringStiffnessMultiplier={cameraSpringStiffnessMultiplier}
-								onCameraSpringStiffnessMultiplierChange={
-									setCameraSpringStiffnessMultiplier
-								}
-								cameraSpringDampingMultiplier={cameraSpringDampingMultiplier}
-								onCameraSpringDampingMultiplierChange={
-									setCameraSpringDampingMultiplier
-								}
-								cameraSpringMassMultiplier={cameraSpringMassMultiplier}
-								onCameraSpringMassMultiplierChange={setCameraSpringMassMultiplier}
-								zoomClassicMode={zoomClassicMode}
-								onZoomClassicModeChange={setZoomClassicMode}
-								cursorMotionBlur={cursorMotionBlur}
-								onCursorMotionBlurChange={setCursorMotionBlur}
-								cursorClickEffect={cursorClickEffect}
-								cursorClickEffectColor={cursorClickEffectColor}
-								onCursorClickEffectChange={setCursorClickEffect}
-								onCursorClickEffectColorChange={setCursorClickEffectColor}
-								cursorClickEffectScale={cursorClickEffectScale}
-								onCursorClickEffectScaleChange={setCursorClickEffectScale}
-								cursorClickEffectOpacity={cursorClickEffectOpacity}
-								onCursorClickEffectOpacityChange={setCursorClickEffectOpacity}
-								cursorClickEffectDurationMs={cursorClickEffectDurationMs}
-								onCursorClickEffectDurationMsChange={setCursorClickEffectDurationMs}
-								cursorClickBounce={cursorClickBounce}
-								onCursorClickBounceChange={setCursorClickBounce}
-								cursorClickBounceDuration={cursorClickBounceDuration}
-								onCursorClickBounceDurationChange={setCursorClickBounceDuration}
-								cursorSway={cursorSway}
-								onCursorSwayChange={setCursorSway}
-								borderRadius={borderRadius}
-								onBorderRadiusChange={setBorderRadius}
-								webcam={webcam}
-								webcamPreviewSrc={webcam.sourcePath ? resolvedWebcamVideoUrl : null}
-								webcamPreviewCurrentTime={currentTime}
-								webcamPreviewPlaying={isPlaying}
-								onWebcamChange={setWebcam}
-								selectedWebcamLayoutId={selectedWebcamLayoutId}
-								onWebcamLayoutModeChange={handleWebcamLayoutModeChange}
-								onWebcamLayoutDelete={handleWebcamLayoutDelete}
-								onUploadWebcam={handleUploadWebcam}
-								onClearWebcam={handleClearWebcam}
-								padding={padding}
-								onPaddingChange={setPadding}
-								frame={frame}
-								onFrameChange={setFrame}
-								cropRegion={cropRegion}
-								onCropChange={setCropRegion}
-								aspectRatio={aspectRatio}
-								onAspectRatioChange={setAspectRatio}
-								selectedAnnotationId={selectedAnnotationId}
-								annotationRegions={annotationRegions}
-								autoCaptions={autoCaptions}
-								autoCaptionSettings={autoCaptionSettings}
-								whisperExecutablePath={whisperExecutablePath}
-								whisperModelPath={whisperModelPath}
-								whisperModelDownloadStatus={whisperModelDownloadStatus}
-								whisperModelDownloadProgress={whisperModelDownloadProgress}
-								isGeneratingCaptions={isGeneratingCaptions}
-								onAutoCaptionSettingsChange={setAutoCaptionSettings}
-								onPickWhisperExecutable={handlePickWhisperExecutable}
-								onPickWhisperModel={handlePickWhisperModel}
-								onGenerateAutoCaptions={handleGenerateAutoCaptions}
-								onClearAutoCaptions={handleClearAutoCaptions}
-								captionCurrentTimeMs={Math.round(currentTime * 1000)}
-								selectedCaptionId={selectedCaptionId}
-								onBeginCaptionEdit={handleBeginCaptionEdit}
-								onCaptionTextEdit={handleCaptionTextEdit}
-								onCaptionRetime={handleCaptionRetime}
-								onCaptionSplit={handleCaptionSplit}
-								onCaptionMerge={handleCaptionMerge}
-								onCaptionDelete={handleCaptionDelete}
-								onDownloadWhisperSmallModel={handleDownloadWhisperSmallModel}
-								onDeleteWhisperSmallModel={handleDeleteWhisperSmallModel}
-								nativeCaptureUnavailableSession={sessionNativeCaptureUnavailable}
-								onOpenNativeCaptureUnavailableModal={() =>
-									setNativeCaptureUnavailableModalOpen(true)
-								}
-								onAnnotationContentChange={handleAnnotationContentChange}
-								onAnnotationTypeChange={handleAnnotationTypeChange}
-								onAnnotationStyleChange={handleAnnotationStyleChange}
-								onAnnotationFigureDataChange={handleAnnotationFigureDataChange}
-								onAnnotationBlurIntensityChange={
-									handleAnnotationBlurIntensityChange
-								}
-								onAnnotationBlurColorChange={handleAnnotationBlurColorChange}
-								onAnnotationHighlightOpacityChange={
-									handleAnnotationHighlightOpacityChange
-								}
-								onAnnotationDisabledChange={handleAnnotationDisabledChange}
-								onAnnotationDelete={handleAnnotationDelete}
-							/>
-						)}
-					</div>
-					{/* Right column: preview + timeline */}
-					<div className="flex min-h-0 flex-1 flex-col gap-3">
-						{/* Preview */}
-						<div className="flex min-h-0 flex-1 flex-col">
-							<div className="relative flex flex-1 min-h-0 flex-col overflow-hidden">
-								{/* Aspect ratio + crop controls above preview */}
-								<div className="flex items-center justify-center gap-2 py-1.5 flex-shrink-0">
-									<DropdownMenu>
-										<DropdownMenuTrigger asChild>
-											<Button
-												variant="ghost"
-												size="sm"
-												className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all gap-1"
-											>
-												<span className="font-medium">
-													{getAspectRatioLabel(aspectRatio)}
-												</span>
-												<ChevronDown className="w-3 h-3" />
-											</Button>
-										</DropdownMenuTrigger>
-										<DropdownMenuContent
-											align="center"
-											className="bg-editor-surface-alt border-foreground/10"
-										>
-											{ASPECT_RATIOS.map((ratio) => (
-												<DropdownMenuItem
-													key={ratio}
-													onClick={() => setAspectRatio(ratio)}
-													className="text-muted-foreground hover:text-foreground hover:bg-foreground/10 cursor-pointer flex items-center justify-between gap-3"
-												>
-													<span>{getAspectRatioLabel(ratio)}</span>
-													{aspectRatio === ratio && (
-														<Check className="w-3 h-3 text-[#2563EB]" />
-													)}
-												</DropdownMenuItem>
-											))}
-										</DropdownMenuContent>
-									</DropdownMenu>
-									<div className="w-[1px] h-4 bg-foreground/20" />
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={handleOpenCropEditor}
-										className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all gap-1.5"
+											<ChevronDown className="h-3 w-3" />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent
+										align="center"
+										className="border-foreground/10 bg-editor-surface-alt"
 									>
-										<Crop className="w-3.5 h-3.5" />
-										<span className="font-medium">
-											{t("settings.crop.title")}
-										</span>
-										{isCropped ? (
-											<span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
-										) : null}
-									</Button>
-								</div>
-								{/* Video preview */}
-								<div
-									className="flex w-full min-h-0 flex-1 items-stretch"
-									style={{ flex: "1 1 auto", margin: "6px 0 0" }}
+										{ASPECT_RATIOS.map((ratio) => (
+											<DropdownMenuItem
+												key={ratio}
+												onClick={() => setAspectRatio(ratio)}
+												className="flex cursor-pointer items-center justify-between gap-3 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+											>
+												<span>{getAspectRatioLabel(ratio)}</span>
+												{aspectRatio === ratio && (
+													<Check className="h-3 w-3 text-[#2563EB]" />
+												)}
+											</DropdownMenuItem>
+										))}
+									</DropdownMenuContent>
+								</DropdownMenu>
+								<div className="h-4 w-px bg-foreground/20" />
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={handleOpenCropEditor}
+									className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
 								>
+									<Crop className="h-3.5 w-3.5" />
+									<span className="font-medium">{t("settings.crop.title")}</span>
+									{isCropped ? (
+										<span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
+									) : null}
+								</Button>
+							</div>
+
+							{/* Video preview */}
+							<div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+								<div className="flex min-h-0 w-full flex-1 items-stretch">
 									<div className="flex min-w-0 flex-1 items-center justify-center px-1">
 										<div
 											className="relative"
@@ -7503,232 +7463,279 @@ export default function VideoEditor() {
 									</div>
 								</div>
 							</div>
-						</div>
-						{/* Toolbar - sits at bottom of right column, only spans preview width */}
-						<div className="relative flex flex-shrink-0 items-center px-1 py-1">
-							{/* Left tools */}
-							<div className="z-10 flex min-w-0 flex-1 items-center gap-1.5">
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-7 gap-1 rounded-full border border-foreground/[0.08] bg-foreground/[0.04] px-2.5 text-[11px] text-foreground/65 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)] transition-all hover:bg-foreground/[0.08] hover:text-foreground"
+
+							{/* Bottom canvas toolbar */}
+							<div className="relative flex flex-shrink-0 items-center border-t border-hairline bg-editor-surface-alt px-3 py-2">
+								<div className="z-10 flex min-w-0 flex-1 items-center gap-1.5">
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="h-7 gap-1 rounded-full border border-foreground/[0.08] bg-foreground/[0.04] px-2.5 text-[11px] text-foreground/65 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)] transition-all hover:bg-foreground/[0.08] hover:text-foreground"
+											>
+												<Plus className="h-3.5 w-3.5" />
+												<span className="font-medium">
+													{t("editor.toolbar.addLayer")}
+												</span>
+												<ChevronDown className="h-3 w-3" />
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent
+											align="start"
+											className="border-foreground/10 bg-editor-surface-alt"
 										>
-											<Plus className="w-3.5 h-3.5" />
-											<span className="font-medium">
-												{t("editor.toolbar.addLayer")}
-											</span>
-											<ChevronDown className="w-3 h-3" />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent
-										align="start"
-										className="bg-editor-surface-alt border-foreground/10"
+											<DropdownMenuItem
+												onClick={() => {
+													const nextTrackIndex =
+														annotationRegions.length > 0
+															? Math.max(
+																	...annotationRegions.map(
+																		(r) => r.trackIndex ?? 0,
+																	),
+																) + 1
+															: 0;
+													timelineRef.current?.addAnnotation(
+														nextTrackIndex,
+													);
+												}}
+												className="cursor-pointer text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+											>
+												{t("timeline.annotation.label")}
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onClick={() => timelineRef.current?.addMask("blur")}
+												className="cursor-pointer text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+											>
+												{t(
+													"editor.masks.sensitiveData",
+													"Sensitive Data Mask",
+												)}
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onClick={() =>
+													timelineRef.current?.addMask("highlight")
+												}
+												className="cursor-pointer text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+											>
+												{t("editor.masks.highlight", "Highlight")}
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onClick={() => {
+													const nextTrackIndex =
+														audioRegions.length > 0
+															? Math.max(
+																	...audioRegions.map(
+																		(region) =>
+																			region.trackIndex ?? 0,
+																	),
+																) + 1
+															: 0;
+													timelineRef.current?.addAudio(nextTrackIndex);
+												}}
+												className="cursor-pointer text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+											>
+												{t("timeline.audio.label")}
+											</DropdownMenuItem>
+										</DropdownMenuContent>
+									</DropdownMenu>
+									<div className="mx-1 h-4 w-px bg-foreground/10" />
+									<Button
+										onClick={() => timelineRef.current?.addZoom()}
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-[#2563EB]/10 hover:text-[#2563EB]"
+										title={t("timeline.zoom.addZoom")}
 									>
-										<DropdownMenuItem
-											onClick={() => {
-												const nextTrackIndex =
-													annotationRegions.length > 0
-														? Math.max(
-																...annotationRegions.map(
-																	(r) => r.trackIndex ?? 0,
-																),
-															) + 1
-														: 0;
-												timelineRef.current?.addAnnotation(nextTrackIndex);
-											}}
-											className="text-muted-foreground hover:text-foreground hover:bg-foreground/10 cursor-pointer"
-										>
-											{t("timeline.annotation.label")}
-										</DropdownMenuItem>
-										<DropdownMenuItem
-											onClick={() => timelineRef.current?.addMask("blur")}
-											className="text-muted-foreground hover:text-foreground hover:bg-foreground/10 cursor-pointer"
-										>
-											{t("editor.masks.sensitiveData", "Sensitive Data Mask")}
-										</DropdownMenuItem>
-										<DropdownMenuItem
-											onClick={() =>
-												timelineRef.current?.addMask("highlight")
-											}
-											className="text-muted-foreground hover:text-foreground hover:bg-foreground/10 cursor-pointer"
-										>
-											{t("editor.masks.highlight", "Highlight")}
-										</DropdownMenuItem>
-										<DropdownMenuItem
-											onClick={() => {
-												const nextTrackIndex =
-													audioRegions.length > 0
-														? Math.max(
-																...audioRegions.map(
-																	(region) =>
-																		region.trackIndex ?? 0,
-																),
-															) + 1
-														: 0;
-												timelineRef.current?.addAudio(nextTrackIndex);
-											}}
-											className="text-muted-foreground hover:text-foreground hover:bg-foreground/10 cursor-pointer"
-										>
-											{t("timeline.audio.label")}
-										</DropdownMenuItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
-								<div className="w-[1px] h-4 bg-foreground/10 mx-1" />
-								<Button
-									onClick={() => timelineRef.current?.addZoom()}
-									variant="ghost"
-									size="icon"
-									className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-[#2563EB]/10 hover:text-[#2563EB]"
-									title={t("timeline.zoom.addZoom")}
-								>
-									<ZoomIn className="w-4 h-4" />
-								</Button>
-								<Button
-									onClick={() => timelineRef.current?.suggestZooms()}
-									variant="ghost"
-									size="icon"
-									className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-[#2563EB]/10 hover:text-[#2563EB]"
-									title={t("timeline.zoom.suggestZooms")}
-								>
-									<WandSparkles className="w-4 h-4" />
-								</Button>
-								<Button
-									onClick={() => timelineRef.current?.addMask("blur")}
-									variant="ghost"
-									size="icon"
-									className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-pink-500/10 hover:text-pink-400"
-									title={`${t("editor.masks.title", "Mask")} (4)`}
-								>
-									<MaskIcon className="w-4 h-4" />
-								</Button>
+										<ZoomIn className="h-4 w-4" />
+									</Button>
+									<Button
+										onClick={() => timelineRef.current?.suggestZooms()}
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-[#2563EB]/10 hover:text-[#2563EB]"
+										title={t("timeline.zoom.suggestZooms")}
+									>
+										<WandSparkles className="h-4 w-4" />
+									</Button>
+									<Button
+										onClick={() => timelineRef.current?.addMask("blur")}
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-pink-500/10 hover:text-pink-400"
+										title={`${t("editor.masks.title", "Mask")} (4)`}
+									>
+										<MaskIcon className="h-4 w-4" />
+									</Button>
+								</div>
+								{/* Playback controls - centered */}
+								<div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+									<EditorTransport
+										ariaLabel={`${t("editor.playback.play")} / ${t("editor.playback.pause")}`}
+										currentTimeLabel={formatTime(timelinePlayheadTime)}
+										durationLabel={formatTime(timelineDuration)}
+										isPlaying={isPlaying}
+										playLabel={t("editor.playback.play")}
+										pauseLabel={t("editor.playback.pause")}
+										skipBackLabel={t("editor.playback.skipBack")}
+										skipForwardLabel={t("editor.playback.skipForward")}
+										splitClipLabel={t("editor.toolbar.splitClip")}
+										zoomToPlayheadLabel={t(
+											"editor.timeline.zoomToPlayhead",
+											"Zoom timeline to playhead",
+										)}
+										onSkipBack={handlePreviewSkipBack}
+										onTogglePlayPause={togglePlayPause}
+										onSkipForward={handlePreviewSkipForward}
+										onSplitClip={() => timelineRef.current?.splitClip()}
+										onZoomToPlayhead={() =>
+											timelineRef.current?.zoomToPlayhead()
+										}
+										canSplit={Boolean(videoPath) && timelineDuration > 0}
+										canZoomToPlayhead={
+											Boolean(videoPath) && timelineDuration > 0
+										}
+										className="pointer-events-auto"
+									/>
+								</div>
+								{/* Right: preview volume */}
+								<div className="z-10 ml-auto flex items-center">
+									<PreviewVolumeControl
+										value={previewVolume}
+										onChange={setPreviewVolume}
+										volumeLabel={t("settings.audio.volume", "Preview volume")}
+										muteLabel={t("editor.playback.muteUnmute")}
+										unmuteLabel={t("editor.playback.muteUnmute")}
+									/>
+								</div>
 							</div>
-							{/* Playback controls - centered */}
-							<div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-								<EditorTransport
-									ariaLabel={`${t("editor.playback.play")} / ${t("editor.playback.pause")}`}
-									currentTimeLabel={formatTime(timelinePlayheadTime)}
-									durationLabel={formatTime(timelineDuration)}
-									isPlaying={isPlaying}
-									playLabel={t("editor.playback.play")}
-									pauseLabel={t("editor.playback.pause")}
-									skipBackLabel={t("editor.playback.skipBack")}
-									skipForwardLabel={t("editor.playback.skipForward")}
-									splitClipLabel={t("editor.toolbar.splitClip")}
-									zoomToPlayheadLabel={t(
-										"editor.timeline.zoomToPlayhead",
-										"Zoom timeline to playhead",
-									)}
-									onSkipBack={handlePreviewSkipBack}
-									onTogglePlayPause={togglePlayPause}
-									onSkipForward={handlePreviewSkipForward}
-									onSplitClip={() => timelineRef.current?.splitClip()}
-									onZoomToPlayhead={() => timelineRef.current?.zoomToPlayhead()}
-									canSplit={Boolean(videoPath) && timelineDuration > 0}
-									canZoomToPlayhead={Boolean(videoPath) && timelineDuration > 0}
-									className="pointer-events-auto"
-								/>
-							</div>
-							{/* Right: preview volume */}
-							<div className="z-10 ml-auto flex items-center">
-								<PreviewVolumeControl
-									value={previewVolume}
-									onChange={setPreviewVolume}
-									volumeLabel={t("settings.audio.volume", "Preview volume")}
-									muteLabel={t("editor.playback.muteUnmute")}
-									unmuteLabel={t("editor.playback.muteUnmute")}
-								/>
-							</div>
+						</div>
+
+						{/* Timeline */}
+						<div
+							className="flex flex-shrink-0 flex-col"
+							style={{
+								height: "clamp(190px, 24vh, 260px)",
+							}}
+						>
+							<TimelineEditor
+								ref={timelineRef}
+								videoDuration={timelineDuration}
+								currentTime={currentTime}
+								playheadTime={timelinePlayheadTime}
+								onSeek={handleTimelineSeek}
+								videoPath={videoPath}
+								videoSourcePath={videoSourcePath}
+								cursorTelemetrySourcePath={cursorTelemetrySourcePath}
+								cursorTelemetry={normalizedCursorTelemetry}
+								autoSuggestZoomsTrigger={autoSuggestZoomsTrigger}
+								onAutoSuggestZoomsConsumed={handleAutoSuggestZoomsConsumed}
+								disableSuggestedZooms={!autoApplyFreshRecordingAutoZooms}
+								zoomRegions={zoomRegions}
+								onZoomAdded={handleZoomAdded}
+								onZoomSuggested={handleZoomSuggested}
+								onZoomSpanChange={handleZoomSpanChange}
+								onZoomDelete={handleZoomDelete}
+								selectedZoomId={selectedZoomId}
+								onSelectZoom={handleSelectZoom}
+								webcamLayouts={webcam.layouts}
+								onWebcamLayoutAdded={handleWebcamLayoutAdded}
+								onWebcamLayoutSpanChange={handleWebcamLayoutSpanChange}
+								onWebcamLayoutDelete={handleWebcamLayoutDelete}
+								selectedWebcamLayoutId={selectedWebcamLayoutId}
+								onSelectWebcamLayout={handleSelectWebcamLayout}
+								webcamLayoutsEnabled={webcam.enabled && Boolean(webcam.sourcePath)}
+								trimRegions={trimRegions}
+								clipRegions={clipRegions}
+								onClipSplit={handleClipSplit}
+								onClipSpanChange={handleClipSpanChange}
+								onClipDelete={handleClipDelete}
+								selectedClipId={selectedClipId}
+								onSelectClip={handleSelectClip}
+								speedRegions={speedRegions}
+								onSpeedSpanChange={handleSpeedSpanChange}
+								onSpeedDelete={handleSpeedDelete}
+								selectedSpeedId={selectedSpeedId}
+								onSelectSpeed={handleSelectSpeed}
+								audioRegions={audioRegions}
+								onAudioAdded={handleAudioAdded}
+								onAudioSpanChange={handleAudioSpanChange}
+								onAudioDelete={handleAudioDelete}
+								selectedAudioId={selectedAudioId}
+								onSelectAudio={handleSelectAudio}
+								captionRegions={effectiveCaptionRegions}
+								onCaptionSpanChange={(id, span) =>
+									handleCaptionRetime(id, {
+										startMs: mapTimelineTimeToSourceTime(span.start),
+										endMs: mapTimelineTimeToSourceTime(span.end),
+									})
+								}
+								selectedCaptionId={selectedCaptionId}
+								onSelectCaption={handleSelectCaption}
+								onCaptionDelete={handleCaptionDelete}
+								onCaptionAdded={handleCaptionAdded}
+								captionsEnabled={autoCaptionSettings.enabled}
+								captionQuickAddEnabled={autoCaptionSettings.timelineQuickAdd}
+								annotationRegions={annotationRegions}
+								onAnnotationAdded={handleAnnotationAdded}
+								onMaskAdded={handleMaskAdded}
+								onAnnotationSpanChange={handleAnnotationSpanChange}
+								onAnnotationDelete={handleAnnotationDelete}
+								selectedAnnotationId={selectedAnnotationId}
+								onSelectAnnotation={handleSelectAnnotation}
+								showSourceAudioTrack={clipRegions.some((c) => c.showSourceAudio)}
+								sourceAudioResourceVersion={sourceAudioFallbackRefreshKey}
+								sourceAudioTrackSettings={audio.activeSourceAudioTrackSettings}
+								getSourceAudioTrackSettingsForClip={
+									audio.getSourceAudioTrackSettingsForClip
+								}
+								onSourceAudioAvailabilityChange={(available) => {
+									setHasClipSourceAudio(available);
+								}}
+								onSourceAudioTracksMetaChange={(tracks) => {
+									audio.onSourceAudioTracksMetaChange(tracks);
+								}}
+							/>
 						</div>
 					</div>
+
+					{/* Right inspector dock */}
+					{isInspectorDocked ? (
+						<div className="flex min-h-0 flex-shrink-0 flex-col gap-2">
+							{inspectorSectionSwitcher}
+							{inspectorPanel}
+						</div>
+					) : null}
 				</div>
-				<div
-					className="flex-shrink-0 flex flex-col"
-					style={{
-						height: "15%",
-						minHeight: 160,
-					}}
-				>
-					<TimelineEditor
-						ref={timelineRef}
-						videoDuration={timelineDuration}
-						currentTime={currentTime}
-						playheadTime={timelinePlayheadTime}
-						onSeek={handleTimelineSeek}
-						videoPath={videoPath}
-						videoSourcePath={videoSourcePath}
-						cursorTelemetrySourcePath={cursorTelemetrySourcePath}
-						cursorTelemetry={normalizedCursorTelemetry}
-						autoSuggestZoomsTrigger={autoSuggestZoomsTrigger}
-						onAutoSuggestZoomsConsumed={handleAutoSuggestZoomsConsumed}
-						disableSuggestedZooms={!autoApplyFreshRecordingAutoZooms}
-						zoomRegions={zoomRegions}
-						onZoomAdded={handleZoomAdded}
-						onZoomSuggested={handleZoomSuggested}
-						onZoomSpanChange={handleZoomSpanChange}
-						onZoomDelete={handleZoomDelete}
-						selectedZoomId={selectedZoomId}
-						onSelectZoom={handleSelectZoom}
-						webcamLayouts={webcam.layouts}
-						onWebcamLayoutAdded={handleWebcamLayoutAdded}
-						onWebcamLayoutSpanChange={handleWebcamLayoutSpanChange}
-						onWebcamLayoutDelete={handleWebcamLayoutDelete}
-						selectedWebcamLayoutId={selectedWebcamLayoutId}
-						onSelectWebcamLayout={handleSelectWebcamLayout}
-						webcamLayoutsEnabled={webcam.enabled && Boolean(webcam.sourcePath)}
-						trimRegions={trimRegions}
-						clipRegions={clipRegions}
-						onClipSplit={handleClipSplit}
-						onClipSpanChange={handleClipSpanChange}
-						onClipDelete={handleClipDelete}
-						selectedClipId={selectedClipId}
-						onSelectClip={handleSelectClip}
-						speedRegions={speedRegions}
-						onSpeedSpanChange={handleSpeedSpanChange}
-						onSpeedDelete={handleSpeedDelete}
-						selectedSpeedId={selectedSpeedId}
-						onSelectSpeed={handleSelectSpeed}
-						audioRegions={audioRegions}
-						onAudioAdded={handleAudioAdded}
-						onAudioSpanChange={handleAudioSpanChange}
-						onAudioDelete={handleAudioDelete}
-						selectedAudioId={selectedAudioId}
-						onSelectAudio={handleSelectAudio}
-						captionRegions={effectiveCaptionRegions}
-						onCaptionSpanChange={(id, span) =>
-							handleCaptionRetime(id, {
-								startMs: mapTimelineTimeToSourceTime(span.start),
-								endMs: mapTimelineTimeToSourceTime(span.end),
-							})
-						}
-						selectedCaptionId={selectedCaptionId}
-						onSelectCaption={handleSelectCaption}
-						onCaptionDelete={handleCaptionDelete}
-						onCaptionAdded={handleCaptionAdded}
-						captionsEnabled={autoCaptionSettings.enabled}
-						captionQuickAddEnabled={autoCaptionSettings.timelineQuickAdd}
-						annotationRegions={annotationRegions}
-						onAnnotationAdded={handleAnnotationAdded}
-						onMaskAdded={handleMaskAdded}
-						onAnnotationSpanChange={handleAnnotationSpanChange}
-						onAnnotationDelete={handleAnnotationDelete}
-						selectedAnnotationId={selectedAnnotationId}
-						onSelectAnnotation={handleSelectAnnotation}
-						showSourceAudioTrack={clipRegions.some((c) => c.showSourceAudio)}
-						sourceAudioResourceVersion={sourceAudioFallbackRefreshKey}
-						sourceAudioTrackSettings={audio.activeSourceAudioTrackSettings}
-						getSourceAudioTrackSettingsForClip={
-							audio.getSourceAudioTrackSettingsForClip
-						}
-						onSourceAudioAvailabilityChange={(available) => {
-							setHasClipSourceAudio(available);
+
+				{/* Collapsible inspector overlay for narrower windows */}
+				{!isInspectorDocked && inspectorOpen ? (
+					<div
+						id="editor-inspector"
+						className="absolute inset-y-4 right-4 z-40 flex w-[346px] flex-col gap-2 overflow-hidden rounded-surface border border-hairline bg-editor-bg p-3 shadow-aureo-3"
+						onKeyDown={(event) => {
+							if (event.key === "Escape") {
+								event.preventDefault();
+								closeInspectorOverlay();
+							}
 						}}
-						onSourceAudioTracksMetaChange={(tracks) => {
-							audio.onSourceAudioTracksMetaChange(tracks);
-						}}
-					/>
-				</div>
+					>
+						<div className="flex flex-shrink-0 items-center justify-end">
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon-sm"
+								onClick={closeInspectorOverlay}
+								title={t("common.actions.close", "Close inspector")}
+								aria-label={t("common.actions.close", "Close inspector")}
+							>
+								<X className="h-4 w-4" />
+							</Button>
+						</div>
+						{inspectorSectionSwitcher}
+						{inspectorPanel}
+					</div>
+				) : null}
 			</div>
 
 			<Dialog

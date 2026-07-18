@@ -6,19 +6,31 @@
 	-webkit-app-region: no-drag;
 }
 
-/* HUD functional chrome: liquid-glass inspired, but only on chrome, not content */
+/* Unified capture toolbar: one glass surface with flat controls. */
 .bar {
+	--launch-text: #f5f5f7;
+	--launch-text-muted: rgba(245, 245, 247, 0.68);
+	--launch-label: rgba(245, 245, 247, 0.56);
+	--launch-hover: rgba(255, 255, 255, 0.1);
+	--launch-selected: rgba(255, 255, 255, 0.14);
+	--launch-border: rgba(255, 255, 255, 0.12);
+	--launch-border-strong: rgba(255, 255, 255, 0.22);
+	--launch-accent: #ffffff;
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: 4px;
 	width: max-content;
-	max-width: 1200px;
-	background: var(--launch-bar-bg);
-	background-color: var(--launch-bar-bg-solid);
-	border: 1px solid var(--launch-bar-border);
-	border-radius: 20px;
-	padding: 10px 18px 10px 16px;
-	box-shadow: var(--launch-bar-shadow);
+	max-width: min(1440px, calc(100vw - 32px));
+	min-height: 66px;
+	background: rgba(61, 61, 64, 0.88);
+	background-color: #3d3d40;
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	border-radius: 24px;
+	padding: 8px 12px 8px 10px;
+	box-shadow:
+		0 24px 44px rgba(0, 0, 0, 0.26),
+		0 8px 18px rgba(0, 0, 0, 0.2),
+		inset 0 1px 0 rgba(255, 255, 255, 0.16);
 	overflow: visible;
 	position: relative;
 	transform-origin: center bottom;
@@ -29,14 +41,15 @@
 @supports ((-webkit-backdrop-filter: blur(12px)) or (backdrop-filter: blur(12px))) {
 	.bar {
 		background:
-			linear-gradient(180deg, var(--launch-glass-tint) 0%, transparent 100%),
-			var(--launch-bar-bg);
-		border-color: var(--launch-bar-border);
+			linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 56%),
+			rgba(61, 61, 64, 0.82);
+		border-color: rgba(255, 255, 255, 0.18);
 		box-shadow:
-			inset 0 0 0 1px var(--launch-bar-border-outer),
-			var(--launch-bar-shadow);
-		-webkit-backdrop-filter: blur(18px) saturate(1.35);
-		backdrop-filter: blur(18px) saturate(1.35);
+			0 24px 44px rgba(0, 0, 0, 0.26),
+			0 8px 18px rgba(0, 0, 0, 0.2),
+			inset 0 1px 0 rgba(255, 255, 255, 0.16);
+		-webkit-backdrop-filter: blur(24px) saturate(1.22);
+		backdrop-filter: blur(24px) saturate(1.22);
 	}
 
 	.bar::before {
@@ -62,7 +75,7 @@
 
 .bar[data-reduce-transparency="true"],
 .bar[data-high-contrast="true"] {
-	background: var(--launch-bar-bg-solid) !important;
+	background: #3d3d40 !important;
 	-webkit-backdrop-filter: none !important;
 	backdrop-filter: none !important;
 	border: 1px solid var(--launch-border-strong) !important;
@@ -78,7 +91,7 @@
 
 @media (prefers-reduced-transparency: reduce), (forced-colors: active), (prefers-contrast: more) {
 	.bar {
-		background: var(--launch-bar-bg-solid) !important;
+		background: #3d3d40 !important;
 		-webkit-backdrop-filter: none !important;
 		backdrop-filter: none !important;
 		border: 1px solid var(--launch-border-strong) !important;
@@ -105,37 +118,164 @@
 	display: flex;
 	align-items: center;
 	flex: 0 1 auto;
-	min-height: 42px;
+	min-height: 48px;
 	min-width: fit-content;
-	padding-right: 2px;
 	z-index: 0;
 }
 
 .barState {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: 4px;
 	flex: 0 1 auto;
 	white-space: nowrap;
 	min-width: fit-content;
 	pointer-events: auto;
 }
 
-/* Logical group separators inside the HUD bar */
+/* Flat control domains inside the single HUD surface. */
 .barGroup {
 	display: flex;
 	align-items: center;
-	gap: 4px;
+	gap: 2px;
 	flex-shrink: 0;
+}
+
+.toolbarControl {
+	position: relative;
+	height: 46px;
+	min-width: 0;
+	flex-shrink: 0;
+	padding: 0 12px;
+	border: 1px solid transparent;
+	border-radius: 13px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--launch-text-muted);
+	justify-content: flex-start;
+	transition:
+		background-color 0.16s ease,
+		border-color 0.16s ease,
+		color 0.16s ease,
+		transform 0.1s ease;
+}
+
+.toolbarControl:hover {
+	border-color: rgba(255, 255, 255, 0.06);
+	background: var(--launch-hover);
+	color: var(--launch-text);
+}
+
+.toolbarControl:active {
+	transform: scale(0.985);
+}
+
+.toolbarControl:focus-visible {
+	outline: 2px solid rgba(255, 255, 255, 0.9);
+	outline-offset: 1px;
+}
+
+.toolbarControlActive {
+	background: var(--launch-selected);
+	color: var(--launch-text);
+}
+
+.sourceControl {
+	width: 190px;
+	max-width: 190px;
+}
+
+.deviceControl {
+	width: 172px;
+	max-width: 172px;
+}
+
+.systemAudioControl {
+	max-width: 158px;
+}
+
+.controlText {
+	min-width: 0;
+	max-width: 126px;
+	overflow: hidden;
+	font-size: 12px;
+	font-weight: 550;
+	letter-spacing: -0.01em;
+	color: inherit;
+}
+
+.systemAudioLabel {
+	font-size: 12px;
+	font-weight: 550;
+	letter-spacing: -0.01em;
+}
+
+.dragHandle {
+	display: flex;
+	width: 12px;
+	height: 42px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 8px;
+	color: rgba(255, 255, 255, 0.3);
+	cursor: grab;
+	transition:
+		color 0.15s ease,
+		background-color 0.15s ease;
+}
+
+.dragHandle:hover {
+	background: rgba(255, 255, 255, 0.06);
+	color: rgba(255, 255, 255, 0.64);
+}
+
+.dragHandle:active {
+	cursor: grabbing;
+}
+
+@media (max-width: 1299px) {
+	.bar {
+		max-width: calc(100vw - 20px);
+		padding-right: 10px;
+	}
+
+	.sourceControl {
+		width: 160px;
+		max-width: 160px;
+	}
+
+	.deviceControl {
+		width: 146px;
+		max-width: 146px;
+	}
+
+	.systemAudioControl {
+		padding-inline: 10px;
+	}
+
+	.sep {
+		margin: 0 2px;
+	}
+}
+
+@media (max-width: 1099px) {
+	.systemAudioLabel {
+		display: none;
+	}
+
+	.systemAudioControl {
+		width: 42px;
+		padding: 0;
+		justify-content: center;
+	}
 }
 
 .sep {
 	width: 1px;
-	height: 22px;
-	background: var(--launch-border-strong);
-	margin: 0 5px;
+	height: 34px;
+	background: rgba(255, 255, 255, 0.16);
+	margin: 0 7px;
 	flex-shrink: 0;
-	opacity: 0.6;
 }
 
 /* Compact icon buttons (toolbar style) */
@@ -170,6 +310,24 @@
 .ib:focus-visible {
 	outline: 2px solid var(--launch-accent);
 	outline-offset: 2px;
+}
+
+.closeButton {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.94);
+	color: #3d3d40;
+}
+
+.closeButton:hover {
+	background: #ffffff;
+	color: #252527;
+}
+
+.closeButton:focus-visible {
+	outline-color: #ffffff;
+	outline-offset: 3px;
 }
 
 .ibActive {

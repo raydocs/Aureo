@@ -31,6 +31,14 @@ describe("RecordingControls", () => {
 		expect(html).toContain("65s");
 	});
 
+	it("groups recording controls into named semantic clusters", () => {
+		const html = renderControls();
+
+		expect(html.match(/role="group"/g)).toHaveLength(6);
+		expect(html).toContain('aria-label="Microphone"');
+		expect(html).toContain('aria-label="Pause"');
+	});
+
 	it("exposes the paused state and resume action", () => {
 		const html = renderControls(true);
 

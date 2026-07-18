@@ -19,7 +19,7 @@ export function EditorHeaderLayout({
 	return (
 		<header
 			aria-label={ariaLabel}
-			className="glass editor-liquid-header relative z-50 grid h-14 flex-shrink-0 grid-cols-[minmax(0,1fr)_minmax(150px,auto)_minmax(0,1fr)] items-center gap-3 rounded-none border-x-0 border-t-0 px-3"
+			className="glass editor-liquid-header relative z-50 grid h-[52px] flex-shrink-0 grid-cols-[auto_minmax(150px,1fr)_auto] items-center gap-3 rounded-none border-x-0 border-t-0 px-3"
 			style={dragRegionStyle}
 		>
 			<div
@@ -31,7 +31,7 @@ export function EditorHeaderLayout({
 			</div>
 			<div
 				data-editor-header-slot="identity"
-				className="flex min-w-0 max-w-[min(34vw,360px)] items-center justify-center justify-self-center"
+				className="flex min-w-0 max-w-[min(34vw,360px)] items-center justify-center justify-self-start"
 				style={noDragRegionStyle}
 			>
 				{identity}

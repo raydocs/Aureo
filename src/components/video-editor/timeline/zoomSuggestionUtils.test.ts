@@ -75,24 +75,24 @@ describe("buildInteractionZoomSuggestions (click-cluster logic)", () => {
 		expect(result.suggestions[0].end - result.suggestions[0].start).toBe(DEFAULT_DURATION_MS);
 	});
 
-	it.each(["right-click", "middle-click"] as const)(
-		"accepts %s telemetry like a standard click",
-		(interactionType) => {
-			const result = buildInteractionZoomSuggestions({
-				cursorTelemetry: withMoves([makeClick(5_000, 0.5, 0.5, interactionType)], TOTAL_MS),
-				totalMs: TOTAL_MS,
-				defaultDurationMs: DEFAULT_DURATION_MS,
-			});
+	it.each([
+		"right-click",
+		"middle-click",
+	] as const)("accepts %s telemetry like a standard click", (interactionType) => {
+		const result = buildInteractionZoomSuggestions({
+			cursorTelemetry: withMoves([makeClick(5_000, 0.5, 0.5, interactionType)], TOTAL_MS),
+			totalMs: TOTAL_MS,
+			defaultDurationMs: DEFAULT_DURATION_MS,
+		});
 
-			expect(result.status).toBe("ok");
-			expect(result.suggestions).toHaveLength(1);
+		expect(result.status).toBe("ok");
+		expect(result.suggestions).toHaveLength(1);
 
-			const [suggestion] = result.suggestions;
-			expect(suggestion.end - suggestion.start).toBe(DEFAULT_DURATION_MS);
-			expect(suggestion.start).toBe(5_000 - DEFAULT_DURATION_MS / 2);
-			expect(suggestion.end).toBe(5_000 + DEFAULT_DURATION_MS / 2);
-		},
-	);
+		const [suggestion] = result.suggestions;
+		expect(suggestion.end - suggestion.start).toBe(DEFAULT_DURATION_MS);
+		expect(suggestion.start).toBe(5_000 - DEFAULT_DURATION_MS / 2);
+		expect(suggestion.end).toBe(5_000 + DEFAULT_DURATION_MS / 2);
+	});
 
 	it("merges two clicks within 2500ms into one zoom track spanning the cluster plus padding", () => {
 		const firstClick = 4_000;

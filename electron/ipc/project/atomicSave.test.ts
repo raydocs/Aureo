@@ -3,7 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { getProjectBackupPath, writeProjectFileAtomically } from "./atomicSave";
+import {
+	getProjectBackupPath,
+	restoreProjectFileFromBackupContents,
+	writeProjectFileAtomically,
+} from "./atomicSave";
 
 describe("writeProjectFileAtomically", () => {
 	let tempDir: string;
@@ -109,4 +113,32 @@ describe("writeProjectFileAtomically", () => {
 			expect((await fs.stat(projectPath)).mode & 0o777).toBe(0o666);
 		},
 	);
+});
+
+describe("restoreProjectFileFromBackupContents", () => {
+	let tempDir: string;
+	let projectPath: string;
+
+	beforeEach(async () => {
+		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "aureo-atomic-restore-"));
+		projectPath = path.join(tempDir, "demo.aureo");
+	});
+
+	afterEach(async () => {
+		await fs.rm(tempDir, { recursive: true, force: true });
+	});
+
+	it("restores the primary file while retaining the adjacent backup", async () => {
+		const backupPath = getProjectBackupPath(projectPath);
+		const backupContents = '{"version":1,"name":"backup"}';
+		await fs.writeFile(projectPath, "corrupt-primary");
+		await fs.writeFile(backupPath, backupContents);
+
+		await restoreProjectFileFromBackupContents(projectPath, backupContents);
+
+		await expect(fs.readFile(projectPath, "utf-8")).resolves.toBe(backupContents);
+		await expect(fs.readFile(backupPath, "utf-8")).resolves.toBe(backupContents);
+		const entries = await fs.readdir(tempDir);
+		expect(entries.filter((entry) => entry.endsWith(".tmp"))).toEqual([]);
+	});
 });

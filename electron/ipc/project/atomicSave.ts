@@ -125,15 +125,29 @@ async function commitProjectFile(projectPath: string, contents: string): Promise
 	}
 }
 
-export async function writeProjectFileAtomically(
+/** Atomically replace the primary project file without rotating or removing its .bak. */
+async function commitProjectFileWithoutBackupRotation(
 	projectPath: string,
 	contents: string,
 ): Promise<void> {
+	const targetPath = path.resolve(projectPath);
+	const parentDir = path.dirname(targetPath);
+	const temporaryPath = createTemporaryPath(parentDir, "project");
+	const existingMode = await getExistingFileMode(targetPath);
+
+	try {
+		await writeSyncedTemporaryFile(temporaryPath, contents, existingMode);
+		await fs.rename(temporaryPath, targetPath);
+		await syncParentDirectory(parentDir);
+	} finally {
+		await fs.rm(temporaryPath, { force: true }).catch(() => undefined);
+	}
+}
+
+async function enqueueProjectWrite(projectPath: string, write: () => Promise<void>): Promise<void> {
 	const queueKey = getQueueKey(projectPath);
 	const previousWrite = pendingWrites.get(queueKey) ?? Promise.resolve();
-	const currentWrite = previousWrite
-		.catch(() => undefined)
-		.then(() => commitProjectFile(projectPath, contents));
+	const currentWrite = previousWrite.catch(() => undefined).then(write);
 	pendingWrites.set(queueKey, currentWrite);
 
 	try {
@@ -143,4 +157,25 @@ export async function writeProjectFileAtomically(
 			pendingWrites.delete(queueKey);
 		}
 	}
+}
+
+export async function writeProjectFileAtomically(
+	projectPath: string,
+	contents: string,
+): Promise<void> {
+	await enqueueProjectWrite(projectPath, () => commitProjectFile(projectPath, contents));
+}
+
+/**
+ * Restore a known-good project snapshot into the primary path while retaining the
+ * adjacent `.bak` file. Used for automatic recovery so the backup is not rotated
+ * or destroyed by a normal save.
+ */
+export async function restoreProjectFileFromBackupContents(
+	projectPath: string,
+	contents: string,
+): Promise<void> {
+	await enqueueProjectWrite(projectPath, () =>
+		commitProjectFileWithoutBackupRotation(projectPath, contents),
+	);
 }

@@ -55,8 +55,32 @@ describe("exportCaptionSidecars", () => {
 		});
 	});
 
+	it("normalizes cue order, timestamps, line endings, and reserved arrows", () => {
+		expect(
+			parseCaptionSidecarPayload({
+				format: "srt",
+				cues: [
+					{
+						startMs: 2000.4,
+						endMs: 3000.4,
+						text: "Second\r\nline\r\n\r\n--> detail",
+					},
+					{ startMs: 0.4, endMs: 1000.6, text: "First" },
+				],
+			}),
+		).toEqual({
+			format: "srt",
+			cues: [
+				{ startMs: 0, endMs: 1001, text: "First" },
+				{ startMs: 2000, endMs: 3000, text: "Second\nline\n→ detail" },
+			],
+		});
+	});
+
 	it("returns a warning result instead of throwing when sidecar writes fail", async () => {
-		const writeFileSpy = vi.spyOn(fs, "writeFile").mockRejectedValueOnce(new Error("disk full"));
+		const writeFileSpy = vi
+			.spyOn(fs, "writeFile")
+			.mockRejectedValueOnce(new Error("disk full"));
 
 		await expect(
 			writeCaptionSidecarsBestEffort("/tmp/export.mp4", {
@@ -71,7 +95,36 @@ describe("exportCaptionSidecars", () => {
 		expect(writeFileSpy).toHaveBeenCalledTimes(1);
 	});
 
-	it("writes requested caption sidecars when the filesystem succeeds", async () => {
+	it("preserves an existing sidecar and cleans temporary output when writing fails", async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "aureo-sidecar-test-"));
+		const videoPath = path.join(tempDir, "clip.mp4");
+		const sidecarPath = path.join(tempDir, "clip.srt");
+		const writeFile = fs.writeFile.bind(fs);
+
+		try {
+			await fs.writeFile(sidecarPath, "existing captions", "utf8");
+			vi.spyOn(fs, "writeFile").mockImplementationOnce(async (file) => {
+				await writeFile(file, "partial captions", "utf8");
+				throw new Error("disk full");
+			});
+
+			await expect(
+				writeCaptionSidecarsBestEffort(videoPath, {
+					format: "srt",
+					cues: [{ startMs: 0, endMs: 1000, text: "Caption" }],
+				}),
+			).resolves.toEqual({ wroteAny: false, error: "disk full" });
+
+			await expect(fs.readFile(sidecarPath, "utf8")).resolves.toBe("existing captions");
+			await expect(fs.readdir(tempDir).then((entries) => entries.sort())).resolves.toEqual([
+				"clip.srt",
+			]);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("writes requested caption sidecars atomically when the filesystem succeeds", async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "aureo-sidecar-test-"));
 		const videoPath = path.join(tempDir, "clip.mp4");
 
@@ -89,6 +142,10 @@ describe("exportCaptionSidecars", () => {
 			await expect(fs.readFile(path.join(tempDir, "clip.vtt"), "utf8")).resolves.toContain(
 				"WEBVTT",
 			);
+			await expect(fs.readdir(tempDir).then((entries) => entries.sort())).resolves.toEqual([
+				"clip.srt",
+				"clip.vtt",
+			]);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}

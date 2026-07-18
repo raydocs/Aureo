@@ -7,8 +7,8 @@ import {
 	UploadSimple as Upload,
 	X,
 } from "@phosphor-icons/react";
-import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import minimalCursorUrl from "@/assets/cursors/custom/minimal-cursor.svg";
 import { Button } from "@/components/ui/button";
@@ -219,6 +219,50 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 	);
 }
 
+function getInspectorSectionTitle(
+	section: EditorEffectSection,
+	tSettings: (key: string, fallback?: string) => string,
+	selectedSpeedRegionSpeed: PlaybackSpeed | null,
+	extensionPanels: ReturnType<typeof extensionHost.getSettingsPanels>,
+): string {
+	if (section.startsWith("ext:")) {
+		return (
+			extensionPanels.find(
+				(panel) => `ext:${panel.extensionId}/${panel.panel.id}` === section,
+			)?.panel.label ?? "Extensions"
+		);
+	}
+
+	switch (section) {
+		case "cursor":
+			return tSettings("sections.cursor", "Cursor");
+		case "captions":
+			return tSettings("sections.captions", "Captions");
+		case "caption":
+			return tSettings("sections.caption", "Caption");
+		case "webcam":
+			return tSettings("sections.webcam", "Webcam");
+		case "settings":
+			return "Settings";
+		case "zoom":
+			return tSettings("sections.zoom", "Zoom");
+		case "frame":
+			return tSettings("sections.frame", "Frame");
+		case "crop":
+			return tSettings("sections.crop", "Crop");
+		case "extensions":
+			return "Extensions";
+		case "clip":
+			return selectedSpeedRegionSpeed != null
+				? tSettings("speed.label", "Speed")
+				: tSettings("clip.title", "Clip");
+		case "audio":
+			return tSettings("audio.volumeTitle", "Audio");
+		default:
+			return tSettings("sections.scene", "Scene");
+	}
+}
+
 function WallpaperVideoPreview({ src }: { src: string }) {
 	const [resolvedSrc, setResolvedSrc] = useState(src);
 
@@ -301,7 +345,7 @@ function ExtensionSettingsSection({
 									);
 									forceUpdate((n) => n + 1);
 								}}
-								className="data-[state=checked]:bg-[#2563EB] scale-75"
+								className="data-[state=checked]:bg-primary scale-75"
 							/>
 						</div>
 					);
@@ -484,15 +528,14 @@ function MotionPresetCards({
 								"rounded-xl border px-3 py-3 text-left transition-all",
 								"border-foreground/10 bg-foreground/[0.03] hover:border-foreground/20 hover:bg-foreground/[0.06]",
 								isActive &&
-									"border-[#2563EB]/70 bg-[#2563EB]/12 shadow-[inset_0_0_0_1px_rgba(37,99,235,0.15)]",
+									"border-primary/70 bg-primary/10 shadow-[inset_0_0_0_1px_rgba(37,99,235,0.15)]",
 							)}
 						>
 							<div className="flex items-start gap-3">
 								<div
 									className={cn(
 										"mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-foreground/10 bg-black/10 text-muted-foreground",
-										isActive &&
-											"border-[#2563EB]/30 bg-[#2563EB]/10 text-[#75A6FF]",
+										isActive && "border-primary/30 bg-primary/10 text-primary",
 									)}
 								>
 									<Icon className="h-4 w-4" />
@@ -635,7 +678,7 @@ function CursorClickEffectCards({
 					type="button"
 					onClick={onToggleAdvanced}
 					aria-pressed={showAdvanced}
-					className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+					className="text-[10px] text-primary transition-opacity hover:opacity-80"
 					title={
 						showAdvanced
 							? tSettings(
@@ -680,7 +723,7 @@ function CursorClickEffectCards({
 							title={`${label} - ${description}`}
 							className={cn(
 								"group aspect-square h-auto min-w-0 rounded-[10px] border border-foreground/10 bg-foreground/[0.03] p-3 text-left text-foreground shadow-none transition-all hover:border-foreground/20 hover:bg-foreground/[0.06]",
-								"data-[state=on]:border-[#2563EB]/70 data-[state=on]:bg-[#2563EB]/12 data-[state=on]:text-foreground",
+								"data-[state=on]:border-primary/70 data-[state=on]:bg-primary/10 data-[state=on]:text-foreground",
 							)}
 						>
 							<div className="flex h-full flex-col items-center justify-between gap-3">
@@ -742,6 +785,8 @@ interface SettingsPanelProps {
 	onShadowChange?: (intensity: number) => void;
 	backgroundBlur?: number;
 	onBackgroundBlurChange?: (amount: number) => void;
+	backgroundEnabled?: boolean;
+	onBackgroundEnabledChange?: (enabled: boolean) => void;
 	zoomMotionBlurTuning?: ZoomMotionBlurTuning;
 	onZoomMotionBlurTuningChange?: (tuning: ZoomMotionBlurTuning) => void;
 	zoomTemporalMotionBlur?: number;
@@ -1238,6 +1283,8 @@ export function SettingsPanel({
 	onZoomInDurationMsChange,
 	zoomOutDurationMs = DEFAULT_ZOOM_OUT_DURATION_MS,
 	onZoomOutDurationMsChange,
+	backgroundEnabled = true,
+	onBackgroundEnabledChange,
 	showCursor = false,
 	onShowCursorChange,
 	hideCursorWhenIdle = false,
@@ -1347,6 +1394,8 @@ export function SettingsPanel({
 	const tSettings = useScopedT("settings");
 	const { locale, setLocale, t } = useI18n();
 	const { preference: themePreference, setPreference: setThemePreference } = useTheme();
+	const reduceMotion = useReducedMotion();
+	const inspectorHeadingId = useId();
 	const isBackgroundPanel = panelMode === "background";
 	const initialEditorPreferences = useMemo(() => loadEditorPreferences(), []);
 	const [builtInWallpapers, setBuiltInWallpapers] =
@@ -1534,6 +1583,12 @@ export function SettingsPanel({
 	const defaultWebcam = initialEditorPreferences.webcam;
 	const [internalActiveEffectSection] = useState<EditorEffectSection>("scene");
 	const activeEffectSection = activeEffectSectionProp ?? internalActiveEffectSection;
+	const inspectorTitle = getInspectorSectionTitle(
+		activeEffectSection,
+		tSettings,
+		selectedSpeedRegionSpeed,
+		extensionPanels,
+	);
 	const [extensionCursorStyles, setExtensionCursorStyles] = useState<
 		ReturnType<typeof extensionHost.getContributedCursorStyles>
 	>([]);
@@ -1780,10 +1835,10 @@ export function SettingsPanel({
 
 	const wallpaperTileClass = (isSelected: boolean) =>
 		cn(
-			"group relative aspect-square w-full overflow-hidden rounded-[10px] border bg-editor-bg transition-colors duration-150",
+			"group relative aspect-square w-full overflow-hidden rounded-[10px] border bg-editor-bg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-surface-panel",
 			isSelected
-				? "border-[#2563EB] bg-foreground/[0.08]"
-				: "border-foreground/10 bg-foreground/[0.045] hover:border-foreground/20 hover:bg-foreground/[0.07]",
+				? "border-primary bg-foreground/[0.08]"
+				: "border-hairline bg-foreground/[0.045] hover:border-foreground/20 hover:bg-foreground/[0.07]",
 		);
 
 	const renderWallpaperImageTile = (
@@ -1797,30 +1852,32 @@ export function SettingsPanel({
 			children?: React.ReactNode;
 		},
 	) => (
-		<div
-			key={props?.key}
-			className={wallpaperTileClass(isSelected)}
-			aria-label={props?.ariaLabel}
-			title={props?.title}
-			onClick={props?.onClick}
-			role="button"
-		>
-			<div className="absolute inset-[1px] overflow-hidden rounded-[8px] bg-editor-dialog">
-				{isVideoWallpaperSource(wallpaperUrl) ? (
-					<WallpaperVideoPreview src={wallpaperUrl} />
-				) : (
-					<img
-						src={wallpaperUrl}
-						alt={
-							props?.title ??
-							props?.ariaLabel ??
-							tSettings("background.wallpaperPreview", "Wallpaper preview")
-						}
-						className="h-full w-full select-none object-cover [transform:translateZ(0)]"
-						draggable={false}
-					/>
-				)}
-			</div>
+		<div key={props?.key} className="group relative aspect-square w-full">
+			<button
+				type="button"
+				className={wallpaperTileClass(isSelected)}
+				aria-label={props?.ariaLabel}
+				aria-pressed={isSelected}
+				title={props?.title}
+				onClick={props?.onClick}
+			>
+				<div className="absolute inset-[1px] overflow-hidden rounded-[8px] bg-editor-dialog">
+					{isVideoWallpaperSource(wallpaperUrl) ? (
+						<WallpaperVideoPreview src={wallpaperUrl} />
+					) : (
+						<img
+							src={wallpaperUrl}
+							alt={
+								props?.title ??
+								props?.ariaLabel ??
+								tSettings("background.wallpaperPreview", "Wallpaper preview")
+							}
+							className="h-full w-full select-none object-cover [transform:translateZ(0)]"
+							draggable={false}
+						/>
+					)}
+				</div>
+			</button>
 			{props?.children}
 		</div>
 	);
@@ -1868,6 +1925,7 @@ export function SettingsPanel({
 
 	const resetBackgroundSection = () => {
 		onBackgroundBlurChange?.(initialEditorPreferences.backgroundBlur);
+		onBackgroundEnabledChange?.(initialEditorPreferences.backgroundEnabled);
 
 		const preferredWallpaper = initialEditorPreferences.wallpaper;
 		const hasPreferredWallpaper =
@@ -2101,10 +2159,21 @@ export function SettingsPanel({
 					<button
 						type="button"
 						onClick={resetBackgroundSection}
-						className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+						className="text-[10px] text-primary transition-opacity hover:opacity-80"
 					>
 						{t("common.actions.reset", "Reset")}
 					</button>
+				</div>
+				<div className="flex items-center justify-between rounded-lg bg-foreground/[0.03] px-2.5 py-1.5">
+					<span className="text-[10px] text-muted-foreground">
+						{tSettings("background.title", "Background")}
+					</span>
+					<Switch
+						checked={backgroundEnabled}
+						onCheckedChange={(checked) => onBackgroundEnabledChange?.(checked)}
+						aria-label={tSettings("background.title", "Background")}
+						className="scale-75 data-[state=checked]:bg-primary"
+					/>
 				</div>
 				<SliderControl
 					label={tSettings("effects.backgroundBlur")}
@@ -2141,12 +2210,16 @@ export function SettingsPanel({
 									{isActive ? (
 										<motion.span
 											layoutId="background-picker-pill"
-											className="absolute inset-0 rounded-lg bg-[#2563EB]"
-											transition={{
-												type: "spring",
-												stiffness: 420,
-												damping: 34,
-											}}
+											className="absolute inset-0 rounded-lg bg-primary"
+											transition={
+												reduceMotion
+													? { duration: 0 }
+													: {
+															type: "spring",
+															stiffness: 420,
+															damping: 34,
+														}
+											}
 										/>
 									) : null}
 									<span
@@ -2169,10 +2242,18 @@ export function SettingsPanel({
 					<AnimatePresence mode="wait" initial={false}>
 						<motion.div
 							key={backgroundTab}
-							initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
+							initial={
+								reduceMotion ? false : { opacity: 0, y: 10, filter: "blur(8px)" }
+							}
 							animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-							exit={{ opacity: 0, y: -8, filter: "blur(6px)" }}
-							transition={{ duration: 0.2, ease: "easeOut" }}
+							exit={
+								reduceMotion
+									? { opacity: 1, y: 0, filter: "blur(0px)" }
+									: { opacity: 0, y: -8, filter: "blur(6px)" }
+							}
+							transition={
+								reduceMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }
+							}
 						>
 							{backgroundTab === "image" ? (
 								<div className="mt-0 space-y-2">
@@ -2186,7 +2267,7 @@ export function SettingsPanel({
 									<Button
 										onClick={() => fileInputRef.current?.click()}
 										variant="outline"
-										className="w-full gap-2 bg-foreground/5 text-foreground border-foreground/10 hover:bg-[#2563EB] hover:text-white hover:border-[#2563EB] transition-all h-7 text-[10px]"
+										className="w-full gap-2 bg-foreground/5 text-foreground border-foreground/10 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all h-7 text-[10px]"
 									>
 										<Upload className="w-3 h-3" />
 										{tSettings("background.uploadCustom")}
@@ -2210,12 +2291,15 @@ export function SettingsPanel({
 												onClick: () => onWallpaperChange(imageUrl),
 												children: (
 													<button
+														type="button"
 														onClick={(e) =>
 															handleRemoveCustomImage(imageUrl, e)
 														}
-														className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500/90 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+														className="absolute right-0.5 top-0.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-destructive/90 opacity-0 transition-opacity hover:bg-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100 group-focus-within:opacity-100"
+														aria-label="Remove custom background"
+														title="Remove custom background"
 													>
-														<X className="w-2 h-2 text-white" />
+														<X className="h-2.5 w-2.5 text-destructive-foreground" />
 													</button>
 												),
 											});
@@ -2244,7 +2328,7 @@ export function SettingsPanel({
 									<Button
 										onClick={handleVideoUpload}
 										variant="outline"
-										className="w-full gap-2 bg-foreground/5 text-foreground border-foreground/10 hover:bg-[#2563EB] hover:text-white hover:border-[#2563EB] transition-all h-7 text-[10px]"
+										className="w-full gap-2 bg-foreground/5 text-foreground border-foreground/10 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all h-7 text-[10px]"
 									>
 										<Upload className="w-3 h-3" />
 										{tSettings("background.uploadCustomVideo", "Upload Video")}
@@ -2267,15 +2351,18 @@ export function SettingsPanel({
 														onClick: () => onWallpaperChange(videoUrl),
 														children: (
 															<button
+																type="button"
 																onClick={(e) =>
 																	handleRemoveCustomImage(
 																		videoUrl,
 																		e,
 																	)
 																}
-																className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500/90 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+																className="absolute right-0.5 top-0.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-destructive/90 opacity-0 transition-opacity hover:bg-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100 group-focus-within:opacity-100"
+																aria-label="Remove custom background"
+																title="Remove custom background"
 															>
-																<X className="w-2 h-2 text-white" />
+																<X className="h-2.5 w-2.5 text-destructive-foreground" />
 															</button>
 														),
 													},
@@ -2328,6 +2415,7 @@ export function SettingsPanel({
 													className={wallpaperTileClass(isSelected)}
 													style={{ background: color }}
 													aria-label={`Color ${color}`}
+													aria-pressed={isSelected}
 												/>
 											);
 										})}
@@ -2346,6 +2434,14 @@ export function SettingsPanel({
 												background: `linear-gradient(135deg, ${selectedColor} 0%, ${selectedColor} 58%, rgba(255,255,255,0.92) 58%, rgba(255,255,255,0.92) 100%)`,
 											}}
 											aria-label="Custom color picker"
+											aria-pressed={
+												isHexWallpaper(selected) &&
+												!visibleColorPalette.some(
+													(color) =>
+														color.toLowerCase() ===
+														selected.toLowerCase(),
+												)
+											}
 										>
 											<div className="absolute inset-0 flex items-center justify-center text-[9px] font-semibold uppercase tracking-[0.18em] text-foreground/90">
 												Pick
@@ -2356,21 +2452,22 @@ export function SettingsPanel({
 							) : (
 								<div className="mt-0 grid grid-cols-8 gap-1.5">
 									{GRADIENTS.map((g, idx) => (
-										<div
+										<button
 											key={g}
+											type="button"
 											className={wallpaperTileClass(gradient === g)}
 											aria-label={`Gradient ${idx + 1}`}
+											aria-pressed={gradient === g}
 											onClick={() => {
 												setGradient(g);
 												onWallpaperChange(g);
 											}}
-											role="button"
 										>
 											<div
 												className="absolute inset-[1px] overflow-hidden rounded-[8px]"
 												style={{ background: g }}
 											/>
-										</div>
+										</button>
 									))}
 								</div>
 							)}
@@ -2439,7 +2536,7 @@ export function SettingsPanel({
 					style={{ scrollbarGutter: "stable" }}
 				>
 					<div className="mb-4 flex items-center gap-2">
-						<Palette className="w-4 h-4 text-[#2563EB]" />
+						<Palette className="w-4 h-4 text-primary" />
 						<span className="text-sm font-medium text-foreground">
 							{tSettings("background.title")}
 						</span>
@@ -2457,7 +2554,7 @@ export function SettingsPanel({
 				<button
 					type="button"
 					onClick={resetFrameSection}
-					className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+					className="text-[10px] text-primary transition-opacity hover:opacity-80"
 				>
 					{t("common.actions.reset", "Reset")}
 				</button>
@@ -2492,7 +2589,7 @@ export function SettingsPanel({
 							type="button"
 							onClick={togglePaddingLink}
 							aria-pressed={padding.linked === false}
-							className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+							className="text-[10px] text-primary transition-opacity hover:opacity-80"
 							title={
 								padding.linked === false
 									? tSettings(
@@ -2512,6 +2609,7 @@ export function SettingsPanel({
 					{padding.linked !== false ? (
 						<SliderControl
 							label=""
+							ariaLabel={tSettings("effects.padding", "Padding")}
 							value={padding.top}
 							defaultValue={DEFAULT_PADDING.top}
 							min={0}
@@ -2577,7 +2675,8 @@ export function SettingsPanel({
 					<Switch
 						checked={removeBackgroundEnabled}
 						onCheckedChange={handleRemoveBackgroundToggle}
-						className="data-[state=checked]:bg-[#2563EB] scale-75"
+						aria-label={tSettings("effects.removeBackground", "Remove background")}
+						className="data-[state=checked]:bg-primary scale-75"
 					/>
 				</div>
 				{/* Frame Picker */}
@@ -2589,7 +2688,7 @@ export function SettingsPanel({
 								<button
 									type="button"
 									onClick={() => onFrameChange?.(null)}
-									className="text-[9px] text-[#2563EB] hover:opacity-80"
+									className="text-[9px] text-primary hover:opacity-80"
 								>
 									Remove
 								</button>
@@ -2606,7 +2705,7 @@ export function SettingsPanel({
 										className={cn(
 											"flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all text-center",
 											isSelected
-												? "border-[#2563EB]/50 bg-[#2563EB]/10 ring-1 ring-[#2563EB]/30"
+												? "border-primary/50 bg-primary/10 ring-1 ring-primary/30"
 												: "border-foreground/[0.06] bg-white/[0.02] hover:bg-foreground/[0.05]",
 										)}
 									>
@@ -2639,7 +2738,7 @@ export function SettingsPanel({
 					<button
 						type="button"
 						onClick={resetCropSection}
-						className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+						className="text-[10px] text-primary transition-opacity hover:opacity-80"
 					>
 						{t("common.actions.reset", "Reset")}
 					</button>
@@ -2702,7 +2801,7 @@ export function SettingsPanel({
 					<button
 						type="button"
 						onClick={() => onAutoCaptionSettingsChange?.(DEFAULT_AUTO_CAPTION_SETTINGS)}
-						className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+						className="text-[10px] text-primary transition-opacity hover:opacity-80"
 					>
 						{t("common.actions.reset", "Reset")}
 					</button>
@@ -2712,7 +2811,7 @@ export function SettingsPanel({
 					<Switch
 						checked={autoCaptionSettings.enabled}
 						onCheckedChange={(enabled) => updateAutoCaptionSettings({ enabled })}
-						className="data-[state=checked]:bg-[#2563EB] scale-75"
+						className="data-[state=checked]:bg-primary scale-75"
 					/>
 				</div>
 			</div>
@@ -2772,7 +2871,7 @@ export function SettingsPanel({
 							<Button
 								type="button"
 								onClick={onDownloadWhisperSmallModel}
-								className="h-10 w-full rounded-xl bg-[#2563EB] px-4 text-sm font-medium text-white hover:bg-[#2563EB]/90"
+								className="h-10 w-full rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
 							>
 								{tSettings("captions.downloadModel", "Download Model")}
 							</Button>
@@ -2793,7 +2892,7 @@ export function SettingsPanel({
 						type="button"
 						onClick={onGenerateAutoCaptions}
 						disabled={isGeneratingCaptions || !whisperModelPath}
-						className="h-10 w-full rounded-xl bg-[#2563EB] px-4 text-sm font-medium text-white hover:bg-[#2563EB]/90 disabled:opacity-60"
+						className="h-10 w-full rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
 					>
 						{isGeneratingCaptions
 							? tSettings("captions.generating", "Generating...")
@@ -2861,7 +2960,7 @@ export function SettingsPanel({
 							"captions.timelineQuickAdd",
 							"Hover to add on timeline",
 						)}
-						className="data-[state=checked]:bg-[#2563EB] scale-75"
+						className="data-[state=checked]:bg-primary scale-75"
 					/>
 				</div>
 				<label className="flex items-center justify-between rounded-lg bg-foreground/[0.03] px-2.5 py-2">
@@ -3018,7 +3117,7 @@ export function SettingsPanel({
 						<Switch
 							checked={autoApplyFreshRecordingAutoZooms}
 							onCheckedChange={onAutoApplyFreshRecordingAutoZoomsChange}
-							className="data-[state=checked]:bg-[#2563EB] scale-75"
+							className="data-[state=checked]:bg-primary scale-75"
 						/>
 					</div>
 					<div className="flex items-center justify-between gap-3 rounded-lg bg-foreground/[0.03] px-2.5 py-2">
@@ -3036,7 +3135,7 @@ export function SettingsPanel({
 						<Switch
 							checked={connectZooms}
 							onCheckedChange={onConnectZoomsChange}
-							className="data-[state=checked]:bg-[#2563EB] scale-75"
+							className="data-[state=checked]:bg-primary scale-75"
 						/>
 					</div>
 				</section>
@@ -3059,7 +3158,7 @@ export function SettingsPanel({
 				</section>
 
 				{showDevMotionControls ? (
-					<section className="flex flex-col gap-2 rounded-xl border border-[#2563EB]/15 bg-[#2563EB]/5 p-3">
+					<section className="flex flex-col gap-2 rounded-xl border border-primary/[0.15] bg-primary/5 p-3">
 						<div className="flex items-center justify-between gap-3">
 							<div>
 								<SectionLabel>
@@ -3072,7 +3171,7 @@ export function SettingsPanel({
 									)}
 								</div>
 							</div>
-							<span className="rounded-full bg-[#2563EB]/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[#2563EB]">
+							<span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
 								DEV
 							</span>
 						</div>
@@ -3103,7 +3202,7 @@ export function SettingsPanel({
 									variant="outline"
 									size="sm"
 									onClick={() => onOpenNativeCaptureUnavailableModal?.()}
-									className="h-8 shrink-0 border-[#2563EB]/20 bg-[#2563EB]/10 text-[#2563EB] hover:bg-[#2563EB]/15"
+									className="h-8 shrink-0 border-primary/20 bg-primary/10 text-primary hover:bg-primary/[0.15]"
 								>
 									{tSettings("effects.openNativeCaptureWarning", "Open warning")}
 								</Button>
@@ -3352,7 +3451,7 @@ export function SettingsPanel({
 						<div className="flex items-center justify-between gap-3">
 							<SectionLabel>{tSettings("sections.zoom", "Zoom")}</SectionLabel>
 							{selectedZoomDepth && (
-								<span className="rounded-full bg-[#2563EB]/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[#2563EB]">
+								<span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
 									{
 										ZOOM_DEPTH_OPTIONS.find(
 											(o) => o.depth === selectedZoomDepth,
@@ -3369,7 +3468,7 @@ export function SettingsPanel({
 									className={cn(
 										"flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all",
 										selectedZoomMode === "auto"
-											? "bg-[#2563EB] text-white shadow-sm"
+											? "bg-primary text-primary-foreground shadow-sm"
 											: "text-muted-foreground hover:text-foreground",
 									)}
 								>
@@ -3381,7 +3480,7 @@ export function SettingsPanel({
 									className={cn(
 										"flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all",
 										selectedZoomMode === "manual"
-											? "bg-[#2563EB] text-white shadow-sm"
+											? "bg-primary text-primary-foreground shadow-sm"
 											: "text-muted-foreground hover:text-foreground",
 									)}
 								>
@@ -3411,7 +3510,7 @@ export function SettingsPanel({
 										className={cn(
 											"h-auto w-full rounded-lg border px-1 py-2 text-center shadow-sm transition-all duration-200 ease-out cursor-pointer",
 											isActive
-												? "border-[#2563EB] bg-[#2563EB] text-white"
+												? "border-primary bg-primary text-primary-foreground"
 												: "border-foreground/5 bg-foreground/5 text-muted-foreground hover:bg-foreground/10 hover:border-foreground/10 hover:text-foreground",
 										)}
 									>
@@ -3430,7 +3529,7 @@ export function SettingsPanel({
 					<button
 						type="button"
 						onClick={resetZoomSection}
-						className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+						className="text-[10px] text-primary transition-opacity hover:opacity-80"
 					>
 						{t("common.actions.reset", "Reset")}
 					</button>
@@ -3442,7 +3541,7 @@ export function SettingsPanel({
 					<Switch
 						checked={zoomClassicMode}
 						onCheckedChange={(v) => onZoomClassicModeChange?.(v)}
-						className="data-[state=checked]:bg-[#2563EB] scale-75"
+						className="data-[state=checked]:bg-primary scale-75"
 					/>
 				</div>
 				{!zoomClassicMode && (
@@ -3493,7 +3592,7 @@ export function SettingsPanel({
 							onAudioVolumeChange?.(1);
 							onAudioNormalizeChange?.(false);
 						}}
-						className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+						className="text-[10px] text-primary transition-opacity hover:opacity-80"
 					>
 						{t("common.actions.reset", "Reset")}
 					</button>
@@ -3516,7 +3615,7 @@ export function SettingsPanel({
 					<Switch
 						checked={Boolean(selectedAudioNormalize)}
 						onCheckedChange={(v) => onAudioNormalizeChange?.(v)}
-						className="data-[state=checked]:bg-[#2563EB] scale-75"
+						className="data-[state=checked]:bg-primary scale-75"
 					/>
 				</div>
 			</section>
@@ -3647,7 +3746,7 @@ export function SettingsPanel({
 							<Switch
 								checked={Boolean(selectedClipHideCursor)}
 								onCheckedChange={(value) => onClipHideCursorChange?.(value)}
-								className="data-[state=checked]:bg-[#2563EB] scale-75"
+								className="data-[state=checked]:bg-primary scale-75"
 							/>
 						</div>
 						<div className="flex items-center justify-between rounded-lg bg-foreground/[0.03] px-2.5 py-1.5">
@@ -3670,7 +3769,7 @@ export function SettingsPanel({
 								onCheckedChange={(value) =>
 									onClipDisableCursorSmoothingChange?.(value)
 								}
-								className="data-[state=checked]:bg-[#2563EB] scale-75"
+								className="data-[state=checked]:bg-primary scale-75"
 							/>
 						</div>
 					</div>
@@ -3740,7 +3839,7 @@ export function SettingsPanel({
 													false,
 												);
 											}}
-											className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+											className="text-[10px] text-primary transition-opacity hover:opacity-80"
 										>
 											{t("common.actions.reset", "Reset")}
 										</button>
@@ -3838,7 +3937,7 @@ export function SettingsPanel({
 								<button
 									type="button"
 									onClick={resetCursorSection}
-									className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+									className="text-[10px] text-primary transition-opacity hover:opacity-80"
 								>
 									{t("common.actions.reset", "Reset")}
 								</button>
@@ -3849,7 +3948,7 @@ export function SettingsPanel({
 									<Switch
 										checked={showCursor}
 										onCheckedChange={onShowCursorChange}
-										className="data-[state=checked]:bg-[#2563EB] scale-75"
+										className="data-[state=checked]:bg-primary scale-75"
 									/>
 								</label>
 								<label className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
@@ -3857,7 +3956,7 @@ export function SettingsPanel({
 									<Switch
 										checked={loopCursor}
 										onCheckedChange={onLoopCursorChange}
-										className="data-[state=checked]:bg-[#2563EB] scale-75"
+										className="data-[state=checked]:bg-primary scale-75"
 									/>
 								</label>
 							</div>
@@ -3881,7 +3980,7 @@ export function SettingsPanel({
 								checked={hideCursorWhenIdle}
 								onCheckedChange={onHideCursorWhenIdleChange}
 								disabled={!showCursor}
-								className="data-[state=checked]:bg-[#2563EB] scale-75"
+								className="data-[state=checked]:bg-primary scale-75"
 							/>
 						</label>
 						<label className="flex items-center justify-between gap-3 rounded-lg border border-foreground/10 bg-foreground/[0.025] px-3 py-2">
@@ -3903,7 +4002,7 @@ export function SettingsPanel({
 								checked={stopCursorAtEnd}
 								onCheckedChange={onStopCursorAtEndChange}
 								disabled={!showCursor}
-								className="data-[state=checked]:bg-[#2563EB] scale-75"
+								className="data-[state=checked]:bg-primary scale-75"
 							/>
 						</label>
 						<label className="flex items-center justify-between gap-3 rounded-lg border border-foreground/10 bg-foreground/[0.025] px-3 py-2">
@@ -3925,7 +4024,7 @@ export function SettingsPanel({
 								checked={removeCursorShakes}
 								onCheckedChange={onRemoveCursorShakesChange}
 								disabled={!showCursor}
-								className="data-[state=checked]:bg-[#2563EB] scale-75"
+								className="data-[state=checked]:bg-primary scale-75"
 							/>
 						</label>
 						<label className="flex items-center justify-between gap-3 rounded-lg border border-foreground/10 bg-foreground/[0.025] px-3 py-2">
@@ -3947,7 +4046,7 @@ export function SettingsPanel({
 								checked={alwaysUseDefaultCursor}
 								onCheckedChange={onAlwaysUseDefaultCursorChange}
 								disabled={!showCursor}
-								className="data-[state=checked]:bg-[#2563EB] scale-75"
+								className="data-[state=checked]:bg-primary scale-75"
 							/>
 						</label>
 						<label className="flex items-center justify-between gap-3 rounded-lg border border-foreground/10 bg-foreground/[0.025] px-3 py-2">
@@ -3969,7 +4068,7 @@ export function SettingsPanel({
 								checked={optimizeCursorTypes}
 								onCheckedChange={onOptimizeCursorTypesChange}
 								disabled={!showCursor || alwaysUseDefaultCursor}
-								className="data-[state=checked]:bg-[#2563EB] scale-75"
+								className="data-[state=checked]:bg-primary scale-75"
 							/>
 						</label>
 						<div className="flex flex-col gap-1.5">
@@ -3993,7 +4092,7 @@ export function SettingsPanel({
 											aria-label={option.label}
 											className={cn(
 												"group aspect-square h-auto min-w-0 rounded-[10px] border border-foreground/10 bg-foreground/[0.03] p-3 text-left text-foreground shadow-none transition-all hover:border-foreground/20 hover:bg-foreground/[0.06]",
-												"data-[state=on]:border-[#2563EB]/70 data-[state=on]:bg-[#2563EB]/12 data-[state=on]:text-foreground",
+												"data-[state=on]:border-primary/70 data-[state=on]:bg-primary/10 data-[state=on]:text-foreground",
 											)}
 										>
 											<div className="flex h-full flex-col items-center justify-between gap-3">
@@ -4077,7 +4176,7 @@ export function SettingsPanel({
 														className={cn(
 															"h-6 w-6 rounded-[8px] border transition-transform hover:scale-[1.04]",
 															isSelected
-																? "border-foreground/80 ring-1 ring-[#2563EB]/50"
+																? "border-foreground/80 ring-1 ring-primary/50"
 																: "border-foreground/10",
 														)}
 														style={{ backgroundColor: color }}
@@ -4214,7 +4313,7 @@ export function SettingsPanel({
 							<button
 								type="button"
 								onClick={resetWebcamSection}
-								className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+								className="text-[10px] text-primary transition-opacity hover:opacity-80"
 							>
 								{t("common.actions.reset", "Reset")}
 							</button>
@@ -4227,7 +4326,7 @@ export function SettingsPanel({
 								<Switch
 									checked={webcam?.enabled ?? false}
 									onCheckedChange={(enabled) => updateWebcam({ enabled })}
-									className="data-[state=checked]:bg-[#2563EB] scale-75"
+									className="data-[state=checked]:bg-primary scale-75"
 								/>
 							</div>
 							<div className="rounded-lg border border-foreground/10 bg-foreground/[0.03] px-2.5 py-2">
@@ -4260,7 +4359,7 @@ export function SettingsPanel({
 													className={cn(
 														"h-7 rounded-md border px-1 text-[9px]",
 														selectedWebcamLayout.mode === mode
-															? "border-[#2563EB] bg-[#2563EB] text-white"
+															? "border-primary bg-primary text-primary-foreground"
 															: "border-foreground/10 bg-foreground/5 text-muted-foreground hover:bg-foreground/10",
 													)}
 												>
@@ -4307,7 +4406,7 @@ export function SettingsPanel({
 									onCheckedChange={(autoDirector) =>
 										updateWebcam({ autoDirector })
 									}
-									className="data-[state=checked]:bg-[#2563EB] scale-75"
+									className="data-[state=checked]:bg-primary scale-75"
 								/>
 							</div>
 							<div className="flex items-center justify-between rounded-lg bg-foreground/[0.03] px-2.5 py-1.5">
@@ -4317,7 +4416,7 @@ export function SettingsPanel({
 								<Switch
 									checked={webcam?.reactToZoom ?? DEFAULT_WEBCAM_REACT_TO_ZOOM}
 									onCheckedChange={(reactToZoom) => updateWebcam({ reactToZoom })}
-									className="data-[state=checked]:bg-[#2563EB] scale-75"
+									className="data-[state=checked]:bg-primary scale-75"
 								/>
 							</div>
 							<div className="flex items-center justify-between rounded-lg bg-foreground/[0.03] px-2.5 py-1.5">
@@ -4327,7 +4426,7 @@ export function SettingsPanel({
 								<Switch
 									checked={webcam?.mirror ?? true}
 									onCheckedChange={(mirror) => updateWebcam({ mirror })}
-									className="data-[state=checked]:bg-[#2563EB] scale-75"
+									className="data-[state=checked]:bg-primary scale-75"
 								/>
 							</div>
 							<SliderControl
@@ -4374,7 +4473,7 @@ export function SettingsPanel({
 										onClick={() =>
 											updateWebcam({ cropRegion: DEFAULT_CROP_REGION })
 										}
-										className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+										className="text-[10px] text-primary transition-opacity hover:opacity-80"
 									>
 										{t("common.actions.reset", "Reset")}
 									</button>
@@ -4419,7 +4518,7 @@ export function SettingsPanel({
 												className={cn(
 													"h-8 rounded-lg border px-0 text-sm font-semibold transition-all",
 													isActive
-														? "border-[#2563EB] bg-[#2563EB] text-white"
+														? "border-primary bg-primary text-primary-foreground"
 														: "border-foreground/10 bg-foreground/5 text-muted-foreground hover:border-foreground/20 hover:bg-foreground/10",
 												)}
 											>
@@ -4442,7 +4541,7 @@ export function SettingsPanel({
 												checked ? "custom" : DEFAULT_WEBCAM_POSITION_PRESET,
 											)
 										}
-										className="data-[state=checked]:bg-[#2563EB] scale-75"
+										className="data-[state=checked]:bg-primary scale-75"
 									/>
 								</div>
 							</div>
@@ -4588,7 +4687,19 @@ export function SettingsPanel({
 	})();
 
 	return (
-		<div className="flex-[2] w-[332px] min-w-[280px] max-w-[332px] bg-editor-panel rounded-2xl flex flex-col shadow-xl h-full overflow-hidden">
+		<aside
+			aria-labelledby={inspectorHeadingId}
+			className="flex h-full w-[332px] min-w-[280px] max-w-[332px] flex-[2] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface-panel text-surface-foreground shadow-aureo-2"
+		>
+			<header className="flex h-11 shrink-0 items-center border-b border-hairline px-4">
+				<h2
+					id={inspectorHeadingId}
+					aria-live="polite"
+					className="truncate text-xs font-semibold tracking-tight"
+				>
+					{inspectorTitle}
+				</h2>
+			</header>
 			<div
 				className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 pb-0"
 				style={{ scrollbarGutter: "stable" }}
@@ -4596,10 +4707,12 @@ export function SettingsPanel({
 				<AnimatePresence mode="wait" initial={false}>
 					<motion.div
 						key={activeEffectSection}
-						initial={{ opacity: 0, y: 8 }}
+						initial={reduceMotion ? false : { opacity: 0, y: 8 }}
 						animate={{ opacity: 1, y: 0 }}
-						exit={{ opacity: 0, y: -8 }}
-						transition={{ duration: 0.18, ease: "easeOut" }}
+						exit={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
+						transition={
+							reduceMotion ? { duration: 0 } : { duration: 0.18, ease: "easeOut" }
+						}
 					>
 						{effectSectionContent}
 					</motion.div>
@@ -4687,6 +4800,6 @@ export function SettingsPanel({
 					</Button>
 				)}
 			</div>
-		</div>
+		</aside>
 	);
 }

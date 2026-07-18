@@ -102,6 +102,7 @@ interface VideoExporterConfig extends ExportConfig {
 	speedRegions?: SpeedRegion[];
 	showShadow: boolean;
 	shadowIntensity: number;
+	backgroundEnabled?: boolean;
 	backgroundBlur: number;
 	zoomMotionBlur?: number;
 	zoomMotionBlurTuning?: ZoomMotionBlurTuning;
@@ -603,6 +604,7 @@ export class ModernVideoExporter {
 					showShadow: this.config.showShadow,
 					shadowIntensity: this.config.shadowIntensity,
 					backgroundBlur: this.config.backgroundBlur,
+					backgroundEnabled: this.config.backgroundEnabled,
 					zoomMotionBlur: this.config.zoomMotionBlur,
 					zoomMotionBlurTuning: this.config.zoomMotionBlurTuning,
 					zoomTemporalMotionBlur: this.config.zoomTemporalMotionBlur,
@@ -1632,6 +1634,9 @@ export class ModernVideoExporter {
 
 	private async resolveNativeStaticLayoutBackground(): Promise<NativeStaticLayoutBackground | null> {
 		this.nativeStaticLayoutBackgroundSkipReason = null;
+		if (this.config.backgroundEnabled === false) {
+			return { backgroundColor: "#000000", backgroundImagePath: null };
+		}
 		const configuredWallpaper = this.config.wallpaper?.trim() ?? "";
 		const wallpaper = configuredWallpaper || DEFAULT_WALLPAPER_PATH;
 		if (/^#?[0-9a-f]{6}$/i.test(wallpaper)) {

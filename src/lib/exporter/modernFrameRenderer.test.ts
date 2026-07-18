@@ -1,3 +1,4 @@
+import { Texture } from "pixi.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_WEBCAM_OVERLAY } from "../../components/video-editor/types";
 
@@ -873,5 +874,45 @@ describe("ModernFrameRenderer temporal webcam sync", () => {
 		expect(
 			new Set(renderer.renderSceneSample.mock.calls.map((call: unknown[]) => call[0])).size,
 		).toBeGreaterThan(1);
+	});
+});
+
+describe("ModernFrameRenderer background disabled", () => {
+	it("creates a black background sprite and skips wallpaper load when backgroundEnabled is false", async () => {
+		vi.clearAllMocks();
+		const renderer = new FrameRenderer({
+			width: 1920,
+			height: 1080,
+			nativeReadbackMode: "pixels",
+			wallpaper: "/wallpapers/wispysky.mp4",
+			backgroundEnabled: false,
+			zoomRegions: [],
+			showShadow: false,
+			shadowIntensity: 0,
+			backgroundBlur: 0,
+			cropRegion: { x: 0, y: 0, width: 1, height: 1 },
+			webcam: {
+				...DEFAULT_WEBCAM_OVERLAY,
+				enabled: false,
+			},
+			videoWidth: 1920,
+			videoHeight: 1080,
+		}) as any;
+
+		await renderer.setupBackground();
+
+		expect(initializeForwardFrameSourceMock).not.toHaveBeenCalled();
+		expect(renderer.backgroundSprite).toBeTruthy();
+		expect(Texture.from).toHaveBeenCalledWith(
+			expect.objectContaining({
+				width: 1920,
+				height: 1080,
+				context: expect.objectContaining({ fillStyle: "#000000" }),
+			}),
+		);
+		const backgroundCanvas = vi.mocked(Texture.from).mock.calls[0]?.[0] as {
+			context?: { fillRect?: ReturnType<typeof vi.fn> };
+		};
+		expect(backgroundCanvas.context?.fillRect).toHaveBeenCalledWith(0, 0, 1920, 1080);
 	});
 });

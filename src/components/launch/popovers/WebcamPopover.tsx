@@ -246,6 +246,8 @@ export function WebcamPopover({
 				}
 				requestOpen(POPOVER_ID);
 			}}
+			role="dialog"
+			aria-label={t("recording.webcam")}
 			trigger={trigger}
 			align="center"
 		>
@@ -265,6 +267,7 @@ export function WebcamPopover({
 					</DropdownItem>
 					{canToggleFloatingPreview ? (
 						<DropdownItem
+							role="menuitemcheckbox"
 							icon={
 								showFloatingWebcamPreview ? <EyeOff size={16} /> : <Eye size={16} />
 							}
@@ -277,6 +280,7 @@ export function WebcamPopover({
 						</DropdownItem>
 					) : null}
 					<DropdownItem
+						role="menuitemcheckbox"
 						icon={<FlipHorizontal size={16} />}
 						selected={previewAppearance.mirror}
 						onClick={() =>
@@ -405,6 +409,7 @@ export function WebcamPopover({
 			{videoDevices.map((device) => (
 				<DropdownItem
 					key={device.deviceId}
+					role="menuitemradio"
 					icon={
 						webcamEnabled &&
 						(webcamDeviceId === device.deviceId ||
@@ -497,7 +502,7 @@ function WebcamPreviewSlider({
 			</span>
 			<input
 				type="range"
-				className="block h-4 w-full cursor-pointer accent-[#2563eb]"
+				className="block h-4 w-full cursor-pointer accent-[var(--launch-accent)]"
 				min={min}
 				max={max}
 				step={step}

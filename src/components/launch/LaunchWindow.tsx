@@ -14,18 +14,19 @@ import {
 	XIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef } from "react";
 import { RxDragHandleDots2 } from "react-icons/rx";
-import { Separator } from "@/components/ui/separator";
 import { useScopedT } from "../../contexts/I18nContext";
 import { useMicrophoneDevices } from "../../hooks/useMicrophoneDevices";
 import { useScreenRecorder } from "../../hooks/useScreenRecorder";
 import { useVideoDevices } from "../../hooks/useVideoDevices";
 import { Button } from "../ui/button";
+import { formatLaunchHudTitle } from "./a11y/launchA11yUtils";
 import { HudInteractionContext } from "./contexts/HudInteractionContext";
 import { canToggleFloatingWebcamPreview } from "./floatingWebcamPreview";
 import { useHudBarDrag } from "./hooks/useHudBarDrag";
 import { useLaunchHudInteractionState } from "./hooks/useLaunchHudInteractionState";
+import { useLaunchMediaA11y } from "./hooks/useLaunchMediaA11y";
 import { useLaunchWindowActions } from "./hooks/useLaunchWindowActions";
 import { useLaunchWindowSystemState } from "./hooks/useLaunchWindowSystemState";
 import { useMicrophoneLevel } from "./hooks/useMicrophoneLevel";
@@ -47,6 +48,7 @@ import { WebcamPopover } from "./popovers/WebcamPopover";
 import { RecordingControls } from "./RecordingControls";
 import { shouldConfirmMutedCameraRecording } from "./recordPreflight";
 import { MarqueeText } from "./SourceSelector";
+import { WEBCAM_PREVIEW_SIZE_RANGE } from "./webcamPreviewAppearance";
 import { computeWebcamFramingLayout } from "./webcamPreviewFraming";
 import { WEBCAM_PREVIEW_ANCHOR } from "./webcamPreviewPlacement";
 import { computeResizeCornerInset, WEBCAM_RESIZE_HANDLE_SIZE } from "./webcamPreviewResize";
@@ -64,7 +66,10 @@ export function LaunchWindow() {
 
 function LaunchWindowContent() {
 	const t = useScopedT("launch");
+	const certificationMode =
+		new URLSearchParams(window.location.search).get("certification") === "1";
 	const { openId, requestClose, requestOpen } = useLaunchPopoverCoordinator();
+	const { dataAttributes: a11yDataAttrs } = useLaunchMediaA11y();
 
 	useEffect(() => {
 		const cleanup = window.electronAPI?.onHudOverlayOpenPopover?.((popoverId) => {
@@ -97,7 +102,7 @@ function LaunchWindowContent() {
 		countdownDelay,
 		setCountdownDelay,
 		preparePermissions,
-	} = useScreenRecorder();
+	} = useScreenRecorder({ certificationMode });
 
 	const { elapsed, formatTime } = useRecordingTimer(recording, paused);
 	const hudContentRef = useRef<HTMLDivElement>(null);
@@ -116,18 +121,21 @@ function LaunchWindowContent() {
 
 	const showWebcamControls = webcamEnabled && !recording;
 	const { devices, selectedDeviceId, setSelectedDeviceId } = useMicrophoneDevices(
-		microphoneEnabled || openId === "mic",
+		!certificationMode && (microphoneEnabled || openId === "mic"),
 		microphoneDeviceId,
 	);
 	const {
 		devices: videoDevices,
 		selectedDeviceId: selectedVideoDeviceId,
 		setSelectedDeviceId: setSelectedVideoDeviceId,
-	} = useVideoDevices(webcamEnabled || openId === "webcam", webcamDeviceId);
+	} = useVideoDevices(
+		!certificationMode && (webcamEnabled || openId === "webcam"),
+		webcamDeviceId,
+	);
 	const meterDeviceId =
 		microphoneDeviceId ?? (selectedDeviceId === "default" ? undefined : selectedDeviceId);
 	const { attachMeter } = useMicrophoneLevel({
-		enabled: microphoneEnabled && !recording && !finalizing,
+		enabled: !certificationMode && microphoneEnabled && !recording && !finalizing,
 		deviceId: meterDeviceId,
 	});
 	const micPillMeterCleanupRef = useRef<() => void>();
@@ -146,7 +154,7 @@ function LaunchWindowContent() {
 		hideHudFromCapture,
 		chooseRecordingsDirectory,
 		toggleHudCaptureProtection,
-	} = useLaunchWindowSystemState(preparePermissions);
+	} = useLaunchWindowSystemState(preparePermissions, certificationMode);
 
 	const supportsHudCaptureProtection = platform !== "linux";
 
@@ -190,10 +198,10 @@ function LaunchWindowContent() {
 		setWebcamPreviewNode,
 		setRecordingWebcamPreviewNode,
 	} = useWebcamPreviewOverlay({
-		webcamEnabled,
+		webcamEnabled: webcamEnabled && !certificationMode,
 		webcamDeviceId,
-		showWebcamControls,
-		webcamPopoverOpen: openId === "webcam",
+		showWebcamControls: showWebcamControls && !certificationMode,
+		webcamPopoverOpen: openId === "webcam" && !certificationMode,
 		hudOverlayMousePassthroughSupported,
 		onWebcamPreviewUnavailable: () => setWebcamEnabled(false),
 	});
@@ -226,6 +234,38 @@ function LaunchWindowContent() {
 	const webcamResizeHandleOffset =
 		computeResizeCornerInset(webcamPreviewAppearance.size, webcamPreviewAppearance.roundness) -
 		WEBCAM_RESIZE_HANDLE_SIZE / 2;
+	const handleWebcamResizeKeyDown = useCallback(
+		(
+			event: KeyboardEvent<HTMLDivElement>,
+			corner: "top-left" | "top-right" | "bottom-left" | "bottom-right",
+		) => {
+			const grows =
+				(event.key === "ArrowLeft" && corner.endsWith("left")) ||
+				(event.key === "ArrowRight" && corner.endsWith("right")) ||
+				(event.key === "ArrowUp" && corner.startsWith("top")) ||
+				(event.key === "ArrowDown" && corner.startsWith("bottom"));
+			const shrinks =
+				(event.key === "ArrowLeft" && corner.endsWith("right")) ||
+				(event.key === "ArrowRight" && corner.endsWith("left")) ||
+				(event.key === "ArrowUp" && corner.startsWith("bottom")) ||
+				(event.key === "ArrowDown" && corner.startsWith("top"));
+			if (!grows && !shrinks) return;
+
+			event.preventDefault();
+			event.stopPropagation();
+			const step = event.shiftKey ? 16 : 8;
+			updateWebcamPreviewAppearance({
+				size: Math.min(
+					WEBCAM_PREVIEW_SIZE_RANGE.max,
+					Math.max(
+						WEBCAM_PREVIEW_SIZE_RANGE.min,
+						webcamPreviewAppearance.size + (grows ? step : -step),
+					),
+				),
+			});
+		},
+		[updateWebcamPreviewAppearance, webcamPreviewAppearance.size],
+	);
 
 	useEffect(() => {
 		window.electronAPI?.hudOverlaySetWebcamPreviewVisible?.(showRecordingWebcamPreview);
@@ -320,45 +360,14 @@ function LaunchWindowContent() {
 			onToggleMicrophone={() => setMicrophoneEnabled(!microphoneEnabled)}
 			onPauseResume={paused ? resumeRecording : pauseRecording}
 			onStopRecording={toggleRecording}
-			onHideHud={() => window.electronAPI?.hudOverlayHide?.()}
 			onCancelRecording={cancelRecording}
+			onHideHud={() => window.electronAPI?.hudOverlayHide?.()}
 			formatTime={formatTime}
 		/>
 	);
 
-	const idleControls = (
-		<>
-			{platform !== "linux" && (
-				<>
-					<SourcePopover
-						selectedSource={selectedSource}
-						onSourceSelect={handleSourceSelect}
-						onOpen={beginInteractiveHudAction}
-						trigger={
-							<Button
-								variant="outline"
-								size="lg"
-								className={`${styles.electronNoDrag} group gap-2 px-3 min-w-0 max-w-[180px] rounded-[11px] font-medium text-[12px] shrink-0 border-[var(--launch-border)] bg-[var(--launch-surface)] text-[var(--launch-text)] hover:border-[var(--launch-border-strong)] hover:bg-[var(--launch-hover)] transition-all ${openId === "sources" ? "border-[var(--launch-border-strong)] bg-[var(--launch-hover)]" : ""}`}
-								title={selectedSource}
-							>
-								<MonitorIcon size={16} className="shrink-0" />
-								<div className="flex-1 min-w-0 overflow-hidden">
-									<MarqueeText text={selectedSource} />
-								</div>
-								<CaretUpIcon
-									size={10}
-									className={`text-[#6b6b78] ml-0.5 shrink-0 transition-transform duration-200 ${
-										openId === "sources" ? "" : "rotate-180"
-									}`}
-								/>
-							</Button>
-						}
-					/>
-
-					<Separator orientation="vertical" className="mx-[5px] h-6" />
-				</>
-			)}
-
+	const audioControls = (
+		<div className={styles.barGroup}>
 			<MicPopover
 				disabled={recording}
 				systemAudioEnabled={systemAudioEnabled}
@@ -382,6 +391,7 @@ function LaunchWindowContent() {
 						size="lg"
 						disabled={recording}
 						title={micPillLabel}
+						aria-pressed={microphoneEnabled}
 						className={`${styles.electronNoDrag} relative group gap-2 px-3 min-w-0 max-w-[172px] rounded-[11px] font-medium text-[12px] shrink-0 border-[var(--launch-border)] bg-[var(--launch-surface)] text-[var(--launch-text)] hover:border-[var(--launch-border-strong)] hover:bg-[var(--launch-hover)] transition-all ${microphoneEnabled ? "border-[var(--launch-border-strong)] bg-[var(--launch-selected)] text-[var(--launch-accent)] hover:bg-[var(--launch-selected)]" : ""} ${openId === "mic" ? "border-[var(--launch-border-strong)] bg-[var(--launch-hover)]" : ""}`}
 					>
 						{microphoneEnabled ? (
@@ -422,11 +432,16 @@ function LaunchWindowContent() {
 						? t("recording.disableSystemAudio")
 						: t("recording.enableSystemAudio")
 				}
-				className={systemAudioEnabled ? styles.ibActive : ""}
+				aria-pressed={systemAudioEnabled}
+				className={`${systemAudioEnabled ? styles.ibActive : styles.ib}`}
 			>
 				{systemAudioEnabled ? <SpeakerHighIcon size={18} /> : <SpeakerXIcon size={18} />}
 			</Button>
+		</div>
+	);
 
+	const videoControls = (
+		<div className={styles.barGroup}>
 			<WebcamPopover
 				disabled={recording}
 				webcamEnabled={webcamEnabled}
@@ -455,6 +470,7 @@ function LaunchWindowContent() {
 						size="lg"
 						disabled={recording}
 						title={webcamPillLabel}
+						aria-pressed={webcamEnabled}
 						className={`${styles.electronNoDrag} group gap-2 px-3 min-w-0 max-w-[172px] rounded-[11px] font-medium text-[12px] shrink-0 border-[var(--launch-border)] bg-[var(--launch-surface)] text-[var(--launch-text)] hover:border-[var(--launch-border-strong)] hover:bg-[var(--launch-hover)] transition-all ${webcamEnabled ? "border-[var(--launch-border-strong)] bg-[var(--launch-selected)] text-[var(--launch-accent)] hover:bg-[var(--launch-selected)]" : ""} ${openId === "webcam" ? "border-[var(--launch-border-strong)] bg-[var(--launch-hover)]" : ""}`}
 					>
 						{webcamEnabled ? (
@@ -474,7 +490,11 @@ function LaunchWindowContent() {
 					</Button>
 				}
 			/>
+		</div>
+	);
 
+	const captureOptions = (
+		<div className={styles.barGroup}>
 			<CountdownPopover
 				countdownDelay={countdownDelay}
 				onSelectDelay={setCountdownDelay}
@@ -484,13 +504,18 @@ function LaunchWindowContent() {
 						size="icon"
 						iconSize="lg"
 						title={t("recording.countdownDelay")}
-						className={countdownDelay > 0 ? styles.ibActive : ""}
+						aria-pressed={countdownDelay > 0}
+						className={`${countdownDelay > 0 ? styles.ibActive : styles.ib}`}
 					>
 						<TimerIcon size={18} />
 					</Button>
 				}
 			/>
+		</div>
+	);
 
+	const primaryRecordAction = (
+		<div className={styles.barGroup}>
 			<RecordConfirmPopover
 				onRecordAnyway={toggleRecording}
 				trigger={
@@ -500,14 +525,17 @@ function LaunchWindowContent() {
 						onClick={handleRecordClick}
 						disabled={countdownActive}
 						title={t("recording.record")}
+						aria-label={t("recording.record")}
 					>
 						<div className={styles.recDot} />
 					</button>
 				}
 			/>
+		</div>
+	);
 
-			<Separator orientation="vertical" className="mx-[5px] h-6" />
-
+	const secondaryControls = (
+		<div className={styles.barGroup}>
 			<div className="relative w-0 h-0">
 				<ProjectPopover
 					entries={projectLibraryEntries}
@@ -542,7 +570,14 @@ function LaunchWindowContent() {
 				}}
 				appVersion={appVersion}
 				trigger={
-					<Button variant="ghost" size="icon" iconSize="lg" title={t("recording.more")}>
+					<Button
+						variant="ghost"
+						size="icon"
+						iconSize="lg"
+						title={t("recording.more")}
+						aria-label={t("recording.more")}
+						className={styles.ib}
+					>
 						<DotsThreeVerticalIcon size={18} />
 					</Button>
 				}
@@ -554,6 +589,8 @@ function LaunchWindowContent() {
 				iconSize="lg"
 				onClick={() => window.electronAPI?.hudOverlayHide?.()}
 				title={t("recording.hideHud")}
+				aria-label={t("recording.hideHud")}
+				className={styles.ib}
 			>
 				<MinusIcon size={16} />
 			</Button>
@@ -564,15 +601,72 @@ function LaunchWindowContent() {
 				iconSize="lg"
 				onClick={() => window.electronAPI?.hudOverlayClose?.()}
 				title={t("recording.closeApp")}
+				aria-label={t("recording.closeApp")}
+				className={styles.ib}
 			>
 				<XIcon size={16} />
 			</Button>
+		</div>
+	);
+
+	const idleControls = (
+		<>
+			{platform !== "linux" && (
+				<>
+					<div className={styles.barGroup}>
+						<SourcePopover
+							selectedSource={selectedSource}
+							onSourceSelect={handleSourceSelect}
+							onOpen={beginInteractiveHudAction}
+							trigger={
+								<Button
+									variant="outline"
+									size="lg"
+									className={`${styles.electronNoDrag} group gap-2 px-3 min-w-0 max-w-[180px] rounded-[11px] font-medium text-[12px] shrink-0 border-[var(--launch-border)] bg-[var(--launch-surface)] text-[var(--launch-text)] hover:border-[var(--launch-border-strong)] hover:bg-[var(--launch-hover)] transition-all ${openId === "sources" ? "border-[var(--launch-border-strong)] bg-[var(--launch-hover)]" : ""}`}
+									title={selectedSource}
+									aria-haspopup="listbox"
+									aria-expanded={openId === "sources"}
+								>
+									<MonitorIcon size={16} className="shrink-0" />
+									<div className="flex-1 min-w-0 overflow-hidden">
+										<MarqueeText text={selectedSource} />
+									</div>
+									<CaretUpIcon
+										size={10}
+										className={`text-[#6b6b78] ml-0.5 shrink-0 transition-transform duration-200 ${
+											openId === "sources" ? "" : "rotate-180"
+										}`}
+									/>
+								</Button>
+							}
+						/>
+					</div>
+
+					<div className={styles.sep} role="separator" aria-orientation="vertical" />
+				</>
+			)}
+
+			{audioControls}
+
+			<div className={styles.sep} role="separator" aria-orientation="vertical" />
+
+			{videoControls}
+
+			<div className={styles.sep} role="separator" aria-orientation="vertical" />
+
+			{captureOptions}
+
+			{primaryRecordAction}
+
+			<div className={styles.sep} role="separator" aria-orientation="vertical" />
+
+			{secondaryControls}
 		</>
 	);
 
 	const finalizingControls = (
-		<div className={styles.finalizingState}>
-			<ArrowClockwiseIcon size={15} className={styles.finalizingSpin} />
+		<div className={styles.finalizingState} role="status" aria-live="polite">
+			<ArrowClockwiseIcon size={15} className={styles.finalizingSpin} aria-hidden="true" />
 			<div className={styles.finalizingCopy}>
 				<span>{t("recording.preparing", "Preparing recording")}</span>
 				<small>{t("recording.preparingSubtitle", "Opening the editor in a moment")}</small>
@@ -583,6 +677,7 @@ function LaunchWindowContent() {
 	const hudMode = finalizing ? "finalizing" : recording ? "recording" : "idle";
 	const useNativeHudBarDrag =
 		platform === "linux" || hudOverlayMousePassthroughSupported === false;
+	const hudTitle = formatLaunchHudTitle(hudMode, paused, formatTime(elapsed));
 
 	return (
 		<HudInteractionContext.Provider
@@ -591,6 +686,9 @@ function LaunchWindowContent() {
 			<div
 				className="w-full flex justify-center bg-transparent overflow-visible items-end pb-5 pointer-events-none"
 				style={{ height: "100vh" }}
+				aria-label={hudTitle}
+				role="toolbar"
+				{...a11yDataAttrs}
 			>
 				<div
 					ref={hudContentRef}
@@ -612,6 +710,7 @@ function LaunchWindowContent() {
 								layout={!showRecordingWebcamPreview && !isHudDragging}
 								transition={hudStateTransition}
 								className={`${styles.bar} launch-theme mb-2`}
+								{...a11yDataAttrs}
 							>
 								<div
 									// Linux compositors and non-passthrough Windows fallback windows
@@ -624,6 +723,8 @@ function LaunchWindowContent() {
 									onPointerMove={handleHudBarPointerMove}
 									onPointerUp={handleHudBarPointerUp}
 									onPointerCancel={handleHudBarPointerUp}
+									title={t("recording.dragHud", "Drag HUD")}
+									aria-hidden="true"
 								>
 									<RxDragHandleDots2 size={14} className="text-[#6b6b78]" />
 								</div>
@@ -707,33 +808,72 @@ function LaunchWindowContent() {
 									/>
 								</div>
 								<div
-									className={`${styles.webcamResizeHandle} ${styles.webcamResizeHandleTopLeft}`}
+									className={`${styles.webcamResizeHandle} ${styles.webcamResizeHandleTopLeft} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--launch-accent)]`}
+									role="slider"
+									tabIndex={0}
+									aria-label={t(
+										"recording.resizeWebcamTopLeft",
+										"Resize webcam from top left",
+									)}
+									aria-valuemin={WEBCAM_PREVIEW_SIZE_RANGE.min}
+									aria-valuemax={WEBCAM_PREVIEW_SIZE_RANGE.max}
+									aria-valuenow={webcamPreviewAppearance.size}
+									aria-valuetext={`${webcamPreviewAppearance.size} pixels`}
 									style={{
 										left: webcamResizeHandleOffset,
 										top: webcamResizeHandleOffset,
 									}}
+									onKeyDown={(event) =>
+										handleWebcamResizeKeyDown(event, "top-left")
+									}
 									onPointerDown={handleWebcamResizeHandlePointerDown("top-left")}
 									onPointerMove={handleWebcamResizeHandlePointerMove}
 									onPointerUp={handleWebcamResizeHandlePointerUp}
 									onPointerCancel={handleWebcamResizeHandlePointerUp}
 								/>
 								<div
-									className={`${styles.webcamResizeHandle} ${styles.webcamResizeHandleTopRight}`}
+									className={`${styles.webcamResizeHandle} ${styles.webcamResizeHandleTopRight} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--launch-accent)]`}
+									role="slider"
+									tabIndex={0}
+									aria-label={t(
+										"recording.resizeWebcamTopRight",
+										"Resize webcam from top right",
+									)}
+									aria-valuemin={WEBCAM_PREVIEW_SIZE_RANGE.min}
+									aria-valuemax={WEBCAM_PREVIEW_SIZE_RANGE.max}
+									aria-valuenow={webcamPreviewAppearance.size}
+									aria-valuetext={`${webcamPreviewAppearance.size} pixels`}
 									style={{
 										right: webcamResizeHandleOffset,
 										top: webcamResizeHandleOffset,
 									}}
+									onKeyDown={(event) =>
+										handleWebcamResizeKeyDown(event, "top-right")
+									}
 									onPointerDown={handleWebcamResizeHandlePointerDown("top-right")}
 									onPointerMove={handleWebcamResizeHandlePointerMove}
 									onPointerUp={handleWebcamResizeHandlePointerUp}
 									onPointerCancel={handleWebcamResizeHandlePointerUp}
 								/>
 								<div
-									className={`${styles.webcamResizeHandle} ${styles.webcamResizeHandleBottomLeft}`}
+									className={`${styles.webcamResizeHandle} ${styles.webcamResizeHandleBottomLeft} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--launch-accent)]`}
+									role="slider"
+									tabIndex={0}
+									aria-label={t(
+										"recording.resizeWebcamBottomLeft",
+										"Resize webcam from bottom left",
+									)}
+									aria-valuemin={WEBCAM_PREVIEW_SIZE_RANGE.min}
+									aria-valuemax={WEBCAM_PREVIEW_SIZE_RANGE.max}
+									aria-valuenow={webcamPreviewAppearance.size}
+									aria-valuetext={`${webcamPreviewAppearance.size} pixels`}
 									style={{
 										left: webcamResizeHandleOffset,
 										bottom: webcamResizeHandleOffset,
 									}}
+									onKeyDown={(event) =>
+										handleWebcamResizeKeyDown(event, "bottom-left")
+									}
 									onPointerDown={handleWebcamResizeHandlePointerDown(
 										"bottom-left",
 									)}
@@ -742,11 +882,24 @@ function LaunchWindowContent() {
 									onPointerCancel={handleWebcamResizeHandlePointerUp}
 								/>
 								<div
-									className={`${styles.webcamResizeHandle} ${styles.webcamResizeHandleBottomRight}`}
+									className={`${styles.webcamResizeHandle} ${styles.webcamResizeHandleBottomRight} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--launch-accent)]`}
+									role="slider"
+									tabIndex={0}
+									aria-label={t(
+										"recording.resizeWebcamBottomRight",
+										"Resize webcam from bottom right",
+									)}
+									aria-valuemin={WEBCAM_PREVIEW_SIZE_RANGE.min}
+									aria-valuemax={WEBCAM_PREVIEW_SIZE_RANGE.max}
+									aria-valuenow={webcamPreviewAppearance.size}
+									aria-valuetext={`${webcamPreviewAppearance.size} pixels`}
 									style={{
 										right: webcamResizeHandleOffset,
 										bottom: webcamResizeHandleOffset,
 									}}
+									onKeyDown={(event) =>
+										handleWebcamResizeKeyDown(event, "bottom-right")
+									}
 									onPointerDown={handleWebcamResizeHandlePointerDown(
 										"bottom-right",
 									)}

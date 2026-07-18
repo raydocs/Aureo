@@ -1,6 +1,7 @@
 import { Check, MagnifyingGlass } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { GlassSurface } from "@/components/ui/glass-surface";
 import { cn } from "@/lib/utils";
 import {
 	type EditorCommandDefinition,
@@ -61,7 +62,7 @@ export function CommandMenu({
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
-				className="top-[18%] max-w-[620px] translate-y-0 gap-0 overflow-hidden rounded-2xl border-foreground/10 bg-editor-surface/98 p-0 text-foreground shadow-[0_32px_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl [&>button]:hidden"
+				className="top-[18%] max-w-[620px] translate-y-0 gap-0 overflow-hidden border-0 bg-transparent p-0 text-foreground shadow-none backdrop-blur-none transition-[filter] data-[state=closed]:blur-[2px] data-[state=open]:blur-0 [&>button]:hidden"
 				style={{ transform: "translate(-50%, 0)" }}
 				onOpenAutoFocus={(event) => {
 					event.preventDefault();
@@ -69,125 +70,149 @@ export function CommandMenu({
 				}}
 				aria-describedby={undefined}
 			>
-				<DialogTitle className="sr-only">{title}</DialogTitle>
-				<div className="flex h-14 items-center gap-3 border-b border-foreground/10 px-4">
-					<MagnifyingGlass className="h-5 w-5 shrink-0 text-muted-foreground" />
-					<input
-						ref={inputRef}
-						type="text"
-						role="combobox"
-						aria-expanded={true}
-						aria-controls="aureo-command-menu-list"
-						aria-activedescendant={
-							selectedIndex >= 0
-								? `aureo-command-${visibleCommands[selectedIndex]?.id}`
-								: undefined
-						}
-						value={query}
-						onChange={(event) => setQuery(event.target.value)}
-						onKeyDown={(event) => {
-							if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-								event.preventDefault();
-								setSelectedIndex((current) =>
-									moveCommandSelection(
-										current,
-										event.key === "ArrowDown" ? 1 : -1,
-										visibleCommands,
-									),
-								);
-								return;
-							}
-							if (event.key === "Enter") {
-								event.preventDefault();
-								const command = visibleCommands[selectedIndex];
-								if (command) execute(command);
-							}
-						}}
-						placeholder={placeholder}
-						className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/65"
-					/>
-					<kbd className="rounded-md border border-foreground/10 bg-foreground/5 px-2 py-1 text-[10px] font-medium text-muted-foreground">
-						Esc
-					</kbd>
-				</div>
-
-				<div
-					id="aureo-command-menu-list"
-					role="listbox"
-					className="max-h-[430px] overflow-y-auto p-2"
+				<GlassSurface
+					variant="regular"
+					padding="none"
+					className="overflow-hidden rounded-[22px] shadow-aureo-3"
 				>
-					{visibleCommands.length === 0 ? (
-						<div className="flex h-28 items-center justify-center text-sm text-muted-foreground">
-							{emptyLabel}
-						</div>
-					) : (
-						visibleCommands.map((command, index) => {
-							const previous = visibleCommands[index - 1];
-							const showGroup =
-								query.trim().length === 0 && previous?.group !== command.group;
-							const selected = selectedIndex === index;
-							return (
-								<div key={command.id}>
-									{showGroup ? (
-										<div className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/65 first:pt-1">
-											{groupLabels[command.group]}
-										</div>
-									) : null}
-									<button
-										ref={(element) => {
-											if (element)
-												commandRefs.current.set(command.id, element);
-											else commandRefs.current.delete(command.id);
-										}}
-										id={`aureo-command-${command.id}`}
-										type="button"
-										role="option"
-										aria-selected={selected}
-										disabled={command.disabled}
-										onPointerMove={() => {
-											if (!command.disabled) setSelectedIndex(index);
-										}}
-										onClick={() => execute(command)}
-										className={cn(
-											"flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left outline-none transition-colors",
-											selected && "bg-[#2563EB]/14",
-											!selected &&
-												!command.disabled &&
-												"hover:bg-foreground/[0.055]",
-											command.disabled && "cursor-not-allowed opacity-35",
-										)}
-									>
-										<div className="min-w-0 flex-1">
-											<div className="truncate text-[13px] font-medium text-foreground">
-												{command.label}
+					<DialogTitle className="sr-only">{title}</DialogTitle>
+					<div className="flex h-14 items-center gap-3 border-b border-foreground/10 px-4">
+						<MagnifyingGlass className="h-5 w-5 shrink-0 text-muted-foreground" />
+						<input
+							ref={inputRef}
+							type="text"
+							role="combobox"
+							aria-label={title}
+							aria-expanded={true}
+							aria-autocomplete="list"
+							aria-controls="aureo-command-menu-list"
+							aria-activedescendant={
+								selectedIndex >= 0
+									? `aureo-command-${visibleCommands[selectedIndex]?.id}`
+									: undefined
+							}
+							value={query}
+							onChange={(event) => setQuery(event.target.value)}
+							onKeyDown={(event) => {
+								if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+									event.preventDefault();
+									setSelectedIndex((current) =>
+										moveCommandSelection(
+											current,
+											event.key === "ArrowDown" ? 1 : -1,
+											visibleCommands,
+										),
+									);
+									return;
+								}
+								if (event.key === "Home" || event.key === "End") {
+									event.preventDefault();
+									setSelectedIndex(
+										moveCommandSelection(
+											event.key === "Home" ? -1 : 0,
+											event.key === "Home" ? 1 : -1,
+											visibleCommands,
+										),
+									);
+									return;
+								}
+								if (event.key === "Enter") {
+									event.preventDefault();
+									const command = visibleCommands[selectedIndex];
+									if (command) execute(command);
+								}
+							}}
+							placeholder={placeholder}
+							className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/65"
+						/>
+						<kbd className="rounded-md border border-foreground/10 bg-foreground/5 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+							Esc
+						</kbd>
+					</div>
+
+					<div
+						id="aureo-command-menu-list"
+						role="listbox"
+						aria-label={title}
+						className="max-h-[430px] overflow-y-auto p-2"
+					>
+						{visibleCommands.length === 0 ? (
+							<div
+								role="status"
+								className="flex h-28 items-center justify-center text-sm text-muted-foreground"
+							>
+								{emptyLabel}
+							</div>
+						) : (
+							visibleCommands.map((command, index) => {
+								const previous = visibleCommands[index - 1];
+								const showGroup =
+									query.trim().length === 0 && previous?.group !== command.group;
+								const selected = selectedIndex === index;
+								return (
+									<div key={command.id} role="presentation">
+										{showGroup ? (
+											<div className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/65 first:pt-1">
+												{groupLabels[command.group]}
 											</div>
-											{command.description ? (
-												<div className="mt-0.5 truncate text-[11px] text-muted-foreground">
-													{command.description}
+										) : null}
+										<button
+											ref={(element) => {
+												if (element)
+													commandRefs.current.set(command.id, element);
+												else commandRefs.current.delete(command.id);
+											}}
+											id={`aureo-command-${command.id}`}
+											type="button"
+											role="option"
+											aria-selected={selected}
+											disabled={command.disabled}
+											onPointerMove={() => {
+												if (!command.disabled) setSelectedIndex(index);
+											}}
+											onClick={() => execute(command)}
+											className={cn(
+												"flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left outline-none transition-[background-color,box-shadow,transform] duration-fast ease-aureo-default active:scale-[0.985]",
+												selected &&
+													"bg-primary/15 ring-1 ring-inset ring-primary/30",
+												!selected &&
+													!command.disabled &&
+													"hover:bg-foreground/[0.055]",
+												command.disabled && "cursor-not-allowed opacity-35",
+											)}
+										>
+											<div className="min-w-0 flex-1">
+												<div className="truncate text-[13px] font-medium text-foreground">
+													{command.label}
 												</div>
+												{command.description ? (
+													<div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+														{command.description}
+													</div>
+												) : null}
+											</div>
+											{command.checked ? (
+												<Check
+													className="h-4 w-4 shrink-0 text-primary"
+													weight="bold"
+												/>
 											) : null}
-										</div>
-										{command.checked ? (
-											<Check
-												className="h-4 w-4 shrink-0 text-[#2563EB]"
-												weight="bold"
-											/>
-										) : null}
-										{command.shortcut ? (
-											<kbd className="shrink-0 rounded-md border border-foreground/10 bg-foreground/5 px-2 py-1 text-[10px] font-medium text-muted-foreground">
-												{command.shortcut}
-											</kbd>
-										) : null}
-									</button>
-								</div>
-							);
-						})
-					)}
-				</div>
-				<div className="flex items-center justify-between border-t border-foreground/10 px-4 py-2 text-[10px] text-muted-foreground/70">
-					<span aria-hidden="true">↑↓ · ↵</span>
-					<span aria-hidden="true">{isMac ? "⌘ K" : "Ctrl K"}</span>
-				</div>
+											{command.shortcut ? (
+												<kbd className="shrink-0 rounded-md border border-foreground/10 bg-foreground/5 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+													{command.shortcut}
+												</kbd>
+											) : null}
+										</button>
+									</div>
+								);
+							})
+						)}
+					</div>
+					<div className="flex items-center justify-between border-t border-foreground/10 px-4 py-2 text-[10px] text-muted-foreground/70">
+						<span aria-hidden="true">↑↓ · Home End · ↵</span>
+						<span aria-hidden="true">{isMac ? "⌘ K" : "Ctrl K"}</span>
+					</div>
+				</GlassSurface>
 			</DialogContent>
 		</Dialog>
 	);

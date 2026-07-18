@@ -342,6 +342,7 @@ interface VideoPlaybackProps {
 	showShadow?: boolean;
 	shadowIntensity?: number;
 	backgroundBlur?: number;
+	backgroundEnabled?: boolean;
 	connectZooms?: boolean;
 	zoomInDurationMs?: number;
 	zoomInOverlapMs?: number;
@@ -429,6 +430,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			showShadow,
 			shadowIntensity = 0,
 			backgroundBlur = 0,
+			backgroundEnabled = true,
 			connectZooms = true,
 			zoomInDurationMs = DEFAULT_ZOOM_IN_DURATION_MS,
 			zoomInOverlapMs = DEFAULT_ZOOM_IN_OVERLAP_MS,
@@ -2942,6 +2944,13 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			let mounted = true;
 			const revokeResolvedWallpaper = () => undefined;
 			(async () => {
+				if (!backgroundEnabled) {
+					if (mounted) {
+						setResolvedWallpaper(null);
+						setResolvedWallpaperKind("style");
+					}
+					return;
+				}
 				try {
 					if (!wallpaper) {
 						const def = await getAssetPath(DEFAULT_WALLPAPER_RELATIVE_PATH);
@@ -3014,7 +3023,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				mounted = false;
 				revokeResolvedWallpaper();
 			};
-		}, [wallpaper]);
+		}, [backgroundEnabled, wallpaper]);
 
 		useEffect(() => {
 			return () => {
@@ -3073,7 +3082,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				}}
 			>
 				{/* Background layer */}
-				{resolvedWallpaperKind === "video" && resolvedWallpaper ? (
+				{backgroundEnabled && resolvedWallpaperKind === "video" && resolvedWallpaper ? (
 					<video
 						key={resolvedWallpaper}
 						ref={bgVideoRef}
@@ -3086,7 +3095,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 							filter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : "none",
 						}}
 					/>
-				) : (
+				) : backgroundEnabled ? (
 					<div
 						className="absolute inset-0 bg-cover bg-center"
 						style={{
@@ -3094,6 +3103,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 							filter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : "none",
 						}}
 					/>
+				) : (
+					<div className="absolute inset-0 bg-[#000000]" />
 				)}
 				<div
 					ref={containerRef}

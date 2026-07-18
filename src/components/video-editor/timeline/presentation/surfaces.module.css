@@ -1,0 +1,520 @@
+/*
+ * Timeline semantic surface system
+ *
+ * Replaces the previous "glass" region aesthetic with solid, theme-aware
+ * semantic surfaces. No backdrop blur is used anywhere in the timeline so
+ * viewport, rows, and waveform canvases stay crisp and performant.
+ */
+
+/* --------------------------------------------------------------------------
+ * 1. Region surface tokens
+ *
+ * Each lane type maps to a semantic surface with a consistent accent. Light
+ * and dark modes are defined side-by-side so the same class works in both.
+ * -------------------------------------------------------------------------- */
+
+.surfaceClip {
+	--_surface-bg: #dbeafe;
+	--_surface-border: #93c5fd;
+	--_surface-bg-hover: #bfdbfe;
+	--_surface-border-hover: #60a5fa;
+	--_surface-bg-selected: #93c5fd;
+	--_surface-border-selected: #3b82f6;
+	--_surface-text: #1e3a8a;
+}
+
+:global(.dark) .surfaceClip {
+	--_surface-bg: #183065;
+	--_surface-border: #1b3a7f;
+	--_surface-bg-hover: #1a387a;
+	--_surface-border-hover: #1e469f;
+	--_surface-bg-selected: #1c3e89;
+	--_surface-border-selected: #2563eb;
+	--_surface-text: #ffffff;
+}
+
+.surfaceZoom {
+	--_surface-bg: #f3e8ff;
+	--_surface-border: #d8b4fe;
+	--_surface-bg-hover: #e9d5ff;
+	--_surface-border-hover: #c084fc;
+	--_surface-bg-selected: #d8b4fe;
+	--_surface-border-selected: #a855f7;
+	--_surface-text: #581c87;
+}
+
+:global(.dark) .surfaceZoom {
+	--_surface-bg: #4a2a69;
+	--_surface-border: #5c3385;
+	--_surface-bg-hover: #593180;
+	--_surface-border-hover: #733da7;
+	--_surface-bg-selected: #643690;
+	--_surface-border-selected: #a855f7;
+	--_surface-text: #ffffff;
+}
+
+.surfaceTrim {
+	--_surface-bg: #fee2e2;
+	--_surface-border: #fca5a5;
+	--_surface-bg-hover: #fecaca;
+	--_surface-border-hover: #f87171;
+	--_surface-bg-selected: #fca5a5;
+	--_surface-border-selected: #ef4444;
+	--_surface-text: #7f1d1d;
+}
+
+:global(.dark) .surfaceTrim {
+	--_surface-bg: #652425;
+	--_surface-border: #802a2b;
+	--_surface-bg-hover: #7b292a;
+	--_surface-border-hover: #a13232;
+	--_surface-bg-selected: #8b2d2d;
+	--_surface-border-selected: #ef4444;
+	--_surface-text: #ffffff;
+}
+
+.surfaceSpeed {
+	--_surface-bg: #fef3c7;
+	--_surface-border: #fcd34d;
+	--_surface-bg-hover: #fde68a;
+	--_surface-border-hover: #fbbf24;
+	--_surface-bg-selected: #fcd34d;
+	--_surface-border-selected: #f59e0b;
+	--_surface-text: #78350f;
+}
+
+:global(.dark) .surfaceSpeed {
+	--_surface-bg: #67460f;
+	--_surface-border: #83570f;
+	--_surface-bg-hover: #7e540f;
+	--_surface-border-hover: #a56c0d;
+	--_surface-bg-selected: #8e5e0e;
+	--_surface-border-selected: #f59e0b;
+	--_surface-text: #ffffff;
+}
+
+.surfaceMask {
+	--_surface-bg: #fce7f3;
+	--_surface-border: #f9a8d4;
+	--_surface-bg-hover: #fbcfe8;
+	--_surface-border-hover: #f472b6;
+	--_surface-bg-selected: #f9a8d4;
+	--_surface-border-selected: #ec4899;
+	--_surface-text: #831843;
+}
+
+:global(.dark) .surfaceMask {
+	--_surface-bg: #6b244c;
+	--_surface-border: #92345f;
+	--_surface-bg-hover: #832b5b;
+	--_surface-border-hover: #bc3f77;
+	--_surface-bg-selected: #953064;
+	--_surface-border-selected: #ec4899;
+	--_surface-text: #ffffff;
+}
+
+.surfaceAudio {
+	--_surface-bg: #dcfce7;
+	--_surface-border: #86efac;
+	--_surface-bg-hover: #bbf7d0;
+	--_surface-border-hover: #4ade80;
+	--_surface-bg-selected: #86efac;
+	--_surface-border-selected: #22c55e;
+	--_surface-text: #14532d;
+}
+
+:global(.dark) .surfaceAudio {
+	--_surface-bg: #164f2d;
+	--_surface-border: #196b38;
+	--_surface-bg-hover: #186234;
+	--_surface-border-hover: #1c8643;
+	--_surface-bg-selected: #196e3a;
+	--_surface-border-selected: #22c55e;
+	--_surface-text: #ffffff;
+}
+
+.surfaceCaption {
+	--_surface-bg: #fce7f3;
+	--_surface-border: #f9a8d4;
+	--_surface-bg-hover: #fbcfe8;
+	--_surface-border-hover: #f472b6;
+	--_surface-bg-selected: #f9a8d4;
+	--_surface-border-selected: #f472b6;
+	--_surface-text: #831843;
+}
+
+:global(.dark) .surfaceCaption {
+	--_surface-bg: #5b2746;
+	--_surface-border: #7a3157;
+	--_surface-bg-hover: #6d2f54;
+	--_surface-border-hover: #933a68;
+	--_surface-bg-selected: #7a3157;
+	--_surface-border-selected: #f472b6;
+	--_surface-text: #ffffff;
+}
+
+.surfaceWebcamLayout {
+	--_surface-bg: #dbeafe;
+	--_surface-border: #93c5fd;
+	--_surface-bg-hover: #bfdbfe;
+	--_surface-border-hover: #60a5fa;
+	--_surface-bg-selected: #93c5fd;
+	--_surface-border-selected: #3b82f6;
+	--_surface-text: #1e3a8a;
+}
+
+:global(.dark) .surfaceWebcamLayout {
+	--_surface-bg: #183065;
+	--_surface-border: #1b3a7f;
+	--_surface-bg-hover: #1a387a;
+	--_surface-border-hover: #1e469f;
+	--_surface-bg-selected: #1c3e89;
+	--_surface-border-selected: #2563eb;
+	--_surface-text: #ffffff;
+}
+
+.surfaceAnnotation {
+	--_surface-bg: #fef9c3;
+	--_surface-border: #fde047;
+	--_surface-bg-hover: #fef08a;
+	--_surface-border-hover: #facc15;
+	--_surface-bg-selected: #fde047;
+	--_surface-border-selected: #b4a046;
+	--_surface-text: #422006;
+}
+
+:global(.dark) .surfaceAnnotation {
+	--_surface-bg: #4e4726;
+	--_surface-border: #62582c;
+	--_surface-bg-hover: #5f552b;
+	--_surface-border-hover: #7a6d34;
+	--_surface-bg-selected: #6a5f2f;
+	--_surface-border-selected: #b4a046;
+	--_surface-text: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+ * 2. Generic region item
+ *
+ * Solid background, 1px border, no shadow/blur. Handles are hidden by default
+ * and shown only on hover or when selected. Selected items receive a 2px
+ * outline in the accent color so they are visible without relying on shadow.
+ * -------------------------------------------------------------------------- */
+
+.regionItem {
+	position: relative;
+	border-radius: 8px;
+	background: var(--_surface-bg);
+	border: 1px solid var(--_surface-border);
+	color: var(--_surface-text);
+	transition:
+		background-color 0.15s ease,
+		border-color 0.15s ease;
+}
+
+.regionItem:hover {
+	background: var(--_surface-bg-hover);
+	border-color: var(--_surface-border-hover);
+}
+
+.regionItem.selected {
+	background: var(--_surface-bg-selected);
+	border-color: var(--_surface-border-selected);
+	outline: 2px solid var(--_surface-border-selected);
+	outline-offset: 1px;
+	z-index: 10;
+}
+
+/* Disabled / muted states must be visually distinct even without color. */
+.regionItem.disabled,
+.regionItem.muted {
+	opacity: 0.65;
+	filter: grayscale(0.45);
+}
+
+.regionItem.disabled {
+	background-image: repeating-linear-gradient(
+		45deg,
+		transparent,
+		transparent 8px,
+		rgba(0, 0, 0, 0.06) 8px,
+		rgba(0, 0, 0, 0.06) 16px
+	);
+}
+
+:global(.dark) .regionItem.disabled {
+	background-image: repeating-linear-gradient(
+		45deg,
+		transparent,
+		transparent 8px,
+		rgba(255, 255, 255, 0.06) 8px,
+		rgba(255, 255, 255, 0.06) 16px
+	);
+}
+
+/* Ghost / preview items are dashed so they read as "not yet placed". */
+.regionItem.ghost {
+	background: transparent;
+	border-style: dashed;
+	border-width: 1.5px;
+}
+
+/* --------------------------------------------------------------------------
+ * 3. Resize handles
+ *
+ * Pill handles positioned near each edge. They are visible only when the item
+ * is hovered or selected, matching the requested interaction model.
+ * -------------------------------------------------------------------------- */
+
+.resizeHandle {
+	position: absolute;
+	top: 50%;
+	width: 4px;
+	height: 70%;
+	transform: translateY(-50%);
+	border-radius: 2px;
+	background: rgba(0, 0, 0, 0.5);
+	pointer-events: auto;
+	z-index: 2;
+	opacity: 0;
+	transition:
+		opacity 0.15s ease,
+		background-color 0.15s ease;
+}
+
+:global(.dark) .resizeHandle {
+	background: rgba(255, 255, 255, 0.88);
+}
+
+.regionItem:hover .resizeHandle,
+.regionItem.selected .resizeHandle {
+	opacity: 1;
+}
+
+.resizeHandle:hover {
+	background: rgba(0, 0, 0, 0.7);
+}
+
+:global(.dark) .resizeHandle:hover {
+	background: rgba(255, 255, 255, 1);
+}
+
+.resizeHandleLeft {
+	left: 6px;
+	cursor: col-resize;
+}
+
+.resizeHandleRight {
+	right: 6px;
+	cursor: col-resize;
+}
+
+/* --------------------------------------------------------------------------
+ * 4. Row / lane surfaces
+ *
+ * Rows are transparent by default but expose a subtle alternating background
+ * when the timeline is hovered. No blur is used. Empty rows show a dashed
+ * placeholder to communicate the addable lane.
+ * -------------------------------------------------------------------------- */
+
+.timelineRow {
+	position: relative;
+	min-height: 26px;
+	background: transparent;
+}
+
+.timelineRow:nth-child(even) {
+	background: hsl(var(--editor-row) / 0.35);
+}
+
+.timelineRow:hover {
+	background: hsl(var(--editor-row) / 0.55);
+}
+
+.timelineRowEmpty {
+	background-image: repeating-linear-gradient(
+		90deg,
+		transparent,
+		transparent 12px,
+		hsl(var(--editor-subrow) / 0.5) 12px,
+		hsl(var(--editor-subrow) / 0.5) 13px
+	);
+}
+
+.timelineRowLabel {
+	position: absolute;
+	left: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 9px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	z-index: 20;
+	pointer-events: none;
+	user-select: none;
+	color: var(--muted-foreground, #666);
+}
+
+/* --------------------------------------------------------------------------
+ * 5. Playhead / axis / keyframe layers
+ *
+ * Explicit z-index stack keeps visual order predictable. No backdrop filters.
+ * -------------------------------------------------------------------------- */
+
+.timelineLayerAxis {
+	z-index: 10;
+}
+
+.timelineLayerRows {
+	z-index: 20;
+}
+
+.timelineLayerPlayhead {
+	z-index: 50;
+}
+
+.timelineLayerMarkers {
+	z-index: 40;
+}
+
+.timelineLayerTooltip {
+	z-index: 60;
+}
+
+.timelineLayerOverlay {
+	z-index: 30;
+}
+
+/* --------------------------------------------------------------------------
+ * 6. Waveform canvas
+ *
+ * The waveform is rendered on a canvas with crisp lines. No blur or shadow.
+ * -------------------------------------------------------------------------- */
+
+.waveformCanvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+ * 7. Accessibility
+ *
+ * Reduced motion: disable transitions/animations. Forced colors: rely on
+ * system colors, disable background patterns that conflict with high contrast.
+ * -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+	.regionItem,
+	.resizeHandle,
+	.timelineRow {
+		transition: none !important;
+		animation: none !important;
+	}
+}
+
+@media (forced-colors: active) {
+	.regionItem {
+		background: ButtonFace;
+		border: 1px solid ButtonBorder;
+		color: ButtonText;
+		forced-color-adjust: none;
+	}
+
+	.regionItem.selected {
+		outline: 2px solid Highlight;
+		outline-offset: 1px;
+	}
+
+	.regionItem.disabled,
+	.regionItem.muted {
+		opacity: 1;
+		filter: grayscale(1);
+	}
+
+	.regionItem.disabled {
+		background-image: none;
+		border-style: dashed;
+	}
+
+	.resizeHandle {
+		background: ButtonText;
+		opacity: 1;
+	}
+
+	.resizeHandle:hover {
+		background: Highlight;
+	}
+}
+
+/* Class fallback for environments that do not expose the media query. */
+:global(.high-contrast) .regionItem {
+	background: ButtonFace;
+	border: 1px solid ButtonBorder;
+	color: ButtonText;
+	forced-color-adjust: none;
+}
+
+:global(.high-contrast) .regionItem.selected {
+	outline: 2px solid Highlight;
+	outline-offset: 1px;
+}
+
+:global(.high-contrast) .regionItem.disabled,
+:global(.high-contrast) .regionItem.muted {
+	opacity: 1;
+	filter: grayscale(1);
+}
+
+:global(.high-contrast) .regionItem.disabled {
+	background-image: none;
+	border-style: dashed;
+}
+
+:global(.high-contrast) .resizeHandle {
+	background: ButtonText;
+	opacity: 1;
+}
+
+:global(.high-contrast) .resizeHandle:hover {
+	background: Highlight;
+}
+
+:global(.reduce-motion) .regionItem,
+:global(.reduce-motion) .resizeHandle,
+:global(.reduce-motion) .timelineRow {
+	transition: none !important;
+	animation: none !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 8. Toolbar focus
+ *
+ * Toolbar buttons already receive focus rings from the global focus-visible
+ * style. This file keeps the toolbar container from adding visual blur.
+ * -------------------------------------------------------------------------- */
+
+.timelineToolbar {
+	background: hsl(var(--editor-panel));
+	border-bottom: 1px solid hsl(var(--border) / 0.1);
+}
+
+.timelineToolbar [role="button"],
+.timelineToolbar button {
+	position: relative;
+}
+
+.timelineToolbar [role="button"]:focus-visible,
+.timelineToolbar button:focus-visible {
+	outline: 2px solid rgb(var(--brand-accent-rgb));
+	outline-offset: 2px;
+}
+
+/* Ensure toolbar is not a glass surface. */
+.timelineToolbar,
+.timelineToolbar * {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}

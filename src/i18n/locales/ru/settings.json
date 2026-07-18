@@ -16,10 +16,10 @@
 		"selectRegion": "Диапазон скорости",
 		"deleteRegion": "Удалить",
 		"label": "Скорость",
-		"smartTypingRegion": "Smart Typing",
-		"detectTyping": "Detect & speed up typing",
-		"privacyHint": "Uses private timestamps only · no typed text is saved",
-		"recordingHint": "Available for new recordings with keyboard telemetry"
+		"smartTypingRegion": "Умный набор",
+		"detectTyping": "Обнаруживать и ускорять набор",
+		"privacyHint": "Используются только приватные метки времени · введённый текст не сохраняется",
+		"recordingHint": "Доступно для новых записей с телеметрией клавиатуры"
 	},
 	"clip": {
 		"title": "Клип",
@@ -28,11 +28,11 @@
 		"unmutedState": "Звук включен",
 		"separateClipFromAudio": "Отделить аудио от клипа",
 		"delete": "Удалить клип",
-		"cursor": "Cursor",
-		"hideCursor": "Hide mouse cursor",
-		"hideCursorDescription": "Hide the cursor only in this clip",
-		"disableCursorSmoothing": "Disable smooth mouse movement",
-		"disableCursorSmoothingDescription": "Use the original captured pointer movement"
+		"cursor": "Курсор",
+		"hideCursor": "Скрыть курсор мыши",
+		"hideCursorDescription": "Скрыть курсор только в этом клипе",
+		"disableCursorSmoothing": "Отключить плавное движение мыши",
+		"disableCursorSmoothingDescription": "Использовать исходное записанное движение указателя"
 	},
 	"effects": {
 		"title": "Эффекты",
@@ -116,6 +116,32 @@
 		"cursorSpringDamping": "Затухание",
 		"cursorSpringMass": "Масса (инерция)",
 		"off": "Выкл.",
+		"cursorClickEffects": {
+			"title": "Эффекты клика",
+			"advanced": "Дополнительно",
+			"advancedShow": "Показать расширенные параметры эффекта клика",
+			"advancedHide": "Скрыть расширенные параметры эффекта клика",
+			"color": "Цвет эффекта",
+			"size": "Размер эффекта",
+			"opacity": "Прозрачность эффекта",
+			"duration": "Длительность эффекта",
+			"none": {
+				"label": "Выкл.",
+				"description": "Без графики клика. При нажатии меняется только движение курсора."
+			},
+			"ripple": {
+				"label": "Рябь",
+				"description": "Расширяющиеся кольца от каждого клика, чтобы нажатия хорошо читались в движении."
+			},
+			"spotlight": {
+				"label": "Подсветка",
+				"description": "Мягкое свечение вокруг указателя подчёркивает область клика."
+			},
+			"echo": {
+				"label": "Эхо",
+				"description": "Пара мягких колец, расходящихся более чистым импульсом."
+			}
+		},
 		"cursorMotionBlur": "Размытие в движении",
 		"cursorClickBounce": "Отскок при клике",
 		"cursorClickBounceDuration": "Скорость отскока",
@@ -185,7 +211,15 @@
 		"maxWidth": "Максимальная ширина",
 		"boxRadius": "Скругление",
 		"backgroundOpacity": "Прозрачность фона",
-		"textColor": "Цвет текста"
+		"textColor": "Цвет текста",
+		"editor": {
+			"text": "Текст",
+			"start": "Начало",
+			"end": "Конец",
+			"split": "Разделить",
+			"merge": "Объединить",
+			"delete": "Удалить"
+		}
 	},
 	"crop": {
 		"title": "Обрезка видео",

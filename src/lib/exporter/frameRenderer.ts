@@ -102,6 +102,7 @@ interface FrameRenderConfig {
 	showShadow: boolean;
 	shadowIntensity: number;
 	backgroundBlur: number;
+	backgroundEnabled?: boolean;
 	zoomMotionBlur?: number;
 	zoomMotionBlurTuning?: ZoomMotionBlurTuning;
 	zoomTemporalMotionBlur?: number;
@@ -534,12 +535,12 @@ export class FrameRenderer {
 	}
 
 	private async setupBackground(): Promise<void> {
-		const wallpaper = await this.resolveWallpaperForExport(this.config.wallpaper);
+		const { width, height } = this.config;
 
 		// Create background canvas for separate rendering (not affected by zoom)
 		const bgCanvas = document.createElement("canvas");
-		bgCanvas.width = this.config.width;
-		bgCanvas.height = this.config.height;
+		bgCanvas.width = width;
+		bgCanvas.height = height;
 		const bgCtx = configureHighQuality2DContext(bgCanvas.getContext("2d"));
 
 		if (!bgCtx) {
@@ -563,6 +564,15 @@ export class FrameRenderer {
 			this.backgroundVideoElement = null;
 		}
 		this.backgroundSeekPromise = null;
+
+		if (this.config.backgroundEnabled === false) {
+			bgCtx.fillStyle = "#000000";
+			bgCtx.fillRect(0, 0, width, height);
+			this.backgroundSprite = bgCanvas;
+			return;
+		}
+
+		const wallpaper = await this.resolveWallpaperForExport(this.config.wallpaper);
 
 		try {
 			// Check for video wallpaper first

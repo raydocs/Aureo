@@ -1,5 +1,5 @@
 import { DownloadSimple as Download, FilmSlate as Film, Image } from "@phosphor-icons/react";
-import { LayoutGroup, motion } from "motion/react";
+import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useScopedT } from "@/contexts/I18nContext";
@@ -78,22 +78,33 @@ export function ExportSettingsMenu({
 	className,
 }: ExportSettingsMenuProps) {
 	const tSettings = useScopedT("settings");
+	const reduceMotion = useReducedMotion();
+	const formatPillTransition = reduceMotion
+		? { duration: 0 }
+		: { type: "spring" as const, stiffness: 380, damping: 32 };
+	const pillTransition = reduceMotion
+		? { duration: 0 }
+		: { type: "spring" as const, stiffness: 420, damping: 34 };
 	const isLegacyModel = exportPipelineModel === "legacy";
 
 	return (
 		<div
 			className={cn(
-				"w-full rounded-2xl border border-foreground/10 bg-editor-surface p-3 text-foreground",
+				"w-full rounded-2xl border border-hairline bg-surface-panel p-3 text-surface-foreground shadow-aureo-1",
 				className,
 			)}
 		>
 			<div className="mb-2 flex items-center justify-between">
-				<span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+				<h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
 					{tSettings("export.title", "Export")}
-				</span>
+				</h2>
 			</div>
 
-			<div className="mb-3 flex items-center gap-2">
+			<div
+				className="mb-3 flex items-center gap-2"
+				role="group"
+				aria-label={tSettings("export.title", "Export format")}
+			>
 				<LayoutGroup id="header-export-format-toggle">
 					{(
 						[
@@ -112,15 +123,15 @@ export function ExportSettingsMenu({
 								className={cn(
 									"relative flex-1 overflow-hidden rounded-xl border py-2 text-xs font-medium transition-colors",
 									isActive
-										? "border-[#2563EB]/50 text-[#2563EB] dark:text-white"
+										? "border-primary/50 text-primary"
 										: "border-foreground/10 bg-foreground/5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground",
 								)}
 							>
 								{isActive ? (
 									<motion.span
 										layoutId="header-export-format-pill"
-										className="absolute inset-0 rounded-xl bg-[#2563EB]/10"
-										transition={{ type: "spring", stiffness: 380, damping: 32 }}
+										className="absolute inset-0 rounded-xl bg-primary/10"
+										transition={formatPillTransition}
 									/>
 								) : null}
 								<span className="relative z-10 flex items-center justify-center gap-1.5">
@@ -140,7 +151,11 @@ export function ExportSettingsMenu({
 							{tSettings("export.codecTitle", "Video codec")}
 						</span>
 					</div>
-					<div className="mb-3 grid min-h-10 w-full grid-cols-2 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
+					<div
+						className="mb-3 grid min-h-10 w-full grid-cols-2 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5"
+						role="group"
+						aria-label={tSettings("export.codecTitle", "Video codec")}
+					>
 						{(
 							[
 								{ value: "h264", label: "H.264" },
@@ -159,14 +174,15 @@ export function ExportSettingsMenu({
 									{isActive ? (
 										<motion.span
 											layoutId="header-export-codec-pill"
-											className="absolute inset-0 rounded-lg bg-neutral-800 dark:bg-white"
+											className="absolute inset-0 rounded-lg bg-surface-foreground"
+											transition={pillTransition}
 										/>
 									) : null}
 									<span
 										className={cn(
 											"relative z-10",
 											isActive
-												? "text-white dark:text-black"
+												? "text-surface-foreground-inverse"
 												: "text-muted-foreground",
 										)}
 									>
@@ -181,7 +197,11 @@ export function ExportSettingsMenu({
 							{tSettings("export.resolutionTitle", "Resolution")}
 						</span>
 					</div>
-					<div className="mb-3 grid min-h-12 w-full grid-cols-2 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
+					<div
+						className="mb-3 grid min-h-12 w-full grid-cols-2 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5"
+						role="group"
+						aria-label={tSettings("export.resolutionTitle", "Resolution")}
+					>
 						{(
 							[
 								{
@@ -206,19 +226,15 @@ export function ExportSettingsMenu({
 									{isActive ? (
 										<motion.span
 											layoutId="header-export-quality-pill"
-											className="absolute inset-0 rounded-lg bg-neutral-800 dark:bg-white"
-											transition={{
-												type: "spring",
-												stiffness: 420,
-												damping: 34,
-											}}
+											className="absolute inset-0 rounded-lg bg-surface-foreground"
+											transition={pillTransition}
 										/>
 									) : null}
 									<span className="relative z-10 flex h-full flex-col items-center justify-center leading-tight">
 										<span
 											className={cn(
 												isActive
-													? "text-white dark:text-black"
+													? "text-surface-foreground-inverse"
 													: "text-muted-foreground hover:text-foreground",
 											)}
 										>
@@ -229,7 +245,7 @@ export function ExportSettingsMenu({
 												className={cn(
 													"mt-0.5 text-[9px]",
 													isActive
-														? "text-white/75 dark:text-black/75"
+														? "text-surface-foreground-inverse/75"
 														: "text-muted-foreground/70",
 												)}
 											>
@@ -247,7 +263,11 @@ export function ExportSettingsMenu({
 							{tSettings("export.encodingTitle", "Encoding")}
 						</span>
 					</div>
-					<div className="mb-3 grid min-h-10 w-full grid-cols-3 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
+					<div
+						className="mb-3 grid min-h-10 w-full grid-cols-3 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5"
+						role="group"
+						aria-label={tSettings("export.encodingTitle", "Encoding")}
+					>
 						{(
 							[
 								{ value: "fast", label: tSettings("export.encoding.fast", "Fast") },
@@ -273,19 +293,15 @@ export function ExportSettingsMenu({
 									{isActive ? (
 										<motion.span
 											layoutId="header-export-encoding-pill"
-											className="absolute inset-0 rounded-lg bg-neutral-800 dark:bg-white"
-											transition={{
-												type: "spring",
-												stiffness: 420,
-												damping: 34,
-											}}
+											className="absolute inset-0 rounded-lg bg-surface-foreground"
+											transition={pillTransition}
 										/>
 									) : null}
 									<span
 										className={cn(
 											"relative z-10",
 											isActive
-												? "text-white dark:text-black"
+												? "text-surface-foreground-inverse"
 												: "text-muted-foreground hover:text-foreground",
 										)}
 									>
@@ -300,7 +316,11 @@ export function ExportSettingsMenu({
 							{tSettings("export.fpsTitle", "FPS")}
 						</span>
 					</div>
-					<div className="mb-3 grid min-h-10 w-full grid-cols-3 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
+					<div
+						className="mb-3 grid min-h-10 w-full grid-cols-3 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5"
+						role="group"
+						aria-label={tSettings("export.fpsTitle", "FPS")}
+					>
 						{MP4_FRAME_RATES.map((rate) => {
 							const isActive = mp4FrameRate === rate;
 							return (
@@ -314,19 +334,15 @@ export function ExportSettingsMenu({
 									{isActive ? (
 										<motion.span
 											layoutId="header-export-fps-pill"
-											className="absolute inset-0 rounded-lg bg-neutral-800 dark:bg-white"
-											transition={{
-												type: "spring",
-												stiffness: 420,
-												damping: 34,
-											}}
+											className="absolute inset-0 rounded-lg bg-surface-foreground"
+											transition={pillTransition}
 										/>
 									) : null}
 									<span
 										className={cn(
 											"relative z-10",
 											isActive
-												? "text-white dark:text-black"
+												? "text-surface-foreground-inverse"
 												: "text-muted-foreground hover:text-foreground",
 										)}
 									>
@@ -341,7 +357,11 @@ export function ExportSettingsMenu({
 							{tSettings("export.pipelineTitle", "Pipeline")}
 						</span>
 					</div>
-					<div className="mb-3 grid min-h-10 w-full grid-cols-2 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
+					<div
+						className="mb-3 grid min-h-10 w-full grid-cols-2 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5"
+						role="group"
+						aria-label={tSettings("export.pipelineTitle", "Pipeline")}
+					>
 						{(
 							[
 								{
@@ -366,19 +386,15 @@ export function ExportSettingsMenu({
 									{isActive ? (
 										<motion.span
 											layoutId="header-export-pipeline-pill"
-											className="absolute inset-0 rounded-lg bg-neutral-800 dark:bg-white"
-											transition={{
-												type: "spring",
-												stiffness: 420,
-												damping: 34,
-											}}
+											className="absolute inset-0 rounded-lg bg-surface-foreground"
+											transition={pillTransition}
 										/>
 									) : null}
 									<span
 										className={cn(
 											"relative z-10",
 											isActive
-												? "text-white dark:text-black"
+												? "text-surface-foreground-inverse"
 												: "text-muted-foreground hover:text-foreground",
 										)}
 									>
@@ -400,13 +416,13 @@ export function ExportSettingsMenu({
 								)}
 					</p>
 					{!isLegacyModel && nvidiaCudaExportAvailable ? (
-						<div className="mb-3 flex min-h-12 items-center justify-between gap-3 rounded-lg border border-[#2563EB]/20 bg-[#2563EB]/5 px-3 py-2">
+						<div className="mb-3 flex min-h-12 items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
 							<div className="min-w-0">
 								<div className="flex items-center gap-1.5">
 									<span className="text-[11px] font-semibold text-foreground">
 										{tSettings("export.nvidiaCuda.title", "NVIDIA CUDA")}
 									</span>
-									<span className="rounded bg-[#2563EB]/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-[#2563EB]">
+									<span className="rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-primary">
 										{tSettings("export.nvidiaCuda.badge", "Experimental")}
 									</span>
 								</div>
@@ -424,7 +440,7 @@ export function ExportSettingsMenu({
 									"export.nvidiaCuda.toggle",
 									"Enable experimental NVIDIA CUDA export",
 								)}
-								className="shrink-0 scale-75 data-[state=checked]:bg-[#2563EB]"
+								className="shrink-0 scale-75 data-[state=checked]:bg-primary"
 							/>
 						</div>
 					) : null}
@@ -451,7 +467,7 @@ export function ExportSettingsMenu({
 									"export.captionSidecar.toggle",
 									"Export captions sidecar files",
 								)}
-								className="shrink-0 scale-75 data-[state=checked]:bg-[#2563EB]"
+								className="shrink-0 scale-75 data-[state=checked]:bg-primary"
 							/>
 						</div>
 					) : null}
@@ -460,7 +476,11 @@ export function ExportSettingsMenu({
 				<div className="mb-3 space-y-2">
 					<div className="flex items-center gap-2">
 						<LayoutGroup id="header-gif-frame-rate-toggle">
-							<div className="grid h-8 flex-1 grid-cols-4 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
+							<div
+								className="grid h-8 flex-1 grid-cols-4 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5"
+								role="group"
+								aria-label={tSettings("export.fpsTitle", "Frame rate")}
+							>
 								{GIF_FRAME_RATES.map((rate) => {
 									const isActive = gifFrameRate === rate.value;
 									return (
@@ -474,19 +494,15 @@ export function ExportSettingsMenu({
 											{isActive ? (
 												<motion.span
 													layoutId="header-gif-frame-rate-pill"
-													className="absolute inset-0 rounded-lg bg-neutral-800 dark:bg-white"
-													transition={{
-														type: "spring",
-														stiffness: 420,
-														damping: 34,
-													}}
+													className="absolute inset-0 rounded-lg bg-surface-foreground"
+													transition={pillTransition}
 												/>
 											) : null}
 											<span
 												className={cn(
 													"relative z-10",
 													isActive
-														? "text-white dark:text-black"
+														? "text-surface-foreground-inverse"
 														: "text-muted-foreground hover:text-foreground",
 												)}
 											>
@@ -498,7 +514,11 @@ export function ExportSettingsMenu({
 							</div>
 						</LayoutGroup>
 						<LayoutGroup id="header-gif-size-toggle">
-							<div className="grid h-8 flex-1 grid-cols-3 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
+							<div
+								className="grid h-8 flex-1 grid-cols-3 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5"
+								role="group"
+								aria-label={tSettings("export.resolutionTitle", "Size")}
+							>
 								{Object.entries(GIF_SIZE_PRESETS).map(([key]) => {
 									const isActive = gifSizePreset === key;
 									return (
@@ -514,19 +534,15 @@ export function ExportSettingsMenu({
 											{isActive ? (
 												<motion.span
 													layoutId="header-gif-size-pill"
-													className="absolute inset-0 rounded-lg bg-neutral-800 dark:bg-white"
-													transition={{
-														type: "spring",
-														stiffness: 420,
-														damping: 34,
-													}}
+													className="absolute inset-0 rounded-lg bg-surface-foreground"
+													transition={pillTransition}
 												/>
 											) : null}
 											<span
 												className={cn(
 													"relative z-10",
 													isActive
-														? "text-white dark:text-black"
+														? "text-surface-foreground-inverse"
 														: "text-muted-foreground hover:text-foreground",
 												)}
 											>
@@ -562,7 +578,8 @@ export function ExportSettingsMenu({
 							<Switch
 								checked={gifLoop}
 								onCheckedChange={onGifLoopChange}
-								className="scale-75 data-[state=checked]:bg-[#2563EB]"
+								aria-label={tSettings("export.loop")}
+								className="scale-75 data-[state=checked]:bg-primary"
 							/>
 						</div>
 					</div>
@@ -571,9 +588,9 @@ export function ExportSettingsMenu({
 
 			<Button
 				type="button"
-				size="lg"
+				size="xl"
 				onClick={onExport}
-				className="h-11 w-full gap-2 rounded-lg bg-[#2563EB] text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#2563EB]/90"
+				className="w-full rounded-lg text-sm font-semibold shadow-aureo-1"
 			>
 				<Download className="h-4 w-4" />
 				{tSettings("export.exportVideo", undefined, {

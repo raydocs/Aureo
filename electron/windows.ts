@@ -19,8 +19,7 @@ const nodeRequire = createRequire(import.meta.url);
 const APP_ROOT = path.join(electronWindowsDir, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 const RENDERER_DIST = path.join(APP_ROOT, "dist");
-const WINDOW_ICON_FILENAME =
-	process.platform === "darwin" ? "aureomac-512.png" : "aureo-512.png";
+const WINDOW_ICON_FILENAME = process.platform === "darwin" ? "aureomac-512.png" : "aureo-512.png";
 const WINDOW_ICON_PATH = path.join(
 	process.env.VITE_PUBLIC || RENDERER_DIST,
 	"app-icons",
@@ -50,6 +49,9 @@ function getEditorWindowQuery(): Record<string, string> {
 		windowType: "editor",
 	};
 
+	if (process.env.AUREO_CERTIFICATION_MODE === "1") {
+		query.certification = "1";
+	}
 	if (process.env.AUREO_DEV_OPEN_RECORDING_INPUT) {
 		query.devOpenInput = process.env.AUREO_DEV_OPEN_RECORDING_INPUT;
 	}
@@ -597,12 +599,14 @@ export function createHudOverlayWindow(): BrowserWindow {
 		}
 	});
 
+	const query: Record<string, string> = { windowType: "hud-overlay" };
+	if (process.env.AUREO_CERTIFICATION_MODE === "1") {
+		query.certification = "1";
+	}
 	if (VITE_DEV_SERVER_URL) {
-		win.loadURL(VITE_DEV_SERVER_URL + "?windowType=hud-overlay");
+		win.loadURL(`${VITE_DEV_SERVER_URL}?${new URLSearchParams(query).toString()}`);
 	} else {
-		win.loadFile(path.join(RENDERER_DIST, "index.html"), {
-			query: { windowType: "hud-overlay" },
-		});
+		win.loadFile(path.join(RENDERER_DIST, "index.html"), { query });
 	}
 
 	return win;

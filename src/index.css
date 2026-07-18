@@ -75,7 +75,54 @@
 		--slider-thumb: 0 0% 10%;
 		--slider-thumb-shadow: 0 0% 0% / 0.22;
 		--slider-glow: 0 0% 0% / 0.35;
+
+		/* Aureo Design System — surface tokens (light) */
+		--surface-content: 0 0% 100%;
+		--surface-content-rgb: 255, 255, 255;
+		--surface-shell: 0 0% 97%;
+		--surface-panel: 0 0% 98%;
+		--surface-panel-rgb: 250, 250, 250;
+		--surface-elevated: 0 0% 100%;
+		--surface-elevated-rgb: 255, 255, 255;
+		--surface-floating: 0 0% 100%;
+		--surface-glass-regular: 216 40% 98% / 0.68;
+		--surface-glass-clear: 216 42% 98% / 0.42;
+		--surface-glass-solid: 216 24% 98%;
+		--surface-foreground: 20 14.3% 4.1%;
+		--surface-foreground-muted: 25 5.3% 44.7%;
+		--surface-foreground-inverse: 0 0% 100%;
+		--hairline: 220 20% 12% / 0.1;
+		--hairline-strong: 220 20% 12% / 0.18;
+		--highlight: 0 0% 100% / 0.38;
+		--highlight-strong: 0 0% 100% / 0.62;
+		--glass-tint-primary: 212 100% 70% / 0.1;
+		--glass-tint-secondary: 280 84% 78% / 0.055;
+		--glass-edge-shadow: 220 30% 10% / 0.1;
+		--glass-blur-regular: 22px;
+		--glass-blur-clear: 14px;
+		--glass-saturation-regular: 1.45;
+		--glass-saturation-clear: 1.24;
+		--shadow-color: 220 20% 12%;
+		--shadow-1:
+			0 1px 2px hsl(var(--shadow-color) / 0.04), 0 3px 8px hsl(var(--shadow-color) / 0.055);
+		--shadow-2:
+			0 2px 5px hsl(var(--shadow-color) / 0.055), 0 10px 28px hsl(var(--shadow-color) / 0.085);
+		--shadow-3:
+			0 3px 8px hsl(var(--shadow-color) / 0.06), 0 20px 54px hsl(var(--shadow-color) / 0.12);
+		--radius-control: 0.5rem;
+		--radius-control-sm: 0.375rem;
+		--radius-control-xs: 0.25rem;
+		--radius-surface: 0.75rem;
+		--radius-surface-lg: 1rem;
+		--motion-duration-instant: 0ms;
+		--motion-duration-fast: 100ms;
+		--motion-duration-normal: 180ms;
+		--motion-duration-slow: 260ms;
+		--motion-easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+		--motion-easing-emphasis: cubic-bezier(0.2, 0, 0, 1);
+		--motion-easing-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
+
 	.dark {
 		--background: 20 14.3% 4.1%;
 		--foreground: 60 9.1% 97.8%;
@@ -119,6 +166,44 @@
 		--slider-thumb: 0 0% 100%;
 		--slider-thumb-shadow: 0 0% 100% / 0.32;
 		--slider-glow: 0 0% 100% / 0.5;
+
+		/* Aureo Design System — surface tokens (dark) */
+		--surface-content: 240 6% 7%;
+		--surface-content-rgb: 17, 17, 19;
+		--surface-shell: 240 6% 9%;
+		--surface-panel: 240 5% 11%;
+		--surface-panel-rgb: 26, 26, 29;
+		--surface-elevated: 240 5% 12%;
+		--surface-elevated-rgb: 28, 28, 31;
+		--surface-floating: 240 5% 13%;
+		--surface-glass-regular: 235 13% 16% / 0.64;
+		--surface-glass-clear: 235 14% 15% / 0.4;
+		--surface-glass-solid: 235 9% 15%;
+		--surface-foreground: 60 9.1% 97.8%;
+		--surface-foreground-muted: 24 5.4% 63.9%;
+		--surface-foreground-inverse: 20 14.3% 4.1%;
+		--hairline: 215 30% 96% / 0.11;
+		--hairline-strong: 215 30% 96% / 0.2;
+		--highlight: 210 40% 100% / 0.09;
+		--highlight-strong: 210 50% 100% / 0.18;
+		--glass-tint-primary: 212 100% 66% / 0.12;
+		--glass-tint-secondary: 282 88% 72% / 0.075;
+		--glass-edge-shadow: 230 40% 2% / 0.34;
+		--shadow-color: 0 0% 0%;
+		--shadow-1:
+			0 1px 3px hsl(var(--shadow-color) / 0.22), 0 4px 10px hsl(var(--shadow-color) / 0.24);
+		--shadow-2:
+			0 2px 6px hsl(var(--shadow-color) / 0.24), 0 12px 30px hsl(var(--shadow-color) / 0.32);
+		--shadow-3:
+			0 4px 10px hsl(var(--shadow-color) / 0.28), 0 24px 58px hsl(var(--shadow-color) / 0.42);
+	}
+
+	/* Chromium/Electron class fallback for transparency preference (paired with JS toggle) */
+	[data-reduce-transparency="true"],
+	.reduce-transparency {
+		--surface-glass-regular: var(--surface-glass-solid);
+		--surface-glass-clear: var(--surface-glass-solid);
+		--hairline: var(--hairline-strong);
 	}
 }
 
@@ -126,6 +211,7 @@
 	* {
 		@apply border-border;
 	}
+
 	body {
 		@apply bg-background text-foreground;
 
@@ -147,8 +233,247 @@
 	}
 }
 
-/* Smooth timeline cursor animations */
+@layer components {
+	/* Liquid Glass is reserved for functional chrome, never reading or video content. */
+	.glass,
+	.glass-clear {
+		position: relative;
+		isolation: isolate;
+		background:
+			linear-gradient(135deg, hsl(var(--glass-tint-primary)), transparent 42%),
+			linear-gradient(225deg, hsl(var(--glass-tint-secondary)), transparent 48%),
+			hsl(var(--surface-glass-solid));
+		background-clip: padding-box;
+		border: 1px solid hsl(var(--hairline));
+		box-shadow: var(--shadow-2);
+	}
+
+	@supports ((-webkit-backdrop-filter: blur(12px)) or (backdrop-filter: blur(12px))) {
+		.glass {
+			background:
+				linear-gradient(135deg, hsl(var(--glass-tint-primary)), transparent 42%),
+				linear-gradient(225deg, hsl(var(--glass-tint-secondary)), transparent 48%),
+				hsl(var(--surface-glass-regular));
+			-webkit-backdrop-filter: blur(var(--glass-blur-regular))
+				saturate(var(--glass-saturation-regular));
+			backdrop-filter: blur(var(--glass-blur-regular))
+				saturate(var(--glass-saturation-regular));
+		}
+
+		.glass-clear {
+			background:
+				linear-gradient(135deg, hsl(var(--glass-tint-primary)), transparent 46%),
+				linear-gradient(225deg, hsl(var(--glass-tint-secondary)), transparent 52%),
+				hsl(var(--surface-glass-clear));
+			-webkit-backdrop-filter: blur(var(--glass-blur-clear))
+				saturate(var(--glass-saturation-clear));
+			backdrop-filter: blur(var(--glass-blur-clear)) saturate(var(--glass-saturation-clear));
+		}
+	}
+
+	/* Directional inner edges create lift without adding another translucent panel. */
+	.glass::after,
+	.glass-clear::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		pointer-events: none;
+		box-shadow:
+			inset 0 1px 0 hsl(var(--highlight-strong)),
+			inset 1px 0 0 hsl(var(--highlight)),
+			inset 0 -1px 0 hsl(var(--glass-edge-shadow));
+	}
+
+	.editor-liquid-shell {
+		background:
+			radial-gradient(circle at 18% -8%, hsl(212 100% 70% / 0.11), transparent 30rem),
+			radial-gradient(circle at 86% 2%, hsl(282 82% 74% / 0.065), transparent 32rem),
+			hsl(var(--editor-bg));
+	}
+
+	.dark .editor-liquid-shell {
+		background:
+			radial-gradient(circle at 18% -8%, hsl(212 100% 58% / 0.12), transparent 32rem),
+			radial-gradient(circle at 86% 2%, hsl(282 82% 62% / 0.08), transparent 34rem),
+			hsl(var(--editor-bg));
+	}
+
+	.editor-liquid-header {
+		--glass-blur-regular: 24px;
+		box-shadow:
+			0 1px 0 hsl(var(--highlight)),
+			0 10px 30px hsl(var(--shadow-color) / 0.075);
+	}
+
+	/* Prefer to use the forced-colors media query when available; the .forced-colors class
+	   is a manual fallback for older Chromium builds that may not expose the media query. */
+	@media (prefers-reduced-transparency: reduce), (forced-colors: active), (prefers-contrast: more) {
+		.glass,
+		.glass-clear {
+			background: hsl(var(--surface-glass-solid)) !important;
+			-webkit-backdrop-filter: none !important;
+			backdrop-filter: none !important;
+		}
+
+		.glass::after,
+		.glass-clear::after {
+			display: none;
+		}
+	}
+
+	@media (prefers-reduced-transparency: reduce) {
+		.glass,
+		.glass-clear {
+			border-color: hsl(var(--hairline-strong));
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+
+	@media (forced-colors: active) {
+		.glass,
+		.glass-clear {
+			border: 1px solid ButtonText;
+			background: ButtonFace;
+			color: ButtonText;
+			forced-color-adjust: none;
+		}
+
+		.glass::after,
+		.glass-clear::after {
+			display: none;
+		}
+
+		.editor-liquid-shell {
+			background: Canvas;
+		}
+	}
+
+	/* Class fallback for high contrast mode (toggle via JS if media query unsupported) */
+	.high-contrast .glass,
+	.high-contrast .glass-clear {
+		border: 1px solid ButtonText;
+		background: ButtonFace;
+		color: ButtonText;
+		forced-color-adjust: none;
+	}
+
+	.high-contrast .glass::after,
+	.high-contrast .glass-clear::after {
+		display: none;
+	}
+
+	.high-contrast .editor-liquid-shell {
+		background: ButtonFace;
+	}
+
+	/* Reduced motion class fallback */
+	.reduce-motion *,
+	.reduce-motion *::before,
+	.reduce-motion *::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+
+	.reduce-transparency .glass,
+	.reduce-transparency .glass-clear,
+	[data-reduce-transparency="true"] .glass,
+	[data-reduce-transparency="true"] .glass-clear {
+		background: hsl(var(--surface-glass-solid)) !important;
+		-webkit-backdrop-filter: none !important;
+		backdrop-filter: none !important;
+	}
+
+	.reduce-transparency .glass,
+	.reduce-transparency .glass-clear,
+	[data-reduce-transparency="true"] .glass,
+	[data-reduce-transparency="true"] .glass-clear {
+		border-color: hsl(var(--hairline-strong));
+	}
+
+	.reduce-transparency .glass::after,
+	.reduce-transparency .glass-clear::after,
+	[data-reduce-transparency="true"] .glass::after,
+	[data-reduce-transparency="true"] .glass-clear::after {
+		display: none;
+	}
+}
+
 @layer utilities {
+	/* Utility classes for the new design tokens */
+	.surface-content {
+		background-color: hsl(var(--surface-content));
+	}
+	.surface-shell {
+		background-color: hsl(var(--surface-shell));
+	}
+	.surface-panel {
+		background-color: hsl(var(--surface-panel));
+	}
+	.surface-elevated {
+		background-color: hsl(var(--surface-elevated));
+		box-shadow: var(--shadow-2);
+	}
+	.surface-floating {
+		background-color: hsl(var(--surface-floating));
+		box-shadow: var(--shadow-3);
+	}
+	.hairline {
+		border-color: hsl(var(--hairline));
+	}
+	.hairline-strong {
+		border-color: hsl(var(--hairline-strong));
+	}
+	.highlight-inset {
+		box-shadow: inset 0 1px 0 0 hsl(var(--highlight));
+	}
+	.highlight-inset-strong {
+		box-shadow: inset 0 1px 0 0 hsl(var(--highlight-strong));
+	}
+	.shadow-aureo-1 {
+		box-shadow: var(--shadow-1);
+	}
+	.shadow-aureo-2 {
+		box-shadow: var(--shadow-2);
+	}
+	.shadow-aureo-3 {
+		box-shadow: var(--shadow-3);
+	}
+	.motion-fast {
+		transition-duration: var(--motion-duration-fast);
+	}
+	.motion-normal {
+		transition-duration: var(--motion-duration-normal);
+	}
+	.motion-slow {
+		transition-duration: var(--motion-duration-slow);
+	}
+	.radius-control {
+		border-radius: var(--radius-control);
+	}
+	.radius-control-sm {
+		border-radius: var(--radius-control-sm);
+	}
+	.radius-surface {
+		border-radius: var(--radius-surface);
+	}
+	.radius-surface-lg {
+		border-radius: var(--radius-surface-lg);
+	}
+
+	/* Smooth timeline cursor animations */
 	.timeline-cursor-smooth {
 		will-change: transform;
 		transition:
@@ -268,6 +593,3 @@
 		transform: translateX(270%);
 	}
 }
-
-
-

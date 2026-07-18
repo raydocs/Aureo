@@ -1,8 +1,9 @@
 import type { ReactElement } from "react";
+import { useScopedT } from "@/contexts/I18nContext";
+import type { ProjectLibraryEntry } from "../../video-editor/ProjectBrowserDialog";
+import ProjectBrowserDialog from "../../video-editor/ProjectBrowserDialog";
 import { useLaunchPopoverCoordinator } from "./LaunchPopoverCoordinator";
 import { HudPopover } from "./PopoverScaffold";
-import ProjectBrowserDialog from "../../video-editor/ProjectBrowserDialog";
-import type { ProjectLibraryEntry } from "../../video-editor/ProjectBrowserDialog";
 
 const POPOVER_ID = "projects";
 
@@ -15,6 +16,7 @@ export function ProjectPopover({
 	entries: ProjectLibraryEntry[];
 	onOpenProject: (projectPath: string) => void;
 }) {
+	const t = useScopedT("launch");
 	const { isOpen, requestOpen, requestClose } = useLaunchPopoverCoordinator();
 	const open = isOpen(POPOVER_ID);
 
@@ -28,6 +30,8 @@ export function ProjectPopover({
 				}
 				requestOpen(POPOVER_ID);
 			}}
+			role="dialog"
+			aria-label={t("recording.openProject")}
 			trigger={trigger}
 			align="center"
 		>

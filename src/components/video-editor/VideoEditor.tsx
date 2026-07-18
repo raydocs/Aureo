@@ -6,31 +6,24 @@ import {
 	Crop,
 	Cursor,
 	DownloadSimple as Download,
+	FloppyDisk,
 	FolderOpen,
 	Gear,
 	MagnifyingGlass,
 	Selection as MaskIcon,
-	Pause,
 	Camera as PhCameraRegular,
-	Play,
 	Plus,
 	PuzzlePiece,
 	ArrowClockwise as Redo2,
-	Scissors,
-	SkipBack,
-	SkipForward,
 	Sparkle,
 	ArrowCounterClockwise as Undo2,
 	UserCircle as User,
-	SpeakerLow as Volume1,
-	SpeakerHigh as Volume2,
-	SpeakerX as VolumeX,
 	MagicWand as WandSparkles,
 	X,
 	MagnifyingGlassPlus as ZoomIn,
 } from "@phosphor-icons/react";
 import type { Span } from "dnd-timeline";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -179,13 +172,12 @@ import {
 	validateProjectData,
 } from "./projectPersistence";
 import { SettingsPanel } from "./SettingsPanel";
+import { EditorHeaderLayout } from "./shell/EditorHeaderLayout";
+import { EditorTransport } from "./shell/EditorTransport";
+import { PreviewVolumeControl } from "./shell/PreviewVolumeControl";
 import { getDevOpenRecordingConfig, getSmokeExportConfig } from "./smokeExportConfig";
 import { createSmokeExportProgressSampler } from "./smokeExportProgress";
-import {
-	APP_HEADER_ICON_BUTTON_CLASS,
-	DiscordLinkButton,
-	FeedbackDialog,
-} from "./TutorialHelp";
+import { APP_HEADER_ICON_BUTTON_CLASS, DiscordLinkButton, FeedbackDialog } from "./TutorialHelp";
 import TimelineEditor, { type TimelineEditorHandle } from "./timeline/TimelineEditor";
 import { suggestTypingSpeedRegions } from "./timeline/typingSpeedSuggestions";
 import {
@@ -231,6 +223,7 @@ import {
 	getTimelineDurationMs,
 	type Padding,
 	type PlaybackSpeed,
+	removeClipRegion,
 	mapSourceTimeToTimelineTime as resolveSourceTimeToTimelineTime,
 	mapTimelineTimeToSourceTime as resolveTimelineTimeToSourceTime,
 	type SpeedRegion,
@@ -410,6 +403,7 @@ function getErrorMessage(error: unknown): string {
 
 export default function VideoEditor() {
 	const { t } = useI18n();
+	const reduceMotion = useReducedMotion();
 	const smokeExportConfig = useMemo(
 		() => getSmokeExportConfig(typeof window === "undefined" ? "" : window.location.search),
 		[],
@@ -487,6 +481,9 @@ export default function VideoEditor() {
 	);
 	const [connectedZoomEasing, setConnectedZoomEasing] = useState<ZoomTransitionEasing>(
 		initialEditorPreferences.connectedZoomEasing ?? DEFAULT_CONNECTED_ZOOM_EASING,
+	);
+	const [backgroundEnabled, setBackgroundEnabled] = useState(
+		initialEditorPreferences.backgroundEnabled,
 	);
 	const [showCursor, setShowCursor] = useState(initialEditorPreferences.showCursor);
 	const [hideCursorWhenIdle, setHideCursorWhenIdle] = useState(
@@ -811,6 +808,7 @@ export default function VideoEditor() {
 			zoomInEasing,
 			zoomOutEasing,
 			connectedZoomEasing,
+			backgroundEnabled,
 			showCursor,
 			hideCursorWhenIdle,
 			stopCursorAtEnd,
@@ -873,6 +871,7 @@ export default function VideoEditor() {
 			zoomInEasing,
 			zoomOutEasing,
 			connectedZoomEasing,
+			backgroundEnabled,
 			showCursor,
 			hideCursorWhenIdle,
 			stopCursorAtEnd,
@@ -976,6 +975,7 @@ export default function VideoEditor() {
 		setZoomInEasing(snapshot.zoomInEasing);
 		setZoomOutEasing(snapshot.zoomOutEasing);
 		setConnectedZoomEasing(snapshot.connectedZoomEasing);
+		setBackgroundEnabled(snapshot.backgroundEnabled);
 		setShowCursor(snapshot.showCursor);
 		setHideCursorWhenIdle(snapshot.hideCursorWhenIdle);
 		setStopCursorAtEnd(snapshot.stopCursorAtEnd);
@@ -1208,6 +1208,7 @@ export default function VideoEditor() {
 					showShadow: shadowIntensity > 0,
 					shadowIntensity,
 					backgroundBlur,
+					backgroundEnabled,
 					zoomMotionBlur,
 					zoomMotionBlurTuning,
 					zoomTemporalMotionBlur,
@@ -1338,6 +1339,7 @@ export default function VideoEditor() {
 		autoCaptionSettings,
 		autoCaptions,
 		backgroundBlur,
+		backgroundEnabled,
 		borderRadius,
 		connectZooms,
 		connectedZoomDurationMs,
@@ -1765,6 +1767,7 @@ export default function VideoEditor() {
 				zoomOutEasing: ZoomTransitionEasing;
 				connectedZoomEasing: ZoomTransitionEasing;
 				showCursor: boolean;
+				backgroundEnabled: boolean;
 				hideCursorWhenIdle: boolean;
 				stopCursorAtEnd: boolean;
 				removeCursorShakes: boolean;
@@ -1879,6 +1882,7 @@ export default function VideoEditor() {
 				shadowIntensity,
 				backgroundBlur,
 				zoomMotionBlur,
+				backgroundEnabled,
 				zoomMotionBlurTuning,
 				zoomTemporalMotionBlur,
 				zoomMotionBlurSampleCount,
@@ -1964,6 +1968,7 @@ export default function VideoEditor() {
 			zoomInEasing,
 			zoomOutEasing,
 			connectedZoomEasing,
+			backgroundEnabled,
 			showCursor,
 			hideCursorWhenIdle,
 			stopCursorAtEnd,
@@ -2157,6 +2162,7 @@ export default function VideoEditor() {
 			setWallpaper(normalizedEditor.wallpaper);
 			setShadowIntensity(normalizedEditor.shadowIntensity);
 			setBackgroundBlur(normalizedEditor.backgroundBlur);
+			setBackgroundEnabled(normalizedEditor.backgroundEnabled);
 			setZoomMotionBlur(normalizedEditor.zoomMotionBlur);
 			setZoomMotionBlurTuning({ ...normalizedEditor.zoomMotionBlurTuning });
 			setZoomTemporalMotionBlur(normalizedEditor.zoomTemporalMotionBlur);
@@ -2475,6 +2481,11 @@ export default function VideoEditor() {
 		() => hasUnsavedProjectChanges(currentProjectSnapshot, lastSavedSnapshot),
 		[currentProjectSnapshot, lastSavedSnapshot],
 	);
+	const projectSaveStatusLabel = hasUnsavedChanges
+		? t("editor.project.unsavedChanges", "Unsaved changes")
+		: currentProjectPath
+			? t("editor.project.saved", "Saved")
+			: t("editor.project.notSavedYet", "Not saved yet");
 
 	useEffect(() => {
 		async function loadInitialData() {
@@ -2583,6 +2594,7 @@ export default function VideoEditor() {
 						// overwrite the last-used padding, aspect ratio, export
 						// settings, etc. that were saved to localStorage.
 						setPadding(initialEditorPreferences.padding);
+						setBackgroundEnabled(initialEditorPreferences.backgroundEnabled);
 						setBorderRadius(initialEditorPreferences.borderRadius);
 						setAspectRatio(initialEditorPreferences.aspectRatio);
 						setExportFormat(initialEditorPreferences.exportFormat);
@@ -2750,6 +2762,7 @@ export default function VideoEditor() {
 			wallpaper,
 			shadowIntensity,
 			backgroundBlur,
+			backgroundEnabled,
 			zoomMotionBlur,
 			zoomMotionBlurTuning,
 			zoomTemporalMotionBlur,
@@ -2811,6 +2824,7 @@ export default function VideoEditor() {
 		wallpaper,
 		shadowIntensity,
 		backgroundBlur,
+		backgroundEnabled,
 		zoomMotionBlur,
 		zoomMotionBlurTuning,
 		zoomTemporalMotionBlur,
@@ -4352,7 +4366,6 @@ export default function VideoEditor() {
 			setActiveEffectSection("clip");
 			setSelectedSpeedId(null);
 			setSelectedZoomId(null);
-			setSelectedClipId(null);
 			setSelectedSpeedId(null);
 			setSelectedAnnotationId(null);
 			setSelectedAudioId(null);
@@ -4593,7 +4606,15 @@ export default function VideoEditor() {
 	const handleClipDelete = useCallback(
 		(id: string) => {
 			const deletedClip = clipRegions.find((clip) => clip.id === id);
-			setClipRegions((prev) => prev.filter((clip) => clip.id !== id));
+			const nextClipRegions = removeClipRegion(clipRegions, id);
+			if (!nextClipRegions) {
+				if (deletedClip && clipRegions.length === 1) {
+					toast.info("At least one clip must remain on the timeline.");
+				}
+				return;
+			}
+
+			setClipRegions(nextClipRegions);
 			if (deletedClip) {
 				const { startMs, endMs } = deletedClip;
 				setZoomRegions((prev) =>
@@ -4955,14 +4976,6 @@ export default function VideoEditor() {
 				return;
 			}
 
-			if (e.key === "Tab") {
-				// Allow tab only in inputs/textareas
-				if (isEditableTarget) {
-					return;
-				}
-				e.preventDefault();
-			}
-
 			if (matchesShortcut(e, shortcuts.playPause, isMac)) {
 				// Allow space only in inputs/textareas
 				if (isEditableTarget) {
@@ -5094,6 +5107,7 @@ export default function VideoEditor() {
 						showShadow: effectiveShadowIntensity > 0,
 						shadowIntensity: effectiveShadowIntensity,
 						backgroundBlur,
+						backgroundEnabled,
 						zoomMotionBlur,
 						zoomMotionBlurTuning,
 						zoomTemporalMotionBlur,
@@ -5284,6 +5298,7 @@ export default function VideoEditor() {
 						showShadow: effectiveShadowIntensity > 0,
 						shadowIntensity: effectiveShadowIntensity,
 						backgroundBlur,
+						backgroundEnabled,
 						zoomMotionBlur,
 						zoomMotionBlurTuning,
 						zoomTemporalMotionBlur,
@@ -5563,6 +5578,7 @@ export default function VideoEditor() {
 			trimRegions,
 			shadowIntensity,
 			backgroundBlur,
+			backgroundEnabled,
 			zoomMotionBlur,
 			zoomMotionBlurTuning,
 			zoomTemporalMotionBlur,
@@ -6297,6 +6313,7 @@ export default function VideoEditor() {
 			showShadow={shadowIntensity > 0}
 			shadowIntensity={shadowIntensity}
 			backgroundBlur={backgroundBlur}
+			backgroundEnabled={backgroundEnabled}
 			connectZooms={connectZooms}
 			zoomInDurationMs={zoomInDurationMs}
 			zoomInOverlapMs={zoomInOverlapMs}
@@ -6541,464 +6558,508 @@ export default function VideoEditor() {
 	}
 
 	return (
-		<div className="flex flex-col h-screen bg-editor-bg text-foreground overflow-hidden selection:bg-[#2563EB]/30">
-			<div
-				className="relative flex h-11 flex-shrink-0 items-center justify-between bg-editor-header/88 px-5 backdrop-blur-md border-b border-foreground/10 z-50"
-				style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-			>
-				<div
-					className={`flex items-center gap-1.5 justify-self-start ${headerLeftControlsPaddingClass}`}
-					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-				>
-					<Button
-						ref={projectBrowserTriggerRef}
-						type="button"
-						variant="ghost"
-						size="sm"
-						onClick={handleOpenProjectBrowser}
-						className={APP_HEADER_ICON_BUTTON_CLASS}
-						title={t("editor.project.projects", "Open projects")}
-						aria-label={t("editor.project.projects", "Open projects")}
+		<div className="editor-liquid-shell flex h-screen flex-col overflow-hidden bg-editor-bg text-foreground selection:bg-primary/30">
+			<EditorHeaderLayout
+				ariaLabel={t("editor.toolbar.commands", "Editor commands")}
+				leading={
+					<div
+						className={`flex min-w-0 items-center gap-1.5 ${headerLeftControlsPaddingClass}`}
 					>
-						<FolderOpen className="h-4 w-4" />
-					</Button>
-					<DiscordLinkButton />
-					<FeedbackDialog />
-					<div className="ml-1 h-5 w-px bg-foreground/10" />
-					<Button
-						type="button"
-						variant="ghost"
-						onClick={handleUndo}
-						disabled={!canUndo}
-						className="inline-flex h-8 w-8 items-center justify-center rounded-[5px] border border-foreground/10 bg-foreground/5 p-0 text-foreground transition-colors hover:bg-foreground/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-						title={t("common.actions.undo", "Undo")}
-						aria-label={t("common.actions.undo", "Undo")}
-					>
-						<Undo2 className="h-4 w-4" />
-					</Button>
-					<Button
-						type="button"
-						variant="ghost"
-						onClick={handleRedo}
-						disabled={!canRedo}
-						className="inline-flex h-8 w-8 items-center justify-center rounded-[5px] border border-foreground/10 bg-foreground/5 p-0 text-foreground transition-colors hover:bg-foreground/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-						title={t("common.actions.redo", "Redo")}
-						aria-label={t("common.actions.redo", "Redo")}
-					>
-						<Redo2 className="h-4 w-4" />
-					</Button>
-				</div>
-				<div
-					className="absolute left-1/2 flex min-w-0 -translate-x-1/2 items-center justify-center"
-					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-				>
-					{isEditingProjectName ? (
-						<form
-							onSubmit={(event) => void handleProjectNameSubmit(event)}
-							className="flex max-w-[min(52vw,460px)] items-baseline gap-1 rounded-[7px] border border-foreground/10 bg-editor-panel/[0.88] px-2.5 py-1 shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
-						>
-							{hasUnsavedChanges ? (
-								<span className="mt-[1px] size-2 shrink-0 rounded-full bg-[#2563EB]" />
-							) : null}
-							<input
-								ref={projectNameInputRef}
-								type="text"
-								value={projectNameDraft}
-								onChange={(event) => setProjectNameDraft(event.target.value)}
-								onBlur={() => {
-									if (!isSavingProjectName) {
-										closeProjectNameEditor();
-									}
-								}}
-								onKeyDown={(event) => {
-									if (event.key === "Escape") {
-										event.preventDefault();
-										closeProjectNameEditor();
-									}
-								}}
-								disabled={isSavingProjectName}
-								className="min-w-[10ch] max-w-[min(40vw,360px)] bg-transparent text-sm font-semibold tracking-tight text-foreground/95 outline-none placeholder:text-muted-foreground/60 disabled:cursor-wait"
-								style={{ width: `${Math.max(projectNameDraft.length, 10)}ch` }}
-								aria-label={t("editor.project.renameInput", "Project name")}
-							/>
-							<span className="shrink-0 text-xs font-medium tracking-tight text-muted-foreground/70">
-								.aureo
-							</span>
-						</form>
-					) : (
-						<button
+						<Button
+							ref={projectBrowserTriggerRef}
 							type="button"
-							onClick={() => setIsEditingProjectName(true)}
-							className="inline-flex max-w-[min(52vw,460px)] items-baseline gap-1 rounded-[7px] px-2.5 py-1 transition-colors hover:bg-foreground/5"
-							title={t("editor.project.renameTitle", "Rename project")}
-							aria-label={t("editor.project.renameTitle", "Rename project")}
+							variant="ghost"
+							size="sm"
+							onClick={handleOpenProjectBrowser}
+							className={APP_HEADER_ICON_BUTTON_CLASS}
+							title={t("editor.project.projects", "Open projects")}
+							aria-label={t("editor.project.projects", "Open projects")}
 						>
-							{hasUnsavedChanges ? (
-								<span className="mt-[1px] size-2 shrink-0 rounded-full bg-[#2563EB]" />
-							) : null}
-							<span className="truncate text-sm font-semibold tracking-tight text-foreground/90">
-								{projectDisplayName}
-							</span>
-							<span className="shrink-0 text-xs font-medium tracking-tight text-muted-foreground/70">
-								.aureo
-							</span>
-						</button>
-					)}
-				</div>
-				<div
-					className="flex items-center justify-self-end pr-3"
-					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-				>
-					<Popover open={presetPopoverOpen} onOpenChange={setPresetPopoverOpen}>
-						<PopoverTrigger asChild>
+							<FolderOpen className="h-4 w-4" />
+						</Button>
+						<div className="hidden items-center gap-1.5 min-[1280px]:flex">
+							<DiscordLinkButton />
+							<FeedbackDialog />
+						</div>
+						<div className="ml-1 hidden h-5 w-px bg-hairline min-[980px]:block" />
+						<Button
+							type="button"
+							variant="toolbar"
+							size="icon-sm"
+							onClick={handleUndo}
+							disabled={!canUndo}
+							title={t("common.actions.undo", "Undo")}
+							aria-label={t("common.actions.undo", "Undo")}
+						>
+							<Undo2 className="h-4 w-4" />
+						</Button>
+						<Button
+							type="button"
+							variant="toolbar"
+							size="icon-sm"
+							onClick={handleRedo}
+							disabled={!canRedo}
+							title={t("common.actions.redo", "Redo")}
+							aria-label={t("common.actions.redo", "Redo")}
+						>
+							<Redo2 className="h-4 w-4" />
+						</Button>
+					</div>
+				}
+				identity={
+					<div className="flex min-w-0 items-center justify-center">
+						{isEditingProjectName ? (
+							<form
+								onSubmit={(event) => void handleProjectNameSubmit(event)}
+								className="flex max-w-full items-baseline gap-1 rounded-lg border border-hairline bg-surface-elevated px-2.5 py-1 shadow-aureo-2"
+							>
+								{hasUnsavedChanges ? (
+									<span className="mt-[1px] size-2 shrink-0 rounded-full bg-primary" />
+								) : null}
+								<input
+									ref={projectNameInputRef}
+									type="text"
+									value={projectNameDraft}
+									onChange={(event) => setProjectNameDraft(event.target.value)}
+									onBlur={() => {
+										if (!isSavingProjectName) {
+											closeProjectNameEditor();
+										}
+									}}
+									onKeyDown={(event) => {
+										if (event.key === "Escape") {
+											event.preventDefault();
+											closeProjectNameEditor();
+										}
+									}}
+									disabled={isSavingProjectName}
+									className="min-w-[10ch] max-w-[min(28vw,280px)] bg-transparent text-sm font-semibold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/60 disabled:cursor-wait"
+									style={{ width: `${Math.max(projectNameDraft.length, 10)}ch` }}
+									aria-label={t("editor.project.renameInput", "Project name")}
+								/>
+								<span className="shrink-0 text-xs font-medium tracking-tight text-muted-foreground/70">
+									.aureo
+								</span>
+							</form>
+						) : (
 							<button
 								type="button"
-								title={t("editor.presets.open", "Open presets")}
-								aria-label={t("editor.presets.open", "Open presets")}
-								className="inline-flex items-center gap-1.5 bg-transparent p-0 text-sm font-medium tracking-tight text-foreground outline-none transition-opacity hover:opacity-80"
+								onClick={() => setIsEditingProjectName(true)}
+								className="group flex min-w-0 max-w-full flex-col items-center rounded-lg px-2.5 py-1 text-center transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+								title={t("editor.project.renameTitle", "Rename project")}
+								aria-label={`${projectDisplayName}. ${projectSaveStatusLabel}. ${t("editor.project.renameTitle", "Rename project")}`}
 							>
-								<span className="flex items-center gap-1.5">
-									<BookmarkSimple weight="fill" className="h-4 w-4" />
-									<span>
-										{currentEditorPreset?.name ??
-											t("editor.presets.label", "Presets")}
+								<span className="flex min-w-0 max-w-full items-baseline gap-1">
+									{hasUnsavedChanges ? (
+										<span className="mt-[1px] size-2 shrink-0 rounded-full bg-primary" />
+									) : null}
+									<span className="truncate text-sm font-semibold tracking-tight text-foreground">
+										{projectDisplayName}
+									</span>
+									<span className="shrink-0 text-xs font-medium tracking-tight text-muted-foreground/70">
+										.aureo
 									</span>
 								</span>
-								<ChevronDown className="h-3.5 w-3.5 text-foreground" />
-							</button>
-						</PopoverTrigger>
-						<PopoverContent
-							align="end"
-							sideOffset={10}
-							className="w-[300px] rounded-2xl border border-foreground/10 bg-editor-surface-alt p-3 shadow-xl"
-						>
-							<div className="space-y-3">
-								<form
-									onSubmit={(event) => {
-										event.preventDefault();
-										handleSavePresetSubmit();
-									}}
-									className="space-y-2"
+								<span
+									className={cn(
+										"hidden text-[10px] font-medium leading-none min-[980px]:block",
+										hasUnsavedChanges
+											? "text-primary"
+											: "text-muted-foreground",
+									)}
 								>
-									<p className="text-[11px] font-medium text-foreground">
-										{t(
-											"editor.presets.saveCurrentAs",
-											"Save current preset as",
-										)}
-									</p>
-									<div className="flex items-center gap-2">
-										<Input
-											value={presetNameDraft}
-											onChange={(event) =>
-												setPresetNameDraft(event.target.value)
-											}
-											className="h-9 rounded-xl border-foreground/10 bg-background/70 text-sm"
-											placeholder={t(
-												"editor.presets.namePlaceholder",
-												"Preset name",
-											)}
-											aria-label={t(
-												"editor.presets.namePlaceholder",
-												"Preset name",
-											)}
-										/>
-										<Button
-											type="submit"
-											size="sm"
-											className="h-9 rounded-xl bg-[#2563EB] px-3 text-white hover:bg-[#1d4ed8]"
-										>
-											{t("common.actions.save", "Save")}
-										</Button>
-									</div>
-								</form>
-
-								<div className="space-y-2">
-									<p className="text-[11px] font-medium text-foreground">
-										{t("editor.presets.savedList", "Saved presets")}
-									</p>
-									<div className="max-h-56 space-y-1 overflow-y-auto pr-1 custom-scrollbar">
-										{editorPresets.length === 0 ? (
-											<div className="rounded-xl border border-dashed border-foreground/10 px-3 py-4 text-center text-[11px] text-muted-foreground">
-												{t("editor.presets.empty", "No presets yet.")}
-											</div>
-										) : (
-											editorPresets.map((preset) => {
-												const isActive =
-													preset.id === currentEditorPreset?.id;
-												return (
-													<div
-														key={preset.id}
-														className={cn(
-															"flex items-center gap-2 rounded-xl border px-2 py-2 text-sm transition-colors",
-															isActive
-																? "border-[#2563EB]/20 bg-[#2563EB]/10 text-foreground"
-																: "border-foreground/8 bg-foreground/[0.03] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
-														)}
-													>
-														<button
-															type="button"
-															onClick={() =>
-																handleApplyEditorPreset(preset.id)
-															}
-															className="flex min-w-0 flex-1 items-center justify-between text-left"
-														>
-															<span className="truncate pr-3">
-																{preset.name}
-															</span>
-															{isActive ? (
-																<Check className="h-3.5 w-3.5 shrink-0 text-[#2563EB]" />
-															) : null}
-														</button>
-														<button
-															type="button"
-															onClick={() =>
-																handleDeleteEditorPreset(preset.id)
-															}
-															className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground"
-															aria-label={t(
-																"editor.presets.deleteAriaLabel",
-																"Delete preset {{name}}",
-																{ name: preset.name },
-															)}
-															title={t(
-																"editor.presets.deleteAriaLabel",
-																"Delete preset {{name}}",
-																{ name: preset.name },
-															)}
-														>
-															<X className="h-3.5 w-3.5" />
-														</button>
-													</div>
-												);
-											})
-										)}
-									</div>
-								</div>
-							</div>
-						</PopoverContent>
-					</Popover>
-					<Button
-						type="button"
-						variant="ghost"
-						onClick={() => setCommandMenuOpen(true)}
-						className="ml-3 inline-flex h-8 items-center gap-2 rounded-[6px] border border-foreground/10 bg-foreground/[0.035] px-2.5 text-muted-foreground shadow-none hover:bg-foreground/[0.075] hover:text-foreground"
-						title={t("editor.commandMenu.title", "Command Menu")}
-						aria-label={t("editor.commandMenu.title", "Command Menu")}
-					>
-						<MagnifyingGlass className="h-3.5 w-3.5" />
-						<kbd className="text-[10px] font-medium">{isMac ? "⌘ K" : "Ctrl K"}</kbd>
-					</Button>
-					<div aria-hidden="true" className="mx-2 h-4 w-px shrink-0 bg-foreground/10" />
-					<DropdownMenu
-						open={showExportDropdown}
-						onOpenChange={setShowExportDropdown}
-						modal={false}
-					>
-						<DropdownMenuTrigger asChild>
-							<Button
-								type="button"
-								onClick={handleOpenExportDropdown}
-								className="inline-flex h-8 min-w-[112px] items-center justify-center gap-2 rounded-[5px] bg-[#2563EB] px-4.5 text-white transition-colors hover:bg-[#2563EB]/92"
-							>
-								<Download className="h-4 w-4" />
-								<span className="text-sm font-semibold tracking-tight">
-									{t("common.actions.export", "Export")}
+									{projectSaveStatusLabel}
 								</span>
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent
-							align="end"
-							sideOffset={10}
-							className="w-[360px] border-none bg-transparent p-0 shadow-none"
+							</button>
+						)}
+					</div>
+				}
+				actions={
+					<>
+						<Button
+							type="button"
+							variant="toolbar"
+							size="icon-sm"
+							onClick={handleSaveProject}
+							disabled={!videoPath || isSavingProjectName}
+							title={t("editor.commandMenu.saveProject", "Save project")}
+							aria-label={t("editor.commandMenu.saveProject", "Save project")}
+							className={cn(hasUnsavedChanges && "text-primary")}
 						>
-							{isExporting ? (
-								<div className="rounded-2xl border border-foreground/10 bg-editor-surface p-4 text-foreground shadow-2xl">
-									<div className="mb-3 flex items-center justify-between gap-3">
-										<div>
-											<p className="text-sm font-semibold text-foreground">
-												{t("editor.exportStatus.exporting", "Exporting")}
-											</p>
-											<p className="text-xs text-muted-foreground">
-												{t(
-													"editor.exportStatus.renderingFile",
-													"Rendering your file.",
-												)}
-											</p>
-											{isLegacyExportInProgress ? (
-												<p className="mt-1 text-[11px] text-muted-foreground/70">
-													Export too slow? Cancel and try Lightning
-													export!
-												</p>
-											) : null}
-										</div>
-										<Button
-											type="button"
-											variant="outline"
-											onClick={handleCancelExport}
-											className="h-8 border-red-500/20 bg-red-500/10 px-3 text-xs text-red-400 hover:bg-red-500/20"
-										>
-											{t("common.actions.cancel")}
-										</Button>
-									</div>
-									<div className="h-2 overflow-hidden rounded-full border border-foreground/5 bg-foreground/5">
-										{isExportPreparing ||
-										isExportSaving ||
-										isExportFinalSaveIndeterminate ? (
-											<div className="indeterminate-progress h-full rounded-full bg-transparent" />
-										) : (
-											<div
-												className="h-full bg-[#2563EB] transition-all duration-300 ease-out"
-												style={{
-													width: `${Math.min(isRenderingAudio ? (exportProgress?.audioProgress ?? 0) * 100 : (exportFinalizingProgress ?? exportProgress?.percentage ?? 8), 100)}%`,
-												}}
-											/>
-										)}
-									</div>
-									<p className="mt-2 text-xs text-muted-foreground">
-										{exportPercentLabel}
-									</p>
-									{isRenderingAudio ? (
-										<p className="mt-1 text-[11px] text-muted-foreground/70">
+							<FloppyDisk
+								className="h-4 w-4"
+								weight={hasUnsavedChanges ? "fill" : "regular"}
+							/>
+						</Button>
+						<Popover open={presetPopoverOpen} onOpenChange={setPresetPopoverOpen}>
+							<PopoverTrigger asChild>
+								<button
+									type="button"
+									title={t("editor.presets.open", "Open presets")}
+									aria-label={t("editor.presets.open", "Open presets")}
+									className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-hairline bg-foreground/[0.035] px-2 text-sm font-medium tracking-tight text-foreground outline-none transition-colors hover:bg-foreground/[0.075] focus-visible:ring-2 focus-visible:ring-primary"
+								>
+									<span className="flex min-w-0 items-center gap-1.5">
+										<BookmarkSimple
+											weight="fill"
+											className="h-4 w-4 shrink-0"
+										/>
+										<span className="hidden max-w-28 truncate min-[1180px]:inline">
+											{currentEditorPreset?.name ??
+												t("editor.presets.label", "Presets")}
+										</span>
+									</span>
+									<ChevronDown className="h-3.5 w-3.5 text-foreground" />
+								</button>
+							</PopoverTrigger>
+							<PopoverContent
+								align="end"
+								sideOffset={10}
+								className="w-[300px] rounded-2xl border border-foreground/10 bg-editor-surface-alt p-3 shadow-xl"
+							>
+								<div className="space-y-3">
+									<form
+										onSubmit={(event) => {
+											event.preventDefault();
+											handleSavePresetSubmit();
+										}}
+										className="space-y-2"
+									>
+										<p className="text-[11px] font-medium text-foreground">
 											{t(
-												"editor.export.processingAudioEdits",
-												"Processing audio with speed/overlay edits",
+												"editor.presets.saveCurrentAs",
+												"Save current preset as",
 											)}
 										</p>
-									) : exportRenderSpeedLabel ? (
-										<p className="mt-1 text-[11px] text-muted-foreground/70">
-											{exportRenderSpeedLabel}
+										<div className="flex items-center gap-2">
+											<Input
+												value={presetNameDraft}
+												onChange={(event) =>
+													setPresetNameDraft(event.target.value)
+												}
+												className="h-9 rounded-xl border-foreground/10 bg-background/70 text-sm"
+												placeholder={t(
+													"editor.presets.namePlaceholder",
+													"Preset name",
+												)}
+												aria-label={t(
+													"editor.presets.namePlaceholder",
+													"Preset name",
+												)}
+											/>
+											<Button
+												type="submit"
+												size="sm"
+												className="h-9 rounded-xl bg-primary px-3 text-primary-foreground hover:bg-primary/90"
+											>
+												{t("common.actions.save", "Save")}
+											</Button>
+										</div>
+									</form>
+
+									<div className="space-y-2">
+										<p className="text-[11px] font-medium text-foreground">
+											{t("editor.presets.savedList", "Saved presets")}
 										</p>
-									) : null}
-									{exportRuntimeLabel ? (
-										<p className="mt-1 text-[11px] text-muted-foreground/70">
-											Path: {exportRuntimeLabel}
-										</p>
-									) : null}
-									{exportNativeSkipLabel ? (
-										<p className="mt-1 text-[11px] text-amber-500/80">
-											{exportNativeSkipLabel}
-										</p>
-									) : null}
+										<div className="max-h-56 space-y-1 overflow-y-auto pr-1 custom-scrollbar">
+											{editorPresets.length === 0 ? (
+												<div className="rounded-xl border border-dashed border-foreground/10 px-3 py-4 text-center text-[11px] text-muted-foreground">
+													{t("editor.presets.empty", "No presets yet.")}
+												</div>
+											) : (
+												editorPresets.map((preset) => {
+													const isActive =
+														preset.id === currentEditorPreset?.id;
+													return (
+														<div
+															key={preset.id}
+															className={cn(
+																"flex items-center gap-2 rounded-xl border px-2 py-2 text-sm transition-colors",
+																isActive
+																	? "border-primary/20 bg-primary/10 text-foreground"
+																	: "border-foreground/8 bg-foreground/[0.03] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+															)}
+														>
+															<button
+																type="button"
+																onClick={() =>
+																	handleApplyEditorPreset(
+																		preset.id,
+																	)
+																}
+																className="flex min-w-0 flex-1 items-center justify-between text-left"
+															>
+																<span className="truncate pr-3">
+																	{preset.name}
+																</span>
+																{isActive ? (
+																	<Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+																) : null}
+															</button>
+															<button
+																type="button"
+																onClick={() =>
+																	handleDeleteEditorPreset(
+																		preset.id,
+																	)
+																}
+																className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/8 hover:text-foreground"
+																aria-label={t(
+																	"editor.presets.deleteAriaLabel",
+																	"Delete preset {{name}}",
+																	{ name: preset.name },
+																)}
+																title={t(
+																	"editor.presets.deleteAriaLabel",
+																	"Delete preset {{name}}",
+																	{ name: preset.name },
+																)}
+															>
+																<X className="h-3.5 w-3.5" />
+															</button>
+														</div>
+													);
+												})
+											)}
+										</div>
+									</div>
 								</div>
-							) : exportError ? (
-								<div className="rounded-2xl border border-foreground/10 bg-editor-surface p-4 text-foreground shadow-2xl">
-									<p className="text-sm font-semibold text-foreground">
-										{t("editor.exportStatus.issue", "Export issue")}
-									</p>
-									{exportRuntimeLabel ? (
-										<p className="mt-1 text-[11px] text-muted-foreground/70">
-											Path: {exportRuntimeLabel}
-										</p>
-									) : null}
-									<p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
-										{exportError}
-									</p>
-									<div className="mt-4 flex gap-2">
-										{hasPendingExportSave ? (
+							</PopoverContent>
+						</Popover>
+						<Button
+							type="button"
+							variant="toolbar"
+							onClick={() => setCommandMenuOpen(true)}
+							className="gap-2 px-2.5"
+							title={t("editor.commandMenu.title", "Command Menu")}
+							aria-label={t("editor.commandMenu.title", "Command Menu")}
+						>
+							<MagnifyingGlass className="h-3.5 w-3.5" />
+							<kbd className="hidden text-[10px] font-medium min-[1080px]:inline">
+								{isMac ? "⌘ K" : "Ctrl K"}
+							</kbd>
+						</Button>
+						<div aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-hairline" />
+						<DropdownMenu
+							open={showExportDropdown}
+							onOpenChange={setShowExportDropdown}
+							modal={false}
+						>
+							<DropdownMenuTrigger asChild>
+								<Button
+									type="button"
+									onClick={handleOpenExportDropdown}
+									className="inline-flex h-8 min-w-[96px] items-center justify-center gap-2 rounded-lg bg-primary px-3.5 text-primary-foreground shadow-aureo-1 transition-colors hover:bg-primary/90"
+								>
+									<Download className="h-4 w-4" />
+									<span className="text-sm font-semibold tracking-tight">
+										{t("common.actions.export", "Export")}
+									</span>
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="end"
+								sideOffset={10}
+								className="w-[360px] border-none bg-transparent p-0 shadow-none"
+							>
+								{isExporting ? (
+									<div className="rounded-2xl border border-foreground/10 bg-editor-surface p-4 text-foreground shadow-2xl">
+										<div className="mb-3 flex items-center justify-between gap-3">
+											<div>
+												<p className="text-sm font-semibold text-foreground">
+													{t(
+														"editor.exportStatus.exporting",
+														"Exporting",
+													)}
+												</p>
+												<p className="text-xs text-muted-foreground">
+													{t(
+														"editor.exportStatus.renderingFile",
+														"Rendering your file.",
+													)}
+												</p>
+												{isLegacyExportInProgress ? (
+													<p className="mt-1 text-[11px] text-muted-foreground/70">
+														Export too slow? Cancel and try Lightning
+														export!
+													</p>
+												) : null}
+											</div>
 											<Button
 												type="button"
-												onClick={handleRetrySaveExport}
-												className="h-8 flex-1 rounded-[5px] bg-[#2563EB] text-xs font-semibold text-white hover:bg-[#2563EB]/92"
+												variant="outline"
+												onClick={handleCancelExport}
+												className="h-8 border-red-500/20 bg-red-500/10 px-3 text-xs text-red-400 hover:bg-red-500/20"
 											>
-												{t("editor.actions.saveAgain", "Save Again")}
+												{t("common.actions.cancel")}
 											</Button>
-										) : null}
-										<Button
-											type="button"
-											variant="outline"
-											onClick={handleExportDropdownClose}
-											className="h-8 flex-1 border-foreground/10 bg-foreground/5 text-xs text-muted-foreground hover:bg-foreground/10"
-										>
-											{t("common.actions.close", "Close")}
-										</Button>
-									</div>
-								</div>
-							) : exportedFilePath ? (
-								<div className="rounded-2xl border border-foreground/10 bg-editor-surface p-4 text-foreground shadow-2xl">
-									<p className="text-sm font-semibold text-foreground">
-										{t("editor.exportStatus.complete", "Export complete")}
-									</p>
-									<p className="mt-1 text-xs text-muted-foreground">
-										{t(
-											"editor.exportStatus.savedSuccessfully",
-											"Your file was saved successfully.",
-										)}
-									</p>
-									{exportRuntimeLabel ? (
-										<p className="mt-1 text-[11px] text-muted-foreground/70">
-											Path: {exportRuntimeLabel}
+										</div>
+										<div className="h-2 overflow-hidden rounded-full border border-foreground/5 bg-foreground/5">
+											{isExportPreparing ||
+											isExportSaving ||
+											isExportFinalSaveIndeterminate ? (
+												<div className="indeterminate-progress h-full rounded-full bg-transparent" />
+											) : (
+												<div
+													className="h-full bg-primary transition-all duration-300 ease-out"
+													style={{
+														width: `${Math.min(isRenderingAudio ? (exportProgress?.audioProgress ?? 0) * 100 : (exportFinalizingProgress ?? exportProgress?.percentage ?? 8), 100)}%`,
+													}}
+												/>
+											)}
+										</div>
+										<p className="mt-2 text-xs text-muted-foreground">
+											{exportPercentLabel}
 										</p>
-									) : null}
-									<p className="mt-3 truncate text-xs text-muted-foreground/70">
-										{exportedFilePath.split("/").pop()}
-									</p>
-									<div className="mt-4 flex gap-2">
-										<Button
-											type="button"
-											onClick={revealExportedFile}
-											className="h-8 flex-1 rounded-[5px] bg-[#2563EB] text-xs font-semibold text-white hover:bg-[#2563EB]/92"
-										>
-											{t("editor.actions.showInFolder", "Show In Folder")}
-										</Button>
-										<Button
-											type="button"
-											variant="outline"
-											onClick={handleExportDropdownClose}
-											className="h-8 flex-1 border-foreground/10 bg-foreground/5 text-xs text-muted-foreground hover:bg-foreground/10"
-										>
-											Done
-										</Button>
+										{isRenderingAudio ? (
+											<p className="mt-1 text-[11px] text-muted-foreground/70">
+												{t(
+													"editor.export.processingAudioEdits",
+													"Processing audio with speed/overlay edits",
+												)}
+											</p>
+										) : exportRenderSpeedLabel ? (
+											<p className="mt-1 text-[11px] text-muted-foreground/70">
+												{exportRenderSpeedLabel}
+											</p>
+										) : null}
+										{exportRuntimeLabel ? (
+											<p className="mt-1 text-[11px] text-muted-foreground/70">
+												Path: {exportRuntimeLabel}
+											</p>
+										) : null}
+										{exportNativeSkipLabel ? (
+											<p className="mt-1 text-[11px] text-amber-500/80">
+												{exportNativeSkipLabel}
+											</p>
+										) : null}
 									</div>
-								</div>
-							) : (
-								<ExportSettingsMenu
-									exportFormat={exportFormat}
-									onExportFormatChange={setExportFormat}
-									exportEncodingMode={exportEncodingMode}
-									onExportEncodingModeChange={setExportEncodingMode}
-									exportVideoCodec={exportVideoCodec}
-									onExportVideoCodecChange={setExportVideoCodec}
-									mp4FrameRate={mp4FrameRate}
-									onMp4FrameRateChange={setMp4FrameRate}
-									exportPipelineModel={exportPipelineModel}
-									onExportPipelineModelChange={setExportPipelineModel}
-									experimentalNvidiaCudaExport={
-										experimentalNvidiaCudaExport && nvidiaCudaExportAvailable
-									}
-									onExperimentalNvidiaCudaExportChange={
-										setExperimentalNvidiaCudaExport
-									}
-									nvidiaCudaExportAvailable={nvidiaCudaExportAvailable}
-									exportQuality={exportQuality}
-									onExportQualityChange={setExportQuality}
-									gifFrameRate={gifFrameRate}
-									onGifFrameRateChange={setGifFrameRate}
-									gifLoop={gifLoop}
-									onGifLoopChange={setGifLoop}
-									gifSizePreset={gifSizePreset}
-									onGifSizePresetChange={setGifSizePreset}
-									showCaptionSidecarOption={
-										hasCaptionsForSidecar && exportFormat === "mp4"
-									}
-									includeCaptionSidecar={includeCaptionSidecar}
-									onIncludeCaptionSidecarChange={setIncludeCaptionSidecar}
-									mp4OutputDimensions={mp4OutputDimensions}
-									gifOutputDimensions={gifOutputDimensions}
-									onExport={handleStartExportFromDropdown}
-									className="shadow-2xl"
-								/>
-							)}
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
-			</div>
+								) : exportError ? (
+									<div className="rounded-2xl border border-foreground/10 bg-editor-surface p-4 text-foreground shadow-2xl">
+										<p className="text-sm font-semibold text-foreground">
+											{t("editor.exportStatus.issue", "Export issue")}
+										</p>
+										{exportRuntimeLabel ? (
+											<p className="mt-1 text-[11px] text-muted-foreground/70">
+												Path: {exportRuntimeLabel}
+											</p>
+										) : null}
+										<p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
+											{exportError}
+										</p>
+										<div className="mt-4 flex gap-2">
+											{hasPendingExportSave ? (
+												<Button
+													type="button"
+													onClick={handleRetrySaveExport}
+													className="h-8 flex-1 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+												>
+													{t("editor.actions.saveAgain", "Save Again")}
+												</Button>
+											) : null}
+											<Button
+												type="button"
+												variant="outline"
+												onClick={handleExportDropdownClose}
+												className="h-8 flex-1 border-foreground/10 bg-foreground/5 text-xs text-muted-foreground hover:bg-foreground/10"
+											>
+												{t("common.actions.close", "Close")}
+											</Button>
+										</div>
+									</div>
+								) : exportedFilePath ? (
+									<div className="rounded-2xl border border-foreground/10 bg-editor-surface p-4 text-foreground shadow-2xl">
+										<p className="text-sm font-semibold text-foreground">
+											{t("editor.exportStatus.complete", "Export complete")}
+										</p>
+										<p className="mt-1 text-xs text-muted-foreground">
+											{t(
+												"editor.exportStatus.savedSuccessfully",
+												"Your file was saved successfully.",
+											)}
+										</p>
+										{exportRuntimeLabel ? (
+											<p className="mt-1 text-[11px] text-muted-foreground/70">
+												Path: {exportRuntimeLabel}
+											</p>
+										) : null}
+										<p className="mt-3 truncate text-xs text-muted-foreground/70">
+											{exportedFilePath.split("/").pop()}
+										</p>
+										<div className="mt-4 flex gap-2">
+											<Button
+												type="button"
+												onClick={revealExportedFile}
+												className="h-8 flex-1 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+											>
+												{t("editor.actions.showInFolder", "Show In Folder")}
+											</Button>
+											<Button
+												type="button"
+												variant="outline"
+												onClick={handleExportDropdownClose}
+												className="h-8 flex-1 border-foreground/10 bg-foreground/5 text-xs text-muted-foreground hover:bg-foreground/10"
+											>
+												Done
+											</Button>
+										</div>
+									</div>
+								) : (
+									<ExportSettingsMenu
+										exportFormat={exportFormat}
+										onExportFormatChange={setExportFormat}
+										exportEncodingMode={exportEncodingMode}
+										onExportEncodingModeChange={setExportEncodingMode}
+										exportVideoCodec={exportVideoCodec}
+										onExportVideoCodecChange={setExportVideoCodec}
+										mp4FrameRate={mp4FrameRate}
+										onMp4FrameRateChange={setMp4FrameRate}
+										exportPipelineModel={exportPipelineModel}
+										onExportPipelineModelChange={setExportPipelineModel}
+										experimentalNvidiaCudaExport={
+											experimentalNvidiaCudaExport &&
+											nvidiaCudaExportAvailable
+										}
+										onExperimentalNvidiaCudaExportChange={
+											setExperimentalNvidiaCudaExport
+										}
+										nvidiaCudaExportAvailable={nvidiaCudaExportAvailable}
+										exportQuality={exportQuality}
+										onExportQualityChange={setExportQuality}
+										gifFrameRate={gifFrameRate}
+										onGifFrameRateChange={setGifFrameRate}
+										gifLoop={gifLoop}
+										onGifLoopChange={setGifLoop}
+										gifSizePreset={gifSizePreset}
+										onGifSizePresetChange={setGifSizePreset}
+										showCaptionSidecarOption={
+											hasCaptionsForSidecar && exportFormat === "mp4"
+										}
+										includeCaptionSidecar={includeCaptionSidecar}
+										onIncludeCaptionSidecarChange={setIncludeCaptionSidecar}
+										mp4OutputDimensions={mp4OutputDimensions}
+										gifOutputDimensions={gifOutputDimensions}
+										onExport={handleStartExportFromDropdown}
+										className="shadow-2xl"
+									/>
+								)}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</>
+				}
+			/>
 
 			<div className="relative flex min-h-0 flex-1 flex-col gap-3 p-4">
 				<div className="flex min-h-0 flex-1 gap-3 relative z-10">
 					{/* Settings sidebar */}
 					<div className="flex flex-shrink-0 gap-1.5">
 						{/* Icon rail */}
-						<div className="flex flex-shrink-0 flex-col items-center gap-0.5 px-2 py-2">
+						<div
+							className="glass-clear flex flex-shrink-0 flex-col items-center gap-0.5 rounded-surface border border-hairline px-2 py-2 shadow-aureo-1"
+							role="toolbar"
+							aria-label={t("editor.toolbar.inspector", "Inspector sections")}
+							aria-orientation="vertical"
+						>
 							{editorSectionButtons.map((section) => {
 								const isActive = activeEffectSection === section.id;
 								return (
@@ -7007,29 +7068,33 @@ export default function VideoEditor() {
 											type="button"
 											onClick={() => setActiveEffectSection(section.id)}
 											title={section.label}
-											className="group relative flex h-9 w-9 items-center justify-center rounded-lg outline-none focus:outline-none focus-visible:outline-none"
+											aria-label={section.label}
+											aria-pressed={isActive}
+											className="group relative flex h-9 w-9 items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-editor-bg"
 											animate={{ opacity: isActive ? 1 : 0.55 }}
-											transition={{ duration: 0.14 }}
+											transition={{ duration: reduceMotion ? 0 : 0.14 }}
 										>
 											{isActive && (
 												<motion.span
 													layoutId="rail-active-bg"
 													className="absolute inset-0 rounded-lg bg-foreground/[0.08]"
-													transition={{
-														type: "spring",
-														stiffness: 450,
-														damping: 35,
-													}}
+													transition={
+														reduceMotion
+															? { duration: 0 }
+															: {
+																	type: "spring",
+																	stiffness: 450,
+																	damping: 35,
+																}
+													}
 												/>
 											)}
-											<motion.span
-												className="relative z-10"
-												animate={{
-													color: isActive
-														? "#2563EB"
-														: "hsl(var(--foreground))",
-												}}
-												transition={{ duration: 0.14 }}
+											<span
+												className={cn(
+													"relative z-10 transition-colors",
+													isActive ? "text-primary" : "text-foreground",
+													reduceMotion && "transition-none",
+												)}
 											>
 												{typeof section.icon === "string" ? (
 													<ExtensionIcon
@@ -7043,21 +7108,33 @@ export default function VideoEditor() {
 														weight={isActive ? "fill" : "regular"}
 													/>
 												)}
-											</motion.span>
+											</span>
 										</motion.button>
 										<div className="ml-1.5 h-1.5 w-1.5 flex-shrink-0">
 											{isActive && (
 												<motion.span
 													layoutId="rail-active-dot"
-													className="block h-1.5 w-1.5 rounded-full bg-[#2563EB]"
-													initial={{ opacity: 0, scale: 0.5 }}
+													className="block h-1.5 w-1.5 rounded-full bg-primary"
+													initial={
+														reduceMotion
+															? false
+															: { opacity: 0, scale: 0.5 }
+													}
 													animate={{ opacity: 1, scale: 1 }}
-													exit={{ opacity: 0, scale: 0.5 }}
-													transition={{
-														type: "spring",
-														stiffness: 500,
-														damping: 32,
-													}}
+													exit={
+														reduceMotion
+															? { opacity: 1, scale: 1 }
+															: { opacity: 0, scale: 0.5 }
+													}
+													transition={
+														reduceMotion
+															? { duration: 0 }
+															: {
+																	type: "spring",
+																	stiffness: 500,
+																	damping: 32,
+																}
+													}
 												/>
 											)}
 										</div>
@@ -7065,17 +7142,16 @@ export default function VideoEditor() {
 								);
 							})}
 							<div className="mt-auto flex flex-col items-center gap-0.5 pt-3">
-								<motion.button
+								<button
 									type="button"
 									onClick={() => toast.info("Account coming soon")}
-									title="Account"
-									className="group relative flex h-9 w-9 items-center justify-center rounded-lg text-foreground/55 outline-none transition hover:text-foreground focus:outline-none focus-visible:outline-none"
-									whileHover={{ opacity: 1 }}
-									initial={{ opacity: 0.55 }}
+									title={t("editor.account.title", "Account")}
+									aria-label={t("editor.account.title", "Account")}
+									className="group relative flex h-9 w-9 items-center justify-center rounded-lg text-foreground/55 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-editor-bg"
 								>
-									<motion.span className="absolute inset-0 rounded-lg bg-foreground/[0.04] opacity-0 transition group-hover:opacity-100" />
+									<span className="absolute inset-0 rounded-lg bg-foreground/[0.04] opacity-0 transition-opacity group-hover:opacity-100" />
 									<User className="relative z-10 h-[22px] w-[22px]" />
-								</motion.button>
+								</button>
 							</div>
 						</div>
 						{/* Panel */}
@@ -7189,6 +7265,8 @@ export default function VideoEditor() {
 								onShadowChange={setShadowIntensity}
 								backgroundBlur={backgroundBlur}
 								onBackgroundBlurChange={setBackgroundBlur}
+								backgroundEnabled={backgroundEnabled}
+								onBackgroundEnabledChange={setBackgroundEnabled}
 								zoomMotionBlurTuning={zoomMotionBlurTuning}
 								onZoomMotionBlurTuningChange={setZoomMotionBlurTuning}
 								zoomTemporalMotionBlur={zoomTemporalMotionBlur}
@@ -7525,107 +7603,42 @@ export default function VideoEditor() {
 								>
 									<MaskIcon className="w-4 h-4" />
 								</Button>
-								<Button
-									onClick={() => timelineRef.current?.splitClip()}
-									variant="ghost"
-									size="icon"
-									className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground"
-									title={t("editor.toolbar.splitClip")}
-								>
-									<Scissors className="w-4 h-4" />
-								</Button>
 							</div>
 							{/* Playback controls - centered */}
-							<div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-								<div className="flex items-center gap-1.5 pointer-events-auto">
-									<span className="mr-1 text-[10px] font-medium tabular-nums text-muted-foreground">
-										{formatTime(timelinePlayheadTime)}
-									</span>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground"
-										title={t("editor.playback.skipBack")}
-										onClick={handlePreviewSkipBack}
-									>
-										<SkipBack className="w-3.5 h-3.5" weight="fill" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										className={`h-7 w-7 rounded-full border border-foreground/10 transition-all shadow-[0_8px_18px_rgba(0,0,0,0.18)] ${isPlaying ? "bg-foreground/10 text-foreground hover:bg-foreground/20" : "bg-neutral-800 text-white hover:bg-neutral-700 dark:bg-white dark:text-black dark:hover:bg-white/90"}`}
-										onClick={togglePlayPause}
-										title={isPlaying ? "Pause" : "Play"}
-									>
-										{isPlaying ? (
-											<Pause className="w-3.5 h-3.5" weight="fill" />
-										) : (
-											<Play className="w-3.5 h-3.5" weight="fill" />
-										)}
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-foreground/10 hover:text-foreground"
-										title={t("editor.playback.skipForward")}
-										onClick={handlePreviewSkipForward}
-									>
-										<SkipForward className="w-3.5 h-3.5" weight="fill" />
-									</Button>
-									<span className="text-[10px] font-medium text-muted-foreground/70 tabular-nums ml-1">
-										{formatTime(timelineDuration)}
-									</span>
-								</div>
+							<div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+								<EditorTransport
+									ariaLabel={`${t("editor.playback.play")} / ${t("editor.playback.pause")}`}
+									currentTimeLabel={formatTime(timelinePlayheadTime)}
+									durationLabel={formatTime(timelineDuration)}
+									isPlaying={isPlaying}
+									playLabel={t("editor.playback.play")}
+									pauseLabel={t("editor.playback.pause")}
+									skipBackLabel={t("editor.playback.skipBack")}
+									skipForwardLabel={t("editor.playback.skipForward")}
+									splitClipLabel={t("editor.toolbar.splitClip")}
+									zoomToPlayheadLabel={t(
+										"editor.timeline.zoomToPlayhead",
+										"Zoom timeline to playhead",
+									)}
+									onSkipBack={handlePreviewSkipBack}
+									onTogglePlayPause={togglePlayPause}
+									onSkipForward={handlePreviewSkipForward}
+									onSplitClip={() => timelineRef.current?.splitClip()}
+									onZoomToPlayhead={() => timelineRef.current?.zoomToPlayhead()}
+									canSplit={Boolean(videoPath) && timelineDuration > 0}
+									canZoomToPlayhead={Boolean(videoPath) && timelineDuration > 0}
+									className="pointer-events-auto"
+								/>
 							</div>
-							{/* Right: collapse + volume */}
-							<div className="z-10 ml-auto flex items-center gap-2">
-								<div className="flex items-center gap-1.5">
-									<button
-										type="button"
-										className="text-muted-foreground hover:text-foreground transition-colors"
-										title={t("editor.playback.muteUnmute")}
-										onClick={() =>
-											setPreviewVolume(previewVolume <= 0.001 ? 1 : 0)
-										}
-									>
-										{previewVolume <= 0.001 ? (
-											<VolumeX className="w-3.5 h-3.5" />
-										) : previewVolume < 0.5 ? (
-											<Volume1 className="w-3.5 h-3.5" />
-										) : (
-											<Volume2 className="w-3.5 h-3.5" />
-										)}
-									</button>
-									<div className="relative flex h-7 w-24 select-none items-center overflow-hidden rounded-full border border-foreground/[0.06] bg-editor-bg/80 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]">
-										<div
-											className="absolute inset-y-[3px] left-[3px] right-auto rounded-[10px] bg-foreground/[0.08]"
-											style={{
-												width:
-													previewVolume > 0
-														? `max(calc(${previewVolume * 100}% - 6px), 1.2rem)`
-														: 0,
-											}}
-										/>
-										<div
-											className="pointer-events-none absolute bottom-[18%] top-[18%] z-10 w-[2px] rounded-full bg-foreground/95 shadow-[0_0_10px_rgba(37,99,235,0.28)]"
-											style={{ left: `calc(${previewVolume * 100}% - 8px)` }}
-										/>
-										<span className="pointer-events-none relative z-10 pl-2 text-[10px] font-medium text-muted-foreground">
-											{Math.round(previewVolume * 100)}%
-										</span>
-										<input
-											type="range"
-											min="0"
-											max="1"
-											step="0.01"
-											value={previewVolume}
-											onChange={(e) =>
-												setPreviewVolume(Number(e.target.value))
-											}
-											className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0"
-										/>
-									</div>
-								</div>
+							{/* Right: preview volume */}
+							<div className="z-10 ml-auto flex items-center">
+								<PreviewVolumeControl
+									value={previewVolume}
+									onChange={setPreviewVolume}
+									volumeLabel={t("settings.audio.volume", "Preview volume")}
+									muteLabel={t("editor.playback.muteUnmute")}
+									unmuteLabel={t("editor.playback.muteUnmute")}
+								/>
 							</div>
 						</div>
 					</div>
@@ -7668,6 +7681,7 @@ export default function VideoEditor() {
 						clipRegions={clipRegions}
 						onClipSplit={handleClipSplit}
 						onClipSpanChange={handleClipSpanChange}
+						onClipDelete={handleClipDelete}
 						selectedClipId={selectedClipId}
 						onSelectClip={handleSelectClip}
 						speedRegions={speedRegions}
@@ -7717,49 +7731,34 @@ export default function VideoEditor() {
 				</div>
 			</div>
 
-			{showCropModal ? (
-				<>
-					<div
-						className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
-						onClick={handleCancelCropEditor}
+			<Dialog
+				open={showCropModal}
+				onOpenChange={(open) => {
+					if (!open) handleCancelCropEditor();
+				}}
+			>
+				<DialogContent className="max-h-[90vh] w-[90vw] max-w-5xl overflow-auto rounded-2xl border-foreground/10 bg-editor-dialog p-8 text-foreground shadow-2xl">
+					<DialogHeader className="mb-2 pr-8">
+						<DialogTitle className="text-xl font-bold">
+							{t("settings.crop.title")}
+						</DialogTitle>
+						<DialogDescription className="mt-2 text-sm text-muted-foreground">
+							{t("settings.crop.instruction")}
+						</DialogDescription>
+					</DialogHeader>
+					<CropControl
+						videoElement={videoPlaybackRef.current?.video || null}
+						cropRegion={cropRegion}
+						onCropChange={setCropRegion}
+						aspectRatio={aspectRatio}
 					/>
-					<div className="fixed left-1/2 top-1/2 z-[60] max-h-[90vh] w-[90vw] max-w-5xl -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-2xl border border-foreground/10 bg-editor-dialog p-8 shadow-2xl animate-in zoom-in-95 duration-200">
-						<div className="mb-6 flex items-center justify-between">
-							<div>
-								<span className="text-xl font-bold text-foreground">
-									{t("settings.crop.title")}
-								</span>
-								<p className="mt-2 text-sm text-muted-foreground">
-									{t("settings.crop.instruction")}
-								</p>
-							</div>
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={handleCancelCropEditor}
-								className="text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
-							>
-								<X className="h-5 w-5" />
-							</Button>
-						</div>
-						<CropControl
-							videoElement={videoPlaybackRef.current?.video || null}
-							cropRegion={cropRegion}
-							onCropChange={setCropRegion}
-							aspectRatio={aspectRatio}
-						/>
-						<div className="mt-6 flex justify-end">
-							<Button
-								onClick={handleCloseCropEditor}
-								size="lg"
-								className="bg-[#2563EB] text-white hover:bg-[#2563EB]/90"
-							>
-								{t("common.actions.done")}
-							</Button>
-						</div>
-					</div>
-				</>
-			) : null}
+					<DialogFooter className="mt-2">
+						<Button onClick={handleCloseCropEditor} size="lg">
+							{t("common.actions.done")}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			{projectBrowser}
 			{projectSaveDialog}

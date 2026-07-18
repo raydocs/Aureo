@@ -105,6 +105,7 @@ type MockContext = {
 	scale: MockFunction;
 	clearRect: MockFunction;
 	filter: string;
+	fillStyle?: string;
 };
 type MockCanvas = ReturnType<typeof createMockCanvas>;
 type FrameRendererTestAccess = {
@@ -234,6 +235,7 @@ function createMockContext() {
 		scale: vi.fn(),
 		clearRect: vi.fn(),
 		filter: "",
+		fillStyle: "",
 	};
 }
 
@@ -565,5 +567,48 @@ describe("FrameRenderer webcam export path", () => {
 		expect(resolveMediaElementSourceMock).toHaveBeenCalledWith("wallpapers/wispysky.mp4");
 		expect(renderer.backgroundForwardFrameSource).toBeNull();
 		expect(renderer.backgroundVideoElement).toBeTruthy();
+	});
+
+	describe("FrameRenderer background disabled", () => {
+		it("fills background sprite with black when backgroundEnabled is false", async () => {
+			vi.clearAllMocks();
+			Object.assign(globalThis, {
+				window: globalThis,
+				document: {
+					createElement: vi.fn((tag: string) => {
+						if (tag !== "canvas") {
+							throw new Error(`Unexpected element requested in test: ${tag}`);
+						}
+						return createMockCanvas();
+					}),
+				},
+			});
+
+			const renderer = new FrameRenderer({
+				width: 1920,
+				height: 1080,
+				wallpaper: "/wallpapers/wispysky.mp4",
+				backgroundEnabled: false,
+				zoomRegions: [],
+				showShadow: false,
+				shadowIntensity: 0,
+				backgroundBlur: 0,
+				cropRegion: { x: 0, y: 0, width: 1, height: 1 },
+				webcam: { ...DEFAULT_WEBCAM_OVERLAY, enabled: false },
+				videoWidth: 1920,
+				videoHeight: 1080,
+			}) as unknown as {
+				setupBackground: () => Promise<void>;
+				backgroundSprite: MockCanvas | null;
+			};
+
+			await renderer.setupBackground();
+
+			expect(initializeForwardFrameSourceMock).not.toHaveBeenCalled();
+			expect(renderer.backgroundSprite).toBeTruthy();
+			const ctx = renderer.backgroundSprite?.context as MockContext | undefined;
+			expect(ctx?.fillRect).toHaveBeenCalledWith(0, 0, 1920, 1080);
+			expect(ctx?.fillStyle).toBe("#000000");
+		});
 	});
 });

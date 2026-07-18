@@ -159,6 +159,7 @@ export interface ProjectEditorState {
 	gifFrameRate: GifFrameRate;
 	gifLoop: boolean;
 	gifSizePreset: GifSizePreset;
+	backgroundEnabled: boolean;
 }
 
 export interface EditorProjectData {
@@ -960,6 +961,8 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			DEFAULT_CONNECTED_ZOOM_EASING,
 		),
 		showCursor: typeof editor.showCursor === "boolean" ? editor.showCursor : true,
+		backgroundEnabled:
+			typeof editor.backgroundEnabled === "boolean" ? editor.backgroundEnabled : true,
 		hideCursorWhenIdle:
 			typeof editor.hideCursorWhenIdle === "boolean" ? editor.hideCursorWhenIdle : false,
 		stopCursorAtEnd:

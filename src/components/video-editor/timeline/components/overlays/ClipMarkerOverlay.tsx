@@ -1,6 +1,7 @@
 import { useTimelineContext } from "dnd-timeline";
 import { memo, useMemo } from "react";
 import { calculateAxisScale } from "../../core/time";
+import { surfaces } from "../../presentation";
 
 interface ClipMarkerOverlayProps {
 	videoDurationMs: number;
@@ -34,7 +35,7 @@ function ClipMarkerOverlayComponent({ videoDurationMs }: ClipMarkerOverlayProps)
 	}, [intervalMs, range.start, range.end, videoDurationMs, valueToPixels]);
 
 	return (
-		<div className="pointer-events-none absolute inset-0 z-[1]">
+		<div className={`pointer-events-none absolute inset-0 ${surfaces.timelineLayerOverlay}`}>
 			{markers.map(({ time, offset }) => (
 				<div
 					key={time}

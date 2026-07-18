@@ -1,7 +1,8 @@
 import { useTimelineContext } from "dnd-timeline";
-import { useEffect, useState, type RefObject } from "react";
+import { type RefObject, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { formatPlayheadTime } from "../../core/time";
+import { surfaces } from "../../presentation";
 
 interface PlaybackCursorProps {
 	currentTimeMs: number;
@@ -80,7 +81,7 @@ export default function PlaybackCursor({
 
 	return (
 		<div
-			className="absolute top-0 bottom-0 z-50 group/cursor"
+			className={`absolute top-0 bottom-0 ${surfaces.timelineLayerPlayhead} group/cursor`}
 			style={{
 				[sideProperty === "right" ? "marginRight" : "marginLeft"]: `${sidebarWidth - 1}px`,
 				pointerEvents: "none",
@@ -103,25 +104,32 @@ export default function PlaybackCursor({
 				<div
 					className={cn(
 						"absolute -top-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-black/80 text-[10px] text-white/90 font-medium tabular-nums whitespace-nowrap border border-foreground/10 shadow-lg pointer-events-none transition-opacity",
-						(isDragging || isLoading) ? "opacity-100" : "opacity-0",
+						isDragging || isLoading ? "opacity-100" : "opacity-0",
 					)}
 				>
 					<div className="flex items-center">
-						{formatPlayheadTime(clampedTime).split("").map((char, i) => (
-							<span
-								key={i}
-								className={cn(
-									"leading-5 whitespace-pre",
-									isLoading && "bg-gradient-to-r from-white/40 via-white to-white/40 bg-clip-text text-transparent animate-text-shimmer"
-								)}
-								style={isLoading ? {
-									animationDelay: `${i * 0.05}s`,
-									animationDuration: "2.5s",
-								} : undefined}
-							>
-								{char}
-							</span>
-						))}
+						{formatPlayheadTime(clampedTime)
+							.split("")
+							.map((char, i) => (
+								<span
+									key={i}
+									className={cn(
+										"leading-5 whitespace-pre",
+										isLoading &&
+											"bg-gradient-to-r from-white/40 via-white to-white/40 bg-clip-text text-transparent animate-text-shimmer",
+									)}
+									style={
+										isLoading
+											? {
+													animationDelay: `${i * 0.05}s`,
+													animationDuration: "2.5s",
+												}
+											: undefined
+									}
+								>
+									{char}
+								</span>
+							))}
 					</div>
 				</div>
 			</div>

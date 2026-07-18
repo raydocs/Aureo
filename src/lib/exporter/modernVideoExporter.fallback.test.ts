@@ -337,4 +337,46 @@ describe("ModernVideoExporter native fallback routing", () => {
 			}),
 		);
 	});
+
+	it("resolves native static layout background to black and null image when background is disabled", async () => {
+		const { ModernVideoExporter } = await import("./modernVideoExporter");
+		const exporter = new ModernVideoExporter({
+			videoUrl: "file:///recording.mp4",
+			width: 1920,
+			height: 1080,
+			frameRate: 30,
+			bitrate: 8_000_000,
+			wallpaper: "/wallpapers/wispysky.mp4",
+			backgroundEnabled: false,
+			padding: 0,
+			borderRadius: 0,
+			backgroundBlur: 0,
+			shadowIntensity: 0,
+			showShadow: false,
+			cropRegion: { x: 0, y: 0, width: 1, height: 1 },
+			experimentalNativeExport: true,
+			experimentalNvidiaCudaExport: true,
+			backendPreference: "auto",
+		} as never) as unknown as {
+			export: () => Promise<{ success: boolean; blob?: Blob; error?: string }>;
+			loadNativeStaticLayoutVideoInfo: () => Promise<unknown>;
+			tryExportNativeStaticLayout: () => Promise<unknown>;
+			tryStartNativeVideoExport: () => Promise<boolean>;
+			resolveNativeStaticLayoutBackground: () => Promise<{
+				backgroundColor: string;
+				backgroundImagePath: string | null;
+			} | null>;
+		};
+
+		vi.spyOn(exporter, "loadNativeStaticLayoutVideoInfo").mockResolvedValue(mocks.videoInfo);
+		vi.spyOn(exporter, "tryExportNativeStaticLayout").mockResolvedValue({
+			success: true,
+			blob: new Blob([], { type: "video/mp4" }),
+		});
+		vi.spyOn(exporter, "tryStartNativeVideoExport").mockResolvedValue(true);
+
+		const background = await exporter.resolveNativeStaticLayoutBackground();
+
+		expect(background).toEqual({ backgroundColor: "#000000", backgroundImagePath: null });
+	});
 });

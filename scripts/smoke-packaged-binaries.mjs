@@ -1,5 +1,16 @@
 import { execFileSync } from "node:child_process";
-import { accessSync, constants, existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import {
+	accessSync,
+	constants,
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	statSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 const projectRoot = process.cwd();
@@ -7,6 +18,7 @@ const releaseRoot = path.join(projectRoot, "release");
 const packageJson = JSON.parse(readFileSync(path.join(projectRoot, "package.json"), "utf8"));
 const productName = packageJson.productName ?? packageJson.name ?? "Aureo";
 const packageName = packageJson.name ?? "aureo";
+const allowMissingWhisper = process.env.PACKAGED_SMOKE_ALLOW_MISSING_WHISPER === "1";
 
 function relativePath(filePath) {
 	return path.relative(projectRoot, filePath).replaceAll("\\", "/");
@@ -102,6 +114,14 @@ function assertPackagedAppExecutable(unpackedRoot) {
 			"packaged app executable",
 			{ executable: true },
 		);
+		execFileSync(
+			"/usr/bin/codesign",
+			["--verify", "--deep", "--strict", "--verbose=2", appBundleDir],
+			{
+				stdio: "inherit",
+			},
+		);
+		console.log(`[packaged-smoke] macOS code signature: ${relativePath(appBundleDir)}`);
 		return;
 	}
 
@@ -155,6 +175,40 @@ function getRequiredArchTags() {
 				.filter(Boolean),
 		),
 	];
+}
+
+function extractMacReleaseArchives() {
+	if (process.platform !== "darwin") return null;
+
+	const archiveTargets = getRequiredArchTags()
+		.filter((archTag) => archTag.startsWith("darwin-"))
+		.map((archTag) => ({
+			archTag,
+			archivePath: path.join(
+				releaseRoot,
+				`${productName}-${archTag.slice("darwin-".length)}.zip`,
+			),
+		}));
+	if (
+		archiveTargets.length === 0 ||
+		archiveTargets.some(({ archivePath }) => !existsSync(archivePath))
+	) {
+		return null;
+	}
+
+	const temporaryRoot = mkdtempSync(path.join(tmpdir(), "aureo-packaged-smoke-"));
+	for (const { archTag, archivePath } of archiveTargets) {
+		const destination = path.join(temporaryRoot, archTag);
+		mkdirSync(destination, { recursive: true });
+		execFileSync("/usr/bin/ditto", ["-x", "-k", archivePath, destination], {
+			stdio: "inherit",
+		});
+	}
+
+	return {
+		roots: findDirectoriesByName(temporaryRoot, "app.asar.unpacked"),
+		cleanup: () => rmSync(temporaryRoot, { recursive: true, force: true }),
+	};
 }
 
 function getExpectedNativeHelperFiles(archTag) {
@@ -245,7 +299,9 @@ function verifyNativeHelpers(unpackedRoot) {
 			fail(`native helper arch directory is missing at ${relativePath(archDir)}`);
 		}
 
-		const expectedFiles = getExpectedNativeHelperFiles(archTag);
+		const expectedFiles = getExpectedNativeHelperFiles(archTag).filter(
+			(expectedFile) => !allowMissingWhisper || !expectedFile.name.startsWith("whisper-"),
+		);
 		if (expectedFiles.length === 0) {
 			fail(`no packaged helper expectations are defined for ${archTag}`);
 		}
@@ -262,21 +318,32 @@ function verifyNativeHelpers(unpackedRoot) {
 	}
 }
 
-const unpackedRoots = findDirectoriesByName(releaseRoot, "app.asar.unpacked");
+const extractedArchives = extractMacReleaseArchives();
+const unpackedRoots =
+	extractedArchives?.roots ?? findDirectoriesByName(releaseRoot, "app.asar.unpacked");
 
-if (unpackedRoots.length === 0) {
-	fail("no packaged app.asar.unpacked directory found under release/");
+try {
+	if (unpackedRoots.length === 0) {
+		fail("no packaged app.asar.unpacked directory found in release artifacts");
+	}
+
+	if (allowMissingWhisper) {
+		console.warn(
+			"[packaged-smoke] Whisper runtime checks are disabled; this candidate is not caption-enabled",
+		);
+	}
+	console.log(
+		`[packaged-smoke] verifying ${unpackedRoots.length} packaged app root(s) for ${process.platform}/${process.arch}`,
+	);
+
+	for (const unpackedRoot of unpackedRoots) {
+		console.log(`[packaged-smoke] root: ${relativePath(unpackedRoot)}`);
+		assertPackagedAppExecutable(unpackedRoot);
+		verifyFfmpeg(unpackedRoot);
+		verifyNativeHelpers(unpackedRoot);
+	}
+
+	console.log("[packaged-smoke] packaged binary path smoke passed");
+} finally {
+	extractedArchives?.cleanup();
 }
-
-console.log(
-	`[packaged-smoke] verifying ${unpackedRoots.length} packaged app root(s) for ${process.platform}/${process.arch}`,
-);
-
-for (const unpackedRoot of unpackedRoots) {
-	console.log(`[packaged-smoke] root: ${relativePath(unpackedRoot)}`);
-	assertPackagedAppExecutable(unpackedRoot);
-	verifyFfmpeg(unpackedRoot);
-	verifyNativeHelpers(unpackedRoot);
-}
-
-console.log("[packaged-smoke] packaged binary path smoke passed");

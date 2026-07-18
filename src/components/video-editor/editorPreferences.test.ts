@@ -226,7 +226,24 @@ describe("editorPreferences", () => {
 		expect(loadEditorPreferences().wallpaper).toBe("/wallpapers/wallpaper1.jpg");
 	});
 
-	it("preserves the last valid custom aspect inputs while typing", () => {
+	it("defaults backgroundEnabled to true and persists explicit false", () => {
+		expect(DEFAULT_EDITOR_PREFERENCES.backgroundEnabled).toBe(true);
+		expect(normalizeEditorPreferences({}).backgroundEnabled).toBe(true);
+		expect(normalizeEditorPreferences({ backgroundEnabled: false }).backgroundEnabled).toBe(false);
+	});
+
+	it("round-trips backgroundEnabled through save/load", () => {
+		const localStorage = createStorageMock();
+		vi.stubGlobal("localStorage", localStorage);
+
+		saveEditorPreferences({ backgroundEnabled: false });
+		expect(loadEditorPreferences().backgroundEnabled).toBe(false);
+		expect(
+			JSON.parse(localStorage.getItem(EDITOR_PREFERENCES_STORAGE_KEY) ?? "{}"),
+		).toMatchObject({ backgroundEnabled: false });
+	});
+
+	it("keeps existing saved aspectRatio and normalizes invalid custom dimensions", () => {
 		const localStorage = createStorageMock({
 			[EDITOR_PREFERENCES_STORAGE_KEY]: JSON.stringify({
 				aspectRatio: "16:9",

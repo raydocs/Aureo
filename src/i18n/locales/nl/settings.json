@@ -6,7 +6,7 @@
 		"modeAuto": "Auto",
 		"modeManual": "Handmatig",
 		"modeManualDescription": "Stel een vast focuspunt in voor deze zoom",
-		"modeAutoDescription": "De camera volgt de cursor automatisch"
+		"modeAutoDescription": "Camera centreert opnieuw wanneer de cursor de rand van de ingezoomde weergave nadert"
 	},
 	"trim": {
 		"deleteRegion": "Trimgebied verwijderen"
@@ -16,10 +16,10 @@
 		"selectRegion": "Selecteer een snelheidsgebied om aan te passen",
 		"deleteRegion": "Snelheidsgebied verwijderen",
 		"label": "Snelheid",
-		"smartTypingRegion": "Smart Typing",
-		"detectTyping": "Detect & speed up typing",
-		"privacyHint": "Uses private timestamps only · no typed text is saved",
-		"recordingHint": "Available for new recordings with keyboard telemetry"
+		"smartTypingRegion": "Slim typen",
+		"detectTyping": "Typen detecteren en versnellen",
+		"privacyHint": "Gebruikt alleen privé-tijdstempels · geen getypte tekst wordt opgeslagen",
+		"recordingHint": "Beschikbaar voor nieuwe opnames met toetsenbordtelemetrie"
 	},
 	"clip": {
 		"title": "Clip",
@@ -29,10 +29,10 @@
 		"separateClipFromAudio": "Clip van audio scheiden",
 		"delete": "Clip verwijderen",
 		"cursor": "Cursor",
-		"hideCursor": "Hide mouse cursor",
-		"hideCursorDescription": "Hide the cursor only in this clip",
-		"disableCursorSmoothing": "Disable smooth mouse movement",
-		"disableCursorSmoothingDescription": "Use the original captured pointer movement"
+		"hideCursor": "Muiscursor verbergen",
+		"hideCursorDescription": "Verberg de cursor alleen in deze clip",
+		"disableCursorSmoothing": "Vloeiende muisbeweging uitschakelen",
+		"disableCursorSmoothingDescription": "Gebruik de oorspronkelijk vastgelegde aanwijzerbeweging"
 	},
 	"effects": {
 		"title": "Video-effecten",
@@ -64,6 +64,11 @@
 		},
 		"backgroundBlur": "Achtergrondvervaging",
 		"zoomMotionBlur": "Zoom-bewegingsonscherpte",
+		"temporalZoomMotionBlur": "Temporele zoomvervaging",
+		"temporalZoomMotionBlurDescription": "Beheer het sluiter-venster en de framesamples van de nieuwere zoomvervagingspas.",
+		"zoomMotionBlurSamples": "Vervagingssamples",
+		"zoomMotionBlurShutter": "Sluiter",
+		"auto": "Auto",
 		"connectZooms": "Zooms verbinden",
 		"connectZoomsDescription": "Maak opeenvolgende zoomgebieden vloeiend tot een doorlopende camerabeweging.",
 		"autoApplyFreshRecordingZooms": "Zooms voor nieuwe opnames automatisch toepassen",
@@ -76,6 +81,20 @@
 		"zoomOutDescription": "Bepaal hoe de camera een zoomgebied verlaat.",
 		"connectedZoomTitle": "Tussen zooms",
 		"connectedZoomDescription": "Stel de overgang af tussen opeenvolgende zoomgebieden wanneer verbinding is ingeschakeld.",
+		"motionPresetsTitle": "Bewegingspresets",
+		"motionPresetsZoomHint": "Zoom-bewegingspresets zijn beschikbaar in Instellingen.",
+		"animationPresets": "Animatiepresets",
+		"cursorMotionPresets": "Cursorbewegingspresets",
+		"motionPresets": {
+			"focused": {
+				"label": "Gefocust",
+				"description": "Snellere beweging voor demo's, walkthroughs en alledaagse opnames."
+			},
+			"smooth": {
+				"label": "Vloeiend",
+				"description": "Zachtere beweging voor presentaties, keynote-achtige video's en verzorgde onthullingen."
+			}
+		},
 		"zoomInDuration": "Inzoomduur",
 		"zoomInOverlap": "Inzoomoverlap",
 		"zoomOutDuration": "Uitzoomduur",
@@ -93,7 +112,36 @@
 		},
 		"cursorSize": "Cursorgrootte",
 		"cursorSmoothing": "Cursorverzachting",
+		"cursorSpringStiffness": "Cursorveer-stijfheid",
+		"cursorSpringDamping": "Cursorveer-demping",
+		"cursorSpringMass": "Cursorveer-massa",
 		"off": "Uit",
+		"cursorClickEffects": {
+			"title": "Klikeffecten",
+			"advanced": "Geavanceerd",
+			"advancedShow": "Geavanceerde klikeffecten tonen",
+			"advancedHide": "Geavanceerde klikeffecten verbergen",
+			"color": "Effectkleur",
+			"size": "Effectgrootte",
+			"opacity": "Effectdekking",
+			"duration": "Effectduur",
+			"none": {
+				"label": "Uit",
+				"description": "Geen klikgrafiek. Alleen de cursorbeweging verandert bij een klik."
+			},
+			"ripple": {
+				"label": "Rimpel",
+				"description": "Uitdijende ringen stralen vanaf elke klik zodat tikken duidelijk zichtbaar zijn."
+			},
+			"spotlight": {
+				"label": "Schijnwerper",
+				"description": "Een zachte halo flitst rond de aanwijzer om het geklikte gebied te benadrukken."
+			},
+			"echo": {
+				"label": "Echo",
+				"description": "Een paar zachte ringen die naar buiten spreiden met een schonere puls."
+			}
+		},
 		"cursorMotionBlur": "Cursor-bewegingsonscherpte",
 		"cursorClickBounce": "Cursorklikstuit",
 		"cursorClickBounceDuration": "Stuitsnelheid",
@@ -149,8 +197,6 @@
 		"generateFull": "Ondertiteling genereren",
 		"regenerateFull": "Ondertiteling opnieuw genereren",
 		"clearFull": "Ondertiteling wissen",
-		"editCurrent": "Huidige ondertiteling bewerken",
-		"editSaved": "Ondertiteling bijgewerkt",
 		"fontSettings": "Lettertype-instellingen",
 		"defaultFont": "Standaard",
 		"fontFamily": "Lettertype",
@@ -165,7 +211,15 @@
 		"maxWidth": "Maximale breedte",
 		"boxRadius": "Vakstraal",
 		"backgroundOpacity": "Achtergrond-dekking",
-		"textColor": "Tekstkleur"
+		"textColor": "Tekstkleur",
+		"editor": {
+			"text": "Tekst",
+			"start": "Start",
+			"end": "Einde",
+			"split": "Splitsen",
+			"merge": "Samenvoegen",
+			"delete": "Verwijderen"
+		}
 	},
 	"crop": {
 		"title": "Video bijsnijden",

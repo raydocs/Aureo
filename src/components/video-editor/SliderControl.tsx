@@ -1,9 +1,10 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { useCallback, useRef, memo, useEffect } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface SliderControlProps {
 	label: string;
+	ariaLabel?: string;
 	value: number;
 	defaultValue: number;
 	min: number;
@@ -29,6 +30,7 @@ function quantizeToStep(value: number, min: number, step: number) {
 
 export const SliderControl = memo(function SliderControl({
 	label,
+	ariaLabel,
 	value,
 	defaultValue: _defaultValue,
 	min,
@@ -146,7 +148,7 @@ export const SliderControl = memo(function SliderControl({
 			ref={rootRef}
 			role="slider"
 			tabIndex={0}
-			aria-label={label}
+			aria-label={ariaLabel ?? label}
 			aria-valuemin={min}
 			aria-valuemax={max}
 			aria-valuenow={value}

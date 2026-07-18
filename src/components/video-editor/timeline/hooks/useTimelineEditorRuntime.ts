@@ -1,6 +1,10 @@
 import type { Span } from "dnd-timeline";
 import type { ForwardedRef, RefObject } from "react";
 import { useCallback, useImperativeHandle } from "react";
+import {
+	type MaskAnnotationType,
+	resolveMaskSpanAtMs as resolveAvailableMaskSpanAtMs,
+} from "../../maskTimeline";
 import type {
 	AnnotationRegion,
 	AudioRegion,
@@ -13,10 +17,6 @@ import type {
 	ZoomFocus,
 	ZoomRegion,
 } from "../../types";
-import {
-	type MaskAnnotationType,
-	resolveMaskSpanAtMs as resolveAvailableMaskSpanAtMs,
-} from "../../maskTimeline";
 import type { TimelineShortcutBindings } from "../core/timelineTypes";
 import type { TimelineEditorHandle } from "../TimelineEditor";
 import { useTimelineAudioActions } from "./actions/useTimelineAudioActions";
@@ -32,6 +32,7 @@ interface UseTimelineEditorRuntimeParams {
 	videoDuration: number;
 	totalMs: number;
 	currentTimeMs: number;
+	handleZoomToPlayhead: () => void;
 	safeMinDurationMs: number;
 	cursorTelemetry: CursorTelemetryPoint[];
 	autoSuggestZoomsTrigger: number;
@@ -92,6 +93,7 @@ export function useTimelineEditorRuntime({
 	videoDuration,
 	totalMs,
 	currentTimeMs,
+	handleZoomToPlayhead,
 	safeMinDurationMs,
 	cursorTelemetry,
 	autoSuggestZoomsTrigger,
@@ -389,6 +391,7 @@ export function useTimelineEditorRuntime({
 		() => ({
 			addZoom: handleAddZoom,
 			suggestZooms: handleSuggestZooms,
+			zoomToPlayhead: handleZoomToPlayhead,
 			splitClip: handleSplitClip,
 			addAnnotation: handleAddAnnotation,
 			addMask: handleAddMask,
@@ -402,6 +405,7 @@ export function useTimelineEditorRuntime({
 			handleAddZoom,
 			handleSuggestZooms,
 			handleSplitClip,
+			handleZoomToPlayhead,
 			keyframes,
 		],
 	);

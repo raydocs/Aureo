@@ -1,7 +1,8 @@
 import { useTimelineContext } from "dnd-timeline";
-import { useMemo, type CSSProperties } from "react";
+import { type CSSProperties, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { calculateAxisScale, formatTimeLabel } from "../../core/time";
+import { surfaces } from "../../presentation";
 
 interface TimelineAxisProps {
 	videoDurationMs: number;
@@ -54,8 +55,10 @@ export default function TimelineAxis({ videoDurationMs, currentTimeMs }: Timelin
 
 	return (
 		<div
-			className="h-8 bg-editor-bg border-b border-foreground/10 relative overflow-hidden select-none"
-			style={{ [sideProperty === "right" ? "marginRight" : "marginLeft"]: `${sidebarWidth}px` }}
+			className={`h-8 bg-editor-bg border-b border-foreground/10 relative overflow-hidden select-none ${surfaces.timelineLayerAxis}`}
+			style={{
+				[sideProperty === "right" ? "marginRight" : "marginLeft"]: `${sidebarWidth}px`,
+			}}
 		>
 			{markers.minorTicks.map((time) => {
 				const offset = valueToPixels(time - range.start);

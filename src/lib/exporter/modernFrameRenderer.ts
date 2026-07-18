@@ -123,6 +123,7 @@ interface FrameRenderConfig {
 	showShadow: boolean;
 	shadowIntensity: number;
 	backgroundBlur: number;
+	backgroundEnabled?: boolean;
 	zoomMotionBlur?: number;
 	zoomMotionBlurTuning?: ZoomMotionBlurTuning;
 	zoomTemporalMotionBlur?: number;
@@ -1162,6 +1163,26 @@ export class FrameRenderer {
 
 	private async setupBackground(): Promise<void> {
 		this.resetBackgroundLayer();
+
+		const { width, height } = this.config;
+
+		if (this.config.backgroundEnabled === false) {
+			const bgCanvas = document.createElement("canvas");
+			bgCanvas.width = width;
+			bgCanvas.height = height;
+			const bgCtx = configureHighQuality2DContext(bgCanvas.getContext("2d"));
+			if (!bgCtx) {
+				throw new Error("Failed to get 2D context for background canvas");
+			}
+			bgCtx.fillStyle = "#000000";
+			bgCtx.fillRect(0, 0, width, height);
+			const texture = Texture.from(bgCanvas);
+			this.backgroundSprite = new Sprite(texture);
+			this.backgroundSprite.width = width;
+			this.backgroundSprite.height = height;
+			this.backgroundContainer?.addChild(this.backgroundSprite);
+			return;
+		}
 
 		const wallpaper = await this.resolveWallpaperForExport(this.config.wallpaper);
 

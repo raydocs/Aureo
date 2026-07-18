@@ -161,6 +161,10 @@ type UseScreenRecorderReturn = {
 	setCountdownDelay: (delay: number) => void;
 };
 
+type UseScreenRecorderOptions = {
+	certificationMode?: boolean;
+};
+
 function getErrorMessage(error: unknown) {
 	if (error instanceof Error && error.message) {
 		return error.message;
@@ -326,7 +330,9 @@ async function createAudioInputDeviceSnapshot(): Promise<
 	return audioInputs.length > 0 ? audioInputs : null;
 }
 
-export function useScreenRecorder(): UseScreenRecorderReturn {
+export function useScreenRecorder({
+	certificationMode = false,
+}: UseScreenRecorderOptions = {}): UseScreenRecorderReturn {
 	const [recording, setRecording] = useState(false);
 	const [paused, setPaused] = useState(false);
 	const [starting, setStarting] = useState(false);
@@ -359,6 +365,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	const mixingContext = useRef<AudioContext | null>(null);
 	const chunks = useRef<Blob[]>([]);
 	const webcamChunks = useRef<Blob[]>([]);
+	const cancelledRecorders = useRef<WeakSet<MediaRecorder>>(new WeakSet());
 	const startTime = useRef<number>(0);
 	const webcamStartTime = useRef<number | null>(null);
 	const webcamTimeOffsetMs = useRef(0);
@@ -507,46 +514,55 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		micFallbackPauseIntervals.current = [];
 	}, []);
 
-	const preparePermissions = useCallback(async (options: { startup?: boolean } = {}) => {
-		const platform = await window.electronAPI.getPlatform();
-		if (platform !== "darwin") {
-			return true;
-		}
+	const preparePermissions = useCallback(
+		async (options: { startup?: boolean } = {}) => {
+			if (certificationMode) {
+				return true;
+			}
 
-		const screenPermission = await window.electronAPI.getScreenRecordingPermissionStatus();
-		if (!screenPermission.success || screenPermission.status !== "granted") {
-			await window.electronAPI.openScreenRecordingPreferences();
+			const platform = await window.electronAPI.getPlatform();
+			if (platform !== "darwin") {
+				return true;
+			}
+
+			const screenPermission = await window.electronAPI.getScreenRecordingPermissionStatus();
+			if (!screenPermission.success || screenPermission.status !== "granted") {
+				await window.electronAPI.openScreenRecordingPreferences();
+				alert(
+					options.startup
+						? "Aureo needs Screen Recording permission before you start. System Settings has been opened. After enabling it, quit and reopen Aureo."
+						: "Screen Recording permission is still missing. System Settings has been opened again. Enable it, then quit and reopen Aureo before recording.",
+				);
+				return false;
+			}
+
+			const accessibilityPermission =
+				await window.electronAPI.getAccessibilityPermissionStatus();
+			if (!accessibilityPermission.success) {
+				return false;
+			}
+
+			if (accessibilityPermission.trusted) {
+				return true;
+			}
+
+			const requestedAccessibility =
+				await window.electronAPI.requestAccessibilityPermission();
+			if (requestedAccessibility.success && requestedAccessibility.trusted) {
+				return true;
+			}
+
+			await window.electronAPI.openAccessibilityPreferences();
 			alert(
 				options.startup
-					? "Aureo needs Screen Recording permission before you start. System Settings has been opened. After enabling it, quit and reopen Aureo."
-					: "Screen Recording permission is still missing. System Settings has been opened again. Enable it, then quit and reopen Aureo before recording.",
+					? "Aureo also needs Accessibility permission for cursor tracking. System Settings has been opened. After enabling it, quit and reopen Aureo."
+					: "Accessibility permission is still missing. System Settings has been opened again. Enable it, then quit and reopen Aureo before recording.",
 			);
+
 			return false;
-		}
-
-		const accessibilityPermission = await window.electronAPI.getAccessibilityPermissionStatus();
-		if (!accessibilityPermission.success) {
-			return false;
-		}
-
-		if (accessibilityPermission.trusted) {
-			return true;
-		}
-
-		const requestedAccessibility = await window.electronAPI.requestAccessibilityPermission();
-		if (requestedAccessibility.success && requestedAccessibility.trusted) {
-			return true;
-		}
-
-		await window.electronAPI.openAccessibilityPreferences();
-		alert(
-			options.startup
-				? "Aureo also needs Accessibility permission for cursor tracking. System Settings has been opened. After enabling it, quit and reopen Aureo."
-				: "Accessibility permission is still missing. System Settings has been opened again. Enable it, then quit and reopen Aureo before recording.",
-		);
-
-		return false;
-	}, []);
+		},
+		[certificationMode],
+	);
 
 	const selectMimeType = useCallback(() => {
 		return selectRecordingMimeType();
@@ -1011,30 +1027,50 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				webcamStopResolver.current = resolve;
 			});
 			pendingWebcamPathPromise.current = webcamStopPromise.current;
+			const resolveWebcamStop = webcamStopResolver.current;
 
-			const recorder = new MediaRecorder(webcamStream.current, {
+			const capturedWebcamStream = webcamStream.current;
+			const recorder = new MediaRecorder(capturedWebcamStream, {
 				videoBitsPerSecond: WEBCAM_BITRATE,
 				...(mimeType ? { mimeType } : {}),
 			});
 
 			webcamRecorder.current = recorder;
 			recorder.ondataavailable = (event) => {
-				if (event.data && event.data.size > 0) {
+				if (
+					!cancelledRecorders.current.has(recorder) &&
+					event.data &&
+					event.data.size > 0
+				) {
 					webcamChunks.current.push(event.data);
 				}
 			};
 			recorder.onerror = () => {
-				webcamStopResolver.current?.(null);
-				webcamStopResolver.current = null;
+				resolveWebcamStop?.(null);
+				if (webcamStopResolver.current === resolveWebcamStop) {
+					webcamStopResolver.current = null;
+				}
 			};
 			recorder.onstop = async () => {
+				if (cancelledRecorders.current.has(recorder)) {
+					resolveWebcamStop?.(null);
+					if (webcamStopResolver.current === resolveWebcamStop) {
+						webcamStopResolver.current = null;
+					}
+					if (webcamRecorder.current === recorder) {
+						webcamRecorder.current = null;
+						webcamStartTime.current = null;
+					}
+					return;
+				}
+
 				const sessionTimestamp = recordingSessionTimestamp.current ?? Date.now();
 				const webcamMimeType = recorder.mimeType || mimeType;
 				const webcamFileName = `${RECORDING_FILE_PREFIX}${sessionTimestamp}${WEBCAM_SUFFIX}${getVideoExtensionForMimeType(webcamMimeType)}`;
 
 				try {
 					if (webcamChunks.current.length === 0) {
-						webcamStopResolver.current?.(null);
+						resolveWebcamStop?.(null);
 						return;
 					}
 
@@ -1055,16 +1091,20 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 						arrayBuffer,
 						webcamFileName,
 					);
-					webcamStopResolver.current?.(result.success ? (result.path ?? null) : null);
+					resolveWebcamStop?.(result.success ? (result.path ?? null) : null);
 				} catch (error) {
 					console.error("Error saving webcam recording:", error);
-					webcamStopResolver.current?.(null);
+					resolveWebcamStop?.(null);
 				} finally {
-					webcamStopResolver.current = null;
-					webcamRecorder.current = null;
-					webcamStartTime.current = null;
-					if (webcamStream.current) {
-						webcamStream.current.getTracks().forEach((track) => track.stop());
+					if (webcamStopResolver.current === resolveWebcamStop) {
+						webcamStopResolver.current = null;
+					}
+					if (webcamRecorder.current === recorder) {
+						webcamRecorder.current = null;
+						webcamStartTime.current = null;
+					}
+					capturedWebcamStream.getTracks().forEach((track) => track.stop());
+					if (webcamStream.current === capturedWebcamStream) {
 						webcamStream.current = null;
 					}
 				}
@@ -1159,6 +1199,13 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				}
 
 				const finalPath = result.path;
+				if (result.warnings?.length) {
+					console.warn(
+						"Native recording completed with audio warnings:",
+						result.warnings,
+					);
+					toast.warning(result.warnings.join("\n"), { duration: 10000 });
+				}
 
 				// 1. Finalize the session and switch to editor immediately (Optimistic UI)
 				// We pass null for webcamPath initially to avoid blocking on webcam disk writes/muxing.
@@ -1863,10 +1910,23 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
 			mediaRecorder.current = recorder;
 			recorder.ondataavailable = (event) => {
-				if (event.data && event.data.size > 0) chunks.current.push(event.data);
+				if (
+					!cancelledRecorders.current.has(recorder) &&
+					event.data &&
+					event.data.size > 0
+				) {
+					chunks.current.push(event.data);
+				}
 			};
 			recorder.onstop = async () => {
 				cleanupCapturedMedia();
+				if (cancelledRecorders.current.has(recorder)) {
+					setFinalizing(false);
+					if (mediaRecorder.current === recorder) {
+						mediaRecorder.current = null;
+					}
+					return;
+				}
 				if (chunks.current.length === 0) {
 					setFinalizing(false);
 					return;
@@ -2084,8 +2144,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
 		// Discard webcam recording regardless of recording mode
 		webcamChunks.current = [];
-		if (webcamRecorder.current && webcamRecorder.current.state !== "inactive") {
-			webcamRecorder.current.stop();
+		if (webcamRecorder.current) {
+			cancelledRecorders.current.add(webcamRecorder.current);
+			if (webcamRecorder.current.state !== "inactive") {
+				webcamRecorder.current.stop();
+			}
 		}
 		webcamRecorder.current = null;
 		webcamStartTime.current = null;
@@ -2100,6 +2163,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			nativeScreenRecording.current = false;
 			nativeWindowsRecording.current = false;
 			setRecording(false);
+			cleanupCapturedMedia();
 			window.electronAPI?.setRecordingState(false);
 			void (async () => {
 				try {
@@ -2115,10 +2179,12 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		}
 
 		if (mediaRecorder.current) {
+			const recorder = mediaRecorder.current;
+			cancelledRecorders.current.add(recorder);
 			chunks.current = [];
 			cleanupCapturedMedia();
-			if (mediaRecorder.current.state !== "inactive") {
-				mediaRecorder.current.stop();
+			if (recorder.state !== "inactive") {
+				recorder.stop();
 			}
 			setRecording(false);
 			window.electronAPI?.setRecordingState(false);
@@ -2126,7 +2192,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	}, [cleanupCapturedMedia, markRecordingResumed, recording]);
 
 	const toggleRecording = async () => {
-		if (starting || countdownActive || finalizing) {
+		if (certificationMode || starting || countdownActive || finalizing) {
 			return;
 		}
 

@@ -67,6 +67,7 @@ type PersistedEditorControls = Pick<
 	| "gifFrameRate"
 	| "gifLoop"
 	| "gifSizePreset"
+	| "backgroundEnabled"
 >;
 
 type PartialEditorControls = Partial<PersistedEditorControls>;
@@ -122,6 +123,7 @@ export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
 	zoomOutEasing: DEFAULT_EDITOR_CONTROLS.zoomOutEasing,
 	connectedZoomEasing: DEFAULT_EDITOR_CONTROLS.connectedZoomEasing,
 	showCursor: DEFAULT_EDITOR_CONTROLS.showCursor,
+	backgroundEnabled: DEFAULT_EDITOR_CONTROLS.backgroundEnabled,
 	hideCursorWhenIdle: DEFAULT_EDITOR_CONTROLS.hideCursorWhenIdle,
 	stopCursorAtEnd: DEFAULT_EDITOR_CONTROLS.stopCursorAtEnd,
 	removeCursorShakes: DEFAULT_EDITOR_CONTROLS.removeCursorShakes,
@@ -312,6 +314,7 @@ function normalizeEditorControls(
 		zoomInEasing: sanitizedRaw.zoomInEasing ?? fallback.zoomInEasing,
 		zoomOutEasing: sanitizedRaw.zoomOutEasing ?? fallback.zoomOutEasing,
 		connectedZoomEasing: sanitizedRaw.connectedZoomEasing ?? fallback.connectedZoomEasing,
+		backgroundEnabled: sanitizedRaw.backgroundEnabled ?? fallback.backgroundEnabled,
 		showCursor: sanitizedRaw.showCursor ?? fallback.showCursor,
 		hideCursorWhenIdle: sanitizedRaw.hideCursorWhenIdle ?? fallback.hideCursorWhenIdle,
 		stopCursorAtEnd: sanitizedRaw.stopCursorAtEnd ?? fallback.stopCursorAtEnd,
@@ -403,6 +406,7 @@ function normalizeEditorControls(
 		zoomOutEasing: normalized.zoomOutEasing,
 		connectedZoomEasing: normalized.connectedZoomEasing,
 		showCursor: normalized.showCursor,
+		backgroundEnabled: normalized.backgroundEnabled,
 		hideCursorWhenIdle: normalized.hideCursorWhenIdle,
 		stopCursorAtEnd: normalized.stopCursorAtEnd,
 		removeCursorShakes: normalized.removeCursorShakes,

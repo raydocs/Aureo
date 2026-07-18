@@ -79,33 +79,88 @@ export function waitForNativeCaptureStart(process: ChildProcessWithoutNullStream
 	});
 }
 
-export function waitForNativeCaptureStop(process: ChildProcessWithoutNullStreams) {
+const NATIVE_CAPTURE_STOP_TIMEOUT_MS = 45_000;
+const NATIVE_CAPTURE_STOP_KILL_GRACE_MS = 2_000;
+
+export function waitForNativeCaptureStop(
+	process: ChildProcessWithoutNullStreams,
+	timeoutMs = NATIVE_CAPTURE_STOP_TIMEOUT_MS,
+	killGraceMs = NATIVE_CAPTURE_STOP_KILL_GRACE_MS,
+	forceKillWaitMs = NATIVE_CAPTURE_STOP_KILL_GRACE_MS,
+) {
 	return new Promise<string>((resolve, reject) => {
-		const onClose = (code: number | null) => {
+		let settled = false;
+		let timedOut = false;
+		let killTimer: ReturnType<typeof setTimeout> | null = null;
+		let forceKillTimer: ReturnType<typeof setTimeout> | null = null;
+
+		const finish = (callback: () => void) => {
+			if (settled) return;
+			settled = true;
 			cleanup();
-			const match = nativeCaptureOutputBuffer.match(/Recording stopped\. Output path: (.+)/);
-			if (match?.[1]) {
-				resolve(match[1].trim());
+			callback();
+		};
+
+		const safeKill = (signal: NodeJS.Signals) => {
+			try {
+				// Do not gate on process.killed: a prior SIGTERM sets killed=true even
+				// while the helper is still exiting, and we still need the SIGKILL escalate.
+				process.kill(signal);
+			} catch {
+				// The process may already be gone; the caller only needs the timeout error.
+			}
+		};
+
+		const rejectTimeout = () => {
+			finish(() => {
+				reject(new Error("Timed out waiting for ScreenCaptureKit recorder to stop"));
+			});
+		};
+
+		const timer = setTimeout(() => {
+			timedOut = true;
+			safeKill("SIGTERM");
+			killTimer = setTimeout(() => {
+				safeKill("SIGKILL");
+				forceKillTimer = setTimeout(rejectTimeout, forceKillWaitMs);
+			}, killGraceMs);
+		}, timeoutMs);
+
+		const onClose = (code: number | null) => {
+			if (timedOut) {
+				rejectTimeout();
 				return;
 			}
-			if (code === 0 && nativeCaptureTargetPath) {
-				resolve(nativeCaptureTargetPath);
-				return;
-			}
-			reject(
-				new Error(
-					nativeCaptureOutputBuffer.trim() ||
-						`Native capture helper exited with code ${code ?? "unknown"}`,
-				),
-			);
+
+			finish(() => {
+				const match = nativeCaptureOutputBuffer.match(/Recording stopped\. Output path: (.+)/);
+				if (match?.[1]) {
+					resolve(match[1].trim());
+					return;
+				}
+				if (code === 0 && nativeCaptureTargetPath) {
+					resolve(nativeCaptureTargetPath);
+					return;
+				}
+				reject(
+					new Error(
+						nativeCaptureOutputBuffer.trim() ||
+							`Native capture helper exited with code ${code ?? "unknown"}`,
+					),
+				);
+			});
 		};
 
 		const onError = (error: Error) => {
-			cleanup();
-			reject(error);
+			finish(() => {
+				reject(error);
+			});
 		};
 
 		const cleanup = () => {
+			clearTimeout(timer);
+			if (killTimer) clearTimeout(killTimer);
+			if (forceKillTimer) clearTimeout(forceKillTimer);
 			process.off("close", onClose);
 			process.off("error", onError);
 		};

@@ -1,5 +1,7 @@
 import type { RowDefinition } from "dnd-timeline";
 import { useRow } from "dnd-timeline";
+import { cn } from "@/lib/utils";
+import { surfaces } from "./presentation";
 
 interface RowProps extends RowDefinition {
 	children: React.ReactNode;
@@ -31,12 +33,12 @@ export default function Row({
 
 	return (
 		<div
-			className="bg-transparent relative flex-1 min-h-[26px]"
-			style={{ ...rowWrapperStyle, marginBottom: 2 }}
+			className={cn(surfaces.timelineRow, isEmpty && surfaces.timelineRowEmpty)}
+			style={{ ...rowWrapperStyle, marginBottom: 2, flex: "1 1 auto" }}
 		>
 			{label && (
 				<div
-					className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[9px] font-semibold uppercase tracking-widest z-20 pointer-events-none select-none"
+					className={surfaces.timelineRowLabel}
 					style={{ color: labelColor, writingMode: "horizontal-tb" }}
 				>
 					{label}

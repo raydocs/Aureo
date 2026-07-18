@@ -41,6 +41,7 @@ import {
 	sendNativeVideoExportWriteFrameResult,
 	settleNativeVideoExportWriteFrameRequest,
 } from "../export/native-video";
+import { validateFinalizedExportMp4 } from "../export/validateFinalizedExportMp4";
 import { getFfmpegBinaryPath } from "../ffmpeg/binary";
 import {
 	buildNativeH264StreamExportArgs,
@@ -648,6 +649,7 @@ export function registerExportHandlers() {
 				return { success: false, error: "Invalid native export session" };
 			}
 
+			let finalizedOutputPath: string | null = null;
 			try {
 				await session.writeSequence;
 				if (
@@ -658,10 +660,25 @@ export function registerExportHandlers() {
 				}
 				await session.completionPromise;
 
+				const finishOptions = options ?? {};
 				const finalized = await muxNativeVideoExportAudio(
 					session.outputPath,
-					options ?? {},
+					finishOptions,
 				);
+				finalizedOutputPath = finalized.outputPath;
+
+				// Validate the post-mux (or video-only) MP4 before registering an owned
+				// path. Invalid outputs must not leak into finalize-exported-video.
+				const expectedDurationSec =
+					typeof finishOptions.outputDurationSec === "number" &&
+					Number.isFinite(finishOptions.outputDurationSec) &&
+					finishOptions.outputDurationSec > 0
+						? finishOptions.outputDurationSec
+						: undefined;
+				await validateFinalizedExportMp4(finalized.outputPath, {
+					durationSec: expectedDurationSec,
+				});
+
 				nativeVideoExportSessions.delete(sessionId);
 				// Register the finalized path so only app-produced paths can flow back
 				// through finalize-exported-video / discard-exported-temp.
@@ -688,6 +705,13 @@ export function registerExportHandlers() {
 				await removeTemporaryExportFile(session.outputPath);
 				const finalizedSuffix = session.outputPath.replace(/\.mp4$/, "-final.mp4");
 				await removeTemporaryExportFile(finalizedSuffix);
+				if (
+					finalizedOutputPath &&
+					finalizedOutputPath !== session.outputPath &&
+					finalizedOutputPath !== finalizedSuffix
+				) {
+					await removeTemporaryExportFile(finalizedOutputPath);
+				}
 				return {
 					success: false,
 					error: String(error),

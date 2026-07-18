@@ -70,6 +70,7 @@ export function MicPopover({
 				requestOpen(POPOVER_ID);
 			}}
 			trigger={trigger}
+			aria-label={t("recording.microphone")}
 			align="start"
 		>
 			{microphoneEnabled && (
@@ -86,6 +87,7 @@ export function MicPopover({
 			)}
 			<div className={styles.ddLabel}>{t("recording.microphone")}</div>
 			<DropdownItem
+				role="menuitemcheckbox"
 				icon={
 					systemAudioEnabled ? <SpeakerHighIcon size={16} /> : <SpeakerXIcon size={16} />
 				}
@@ -115,6 +117,7 @@ export function MicPopover({
 					{(["off", "standard", "strong"] as const).map((mode) => (
 						<DropdownItem
 							key={mode}
+							role="menuitemradio"
 							icon={<SparkleIcon size={16} />}
 							selected={voiceEnhancementMode === mode}
 							onClick={() => onVoiceEnhancementModeChange(mode)}

@@ -3,9 +3,9 @@ import {
 	EyeSlash,
 	FilmSlate as Film,
 	Gauge,
+	Selection as MaskIcon,
 	ChatCircle as MessageSquare,
 	MusicNotes as Music,
-	Selection as MaskIcon,
 	MouseLeftClickIcon as PhMouseLeftClick,
 	Scissors,
 	SpeakerX,
@@ -210,6 +210,8 @@ export default function Item({
 						glassClass,
 						"w-full overflow-hidden flex items-center justify-center gap-1.5 cursor-grab active:cursor-grabbing relative",
 						isSelected && glassStyles.selected,
+						disabled && glassStyles.disabled,
+						isAudio && muted && glassStyles.muted,
 					)}
 					style={{
 						height: "85%",

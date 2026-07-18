@@ -6,6 +6,7 @@
 	-webkit-app-region: no-drag;
 }
 
+/* HUD functional chrome: liquid-glass inspired, but only on chrome, not content */
 .bar {
 	display: flex;
 	align-items: center;
@@ -13,13 +14,90 @@
 	width: max-content;
 	max-width: 1200px;
 	background: var(--launch-bar-bg);
+	background-color: var(--launch-bar-bg-solid);
 	border: 1px solid var(--launch-bar-border);
 	border-radius: 20px;
-	padding: 11px 20px 11px 18px;
+	padding: 10px 18px 10px 16px;
 	box-shadow: var(--launch-bar-shadow);
 	overflow: visible;
 	position: relative;
 	transform-origin: center bottom;
+	isolation: isolate;
+	z-index: 100;
+}
+
+@supports ((-webkit-backdrop-filter: blur(12px)) or (backdrop-filter: blur(12px))) {
+	.bar {
+		background:
+			linear-gradient(180deg, var(--launch-glass-tint) 0%, transparent 100%),
+			var(--launch-bar-bg);
+		border-color: var(--launch-bar-border);
+		box-shadow:
+			inset 0 0 0 1px var(--launch-bar-border-outer),
+			var(--launch-bar-shadow);
+		-webkit-backdrop-filter: blur(18px) saturate(1.35);
+		backdrop-filter: blur(18px) saturate(1.35);
+	}
+
+	.bar::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		pointer-events: none;
+		z-index: -1;
+		box-shadow: var(--launch-glass-highlight);
+	}
+
+	.bar::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		pointer-events: none;
+		z-index: -1;
+		box-shadow: var(--launch-glass-edge);
+	}
+}
+
+.bar[data-reduce-transparency="true"],
+.bar[data-high-contrast="true"] {
+	background: var(--launch-bar-bg-solid) !important;
+	-webkit-backdrop-filter: none !important;
+	backdrop-filter: none !important;
+	border: 1px solid var(--launch-border-strong) !important;
+	box-shadow: var(--launch-bar-shadow) !important;
+}
+
+.bar[data-reduce-transparency="true"]::before,
+.bar[data-reduce-transparency="true"]::after,
+.bar[data-high-contrast="true"]::before,
+.bar[data-high-contrast="true"]::after {
+	display: none;
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active), (prefers-contrast: more) {
+	.bar {
+		background: var(--launch-bar-bg-solid) !important;
+		-webkit-backdrop-filter: none !important;
+		backdrop-filter: none !important;
+		border: 1px solid var(--launch-border-strong) !important;
+		box-shadow: var(--launch-bar-shadow) !important;
+	}
+
+	.bar::before,
+	.bar::after {
+		display: none;
+	}
+}
+
+@media (forced-colors: active) {
+	.bar {
+		border: 1px solid ButtonText !important;
+		background: ButtonFace !important;
+		color: ButtonText;
+		forced-color-adjust: none;
+	}
 }
 
 .barStateViewport {
@@ -27,34 +105,45 @@
 	display: flex;
 	align-items: center;
 	flex: 0 1 auto;
-	min-height: 46px;
+	min-height: 42px;
 	min-width: fit-content;
 	padding-right: 2px;
+	z-index: 0;
 }
 
 .barState {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 6px;
 	flex: 0 1 auto;
 	white-space: nowrap;
 	min-width: fit-content;
 	pointer-events: auto;
 }
 
-.sep {
-	width: 1px;
-	height: 26px;
-	background: var(--launch-border-strong);
-	margin: 0 6px;
+/* Logical group separators inside the HUD bar */
+.barGroup {
+	display: flex;
+	align-items: center;
+	gap: 4px;
 	flex-shrink: 0;
 }
 
+.sep {
+	width: 1px;
+	height: 22px;
+	background: var(--launch-border-strong);
+	margin: 0 5px;
+	flex-shrink: 0;
+	opacity: 0.6;
+}
+
+/* Compact icon buttons (toolbar style) */
 .ib {
 	position: relative;
-	width: 40px;
-	height: 40px;
-	border-radius: 11px;
+	width: 32px;
+	height: 32px;
+	border-radius: 9px;
 	border: none;
 	background: transparent;
 	color: var(--launch-text-muted);
@@ -62,7 +151,10 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	transition: all 0.15s ease;
+	transition:
+		color 0.15s ease,
+		background-color 0.15s ease,
+		transform 0.1s ease;
 	flex-shrink: 0;
 }
 
@@ -71,57 +163,181 @@
 	color: var(--launch-text);
 }
 
+.ib:active {
+	transform: scale(0.97);
+}
+
+.ib:focus-visible {
+	outline: 2px solid var(--launch-accent);
+	outline-offset: 2px;
+}
+
 .ibActive {
-	color: #3d8bff;
+	color: var(--launch-accent);
+	background: var(--launch-selected);
+	transition:
+		color 0.15s ease,
+		background-color 0.15s ease,
+		transform 0.1s ease;
 }
 
 .ibActive:hover {
-	color: #62a4ff;
+	color: var(--launch-accent);
+	background: var(--launch-selected);
+}
+
+.ibActive:active {
+	transform: scale(0.97);
 }
 
 .ibRed {
 	color: #f43f5e;
+	transition:
+		color 0.15s ease,
+		background-color 0.15s ease,
+		transform 0.1s ease;
 }
 
 .ibRed:hover {
+	background: rgba(244, 63, 94, 0.1);
 	color: #ff5a75;
+}
+
+.ibRed:active {
+	transform: scale(0.97);
 }
 
 .ibGreen {
 	color: #34d399;
+	transition:
+		color 0.15s ease,
+		background-color 0.15s ease,
+		transform 0.1s ease;
 }
 
 .ibGreen:hover {
+	background: rgba(52, 211, 153, 0.1);
 	color: #4eeeb0;
 }
 
+.ibGreen:active {
+	transform: scale(0.97);
+}
+
+/* Popover / menu cards (functional chrome only) */
 .menuCard {
 	width: 300px;
 	max-height: 400px;
 	overflow-y: auto;
 	background: var(--launch-surface);
+	background-color: var(--launch-surface-solid);
 	border: 1px solid var(--launch-border);
 	border-radius: 16px;
 	backdrop-filter: blur(var(--launch-popover-blur, 24px))
-		saturate(var(--launch-popover-saturate, 145%));
+		saturate(var(--launch-popover-saturate, 160%));
 	-webkit-backdrop-filter: blur(var(--launch-popover-blur, 24px))
-		saturate(var(--launch-popover-saturate, 145%));
+		saturate(var(--launch-popover-saturate, 160%));
 	padding: 8px;
 	margin-top: auto;
 	margin-bottom: 8px;
 	box-shadow: var(--launch-bar-shadow);
 	pointer-events: auto;
-	animation: menuCardIn 0.18s ease;
+	isolation: isolate;
+	transform-origin: var(--radix-popover-content-transform-origin, center bottom);
+	animation: menuCardIn 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@supports ((-webkit-backdrop-filter: blur(12px)) or (backdrop-filter: blur(12px))) {
+	.menuCard {
+		background:
+			linear-gradient(180deg, var(--launch-glass-tint) 0%, transparent 60%),
+			var(--launch-surface);
+		box-shadow:
+			inset 0 0 0 1px var(--launch-bar-border-outer),
+			var(--launch-bar-shadow);
+	}
+
+	.menuCard::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		pointer-events: none;
+		z-index: -1;
+		box-shadow: var(--launch-glass-highlight);
+	}
+
+	.menuCard::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		pointer-events: none;
+		z-index: -1;
+		box-shadow: var(--launch-inner-shadow);
+	}
+}
+
+.menuCard[data-reduce-transparency="true"],
+.menuCard[data-high-contrast="true"] {
+	background: var(--launch-surface-solid) !important;
+	-webkit-backdrop-filter: none !important;
+	backdrop-filter: none !important;
+	border: 1px solid var(--launch-border-strong) !important;
+}
+
+.menuCard[data-reduce-transparency="true"]::before,
+.menuCard[data-reduce-transparency="true"]::after,
+.menuCard[data-high-contrast="true"]::before,
+.menuCard[data-high-contrast="true"]::after,
+[data-reduce-transparency="true"] .menuCard::before,
+[data-reduce-transparency="true"] .menuCard::after,
+[data-high-contrast="true"] .menuCard::before,
+[data-high-contrast="true"] .menuCard::after {
+	display: none;
+}
+
+[data-reduce-transparency="true"] .menuCard,
+[data-high-contrast="true"] .menuCard {
+	background: var(--launch-surface-solid) !important;
+	-webkit-backdrop-filter: none !important;
+	backdrop-filter: none !important;
+	border: 1px solid var(--launch-border-strong) !important;
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active), (prefers-contrast: more) {
+	.menuCard {
+		background: var(--launch-surface-solid) !important;
+		-webkit-backdrop-filter: none !important;
+		backdrop-filter: none !important;
+		border: 1px solid var(--launch-border-strong) !important;
+	}
+
+	.menuCard::before,
+	.menuCard::after {
+		display: none;
+	}
+}
+
+@media (forced-colors: active) {
+	.menuCard {
+		border: 1px solid ButtonText !important;
+		background: ButtonFace !important;
+		color: ButtonText;
+		forced-color-adjust: none;
+	}
 }
 
 @keyframes menuCardIn {
 	from {
 		opacity: 0;
-		transform: translateY(12px);
+		filter: blur(var(--launch-popover-inner-blur, 1.5px));
+		transform: scale(0.98) translateY(8px);
 	}
 	to {
 		opacity: 1;
-		transform: translateY(0);
+		filter: blur(0);
+		transform: scale(1) translateY(0);
 	}
 }
 
@@ -159,7 +375,10 @@
 	font-size: 12px;
 	color: var(--launch-text-muted);
 	cursor: pointer;
-	transition: all 0.12s ease;
+	transition:
+		color 0.12s ease,
+		background-color 0.12s ease,
+		transform 0.08s ease;
 	text-align: left;
 }
 
@@ -168,22 +387,39 @@
 	color: var(--launch-text);
 }
 
+.ddItem:active {
+	transform: scale(0.98);
+}
+
+.ddItem:focus-visible {
+	outline: 2px solid var(--launch-accent);
+	outline-offset: -2px;
+}
+
 .ddItemSelected {
 	background: var(--launch-selected);
 	color: var(--launch-accent);
 }
 
+.ddItemSelected:hover {
+	background: var(--launch-selected);
+	color: var(--launch-accent);
+}
+
+/* Finalizing state: explicit copy + activity */
 .finalizingState {
 	display: inline-flex;
 	align-items: center;
 	gap: 11px;
-	min-width: 238px;
-	color: #eeeef2;
+	min-width: 240px;
+	color: var(--launch-text);
+	padding: 0 4px;
 }
 
 .finalizingSpin {
-	color: #3d8bff;
+	color: var(--launch-accent);
 	animation: finalizingSpin 0.9s linear infinite;
+	flex-shrink: 0;
 }
 
 .finalizingCopy {
@@ -192,11 +428,11 @@
 	gap: 2px;
 	font-size: 12px;
 	font-weight: 700;
-	line-height: 1.15;
+	line-height: 1.2;
 }
 
 .finalizingCopy small {
-	color: #8a8a96;
+	color: var(--launch-text-muted);
 	font-size: 10px;
 	font-weight: 600;
 }
@@ -210,10 +446,11 @@
 	}
 }
 
+/* Record button: primary, safe, content-first */
 .recBtn {
 	position: relative;
-	width: 46px;
-	height: 46px;
+	width: 40px;
+	height: 40px;
 	border-radius: 50%;
 	border: none;
 	background: #f43f5e;
@@ -222,14 +459,26 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	transition: all 0.2s ease;
+	transition:
+		background-color 0.2s ease,
+		box-shadow 0.2s ease,
+		transform 0.1s ease;
 	flex-shrink: 0;
 	box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.3);
 }
 
 .recBtn:hover {
 	background: #ff5a75;
-	box-shadow: 0 0 0 6px rgba(244, 63, 94, 0.15);
+	box-shadow: 0 0 0 5px rgba(244, 63, 94, 0.12);
+}
+
+.recBtn:active {
+	transform: scale(0.96);
+}
+
+.recBtn:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: 2px;
 }
 
 .recBtn:disabled {
@@ -243,17 +492,119 @@
 }
 
 .recDot {
-	width: 14px;
-	height: 14px;
+	width: 12px;
+	height: 12px;
 	border-radius: 50%;
 	background: #fff;
-	transition: all 0.2s ease;
+	transition:
+		transform 0.2s ease,
+		background-color 0.2s ease,
+		opacity 0.2s ease;
 }
 
 .recDotBlink {
 	animation: blink 1.2s ease-in-out infinite;
 }
 
+/* Stop recording button: large, safe, clearly the main action */
+.stopBtn {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	height: 34px;
+	padding: 0 12px;
+	border-radius: 10px;
+	border: 1px solid transparent;
+	background: #f43f5e;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 700;
+	cursor: pointer;
+	transition:
+		background-color 0.2s ease,
+		box-shadow 0.2s ease,
+		transform 0.1s ease;
+	flex-shrink: 0;
+}
+
+.stopBtn:hover {
+	background: #ff5a75;
+	box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.1);
+}
+
+.stopBtn:active {
+	transform: scale(0.97);
+}
+
+.stopBtn:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: 2px;
+}
+
+.stopBtnSquare {
+	width: 12px;
+	height: 12px;
+	border-radius: 2px;
+	background: currentColor;
+}
+
+.cancelBtn {
+	display: inline-flex;
+	height: 34px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	padding: 0 10px;
+	border: 1px solid var(--launch-border);
+	border-radius: 10px;
+	background: transparent;
+	color: var(--launch-text-muted);
+	font-size: 11px;
+	font-weight: 650;
+	cursor: pointer;
+	transition:
+		background-color 0.18s ease,
+		border-color 0.18s ease,
+		color 0.18s ease,
+		transform 0.1s ease;
+}
+
+.cancelBtn:hover {
+	border-color: var(--launch-border-strong);
+	background: var(--launch-hover);
+	color: var(--launch-text);
+}
+
+.cancelBtn:active {
+	transform: scale(0.97);
+}
+
+.cancelBtn:focus-visible {
+	outline: 2px solid var(--launch-accent);
+	outline-offset: 2px;
+}
+
+/* Recording status dot */
+.recStatusDot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: #f43f5e;
+	flex-shrink: 0;
+}
+
+.recStatusDotPaused {
+	background: #fbbf24;
+}
+
+.recStatusDotBlink {
+	animation: blink 1.2s ease-in-out infinite;
+}
+
+/* Webcam preview shell (functional chrome) */
 .webcamPreviewShell {
 	position: fixed;
 	cursor: grab;
@@ -274,20 +625,90 @@
 	position: absolute;
 	inset: 0;
 	overflow: hidden;
-	background: var(--launch-surface);
+	background: var(--launch-surface-solid);
 	border: 1px solid var(--launch-border-strong);
 	box-shadow: var(--launch-bar-shadow);
 	transition: border-radius 180ms cubic-bezier(0.22, 1, 0.36, 1);
+	isolation: isolate;
+}
+
+[data-reduce-transparency="true"] .webcamPreviewClip,
+[data-high-contrast="true"] .webcamPreviewClip {
+	background: var(--launch-surface-solid) !important;
+	-webkit-backdrop-filter: none !important;
+	backdrop-filter: none !important;
+	border: 1px solid var(--launch-border-strong) !important;
+}
+
+[data-reduce-transparency="true"] .webcamPreviewClip::before,
+[data-reduce-transparency="true"] .webcamPreviewClip::after,
+[data-high-contrast="true"] .webcamPreviewClip::before,
+[data-high-contrast="true"] .webcamPreviewClip::after {
+	display: none;
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active), (prefers-contrast: more) {
+	.webcamPreviewClip {
+		background: var(--launch-surface-solid) !important;
+		-webkit-backdrop-filter: none !important;
+		backdrop-filter: none !important;
+		border: 1px solid var(--launch-border-strong) !important;
+	}
+
+	.webcamPreviewClip::before,
+	.webcamPreviewClip::after {
+		display: none;
+	}
+}
+
+@media (forced-colors: active) {
+	.webcamPreviewShell {
+		border: 1px solid ButtonText;
+	}
+
+	.webcamPreviewClip {
+		border: 1px solid ButtonText !important;
+	}
+}
+
+@supports ((-webkit-backdrop-filter: blur(12px)) or (backdrop-filter: blur(12px))) {
+	.webcamPreviewClip {
+		background:
+			linear-gradient(135deg, var(--launch-glass-tint) 0%, transparent 50%),
+			var(--launch-surface);
+		border: 1px solid var(--launch-border);
+		box-shadow:
+			inset 0 0 0 1px var(--launch-bar-border-outer),
+			var(--launch-bar-shadow);
+		-webkit-backdrop-filter: blur(16px) saturate(1.2);
+		backdrop-filter: blur(16px) saturate(1.2);
+	}
+
+	.webcamPreviewClip::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		pointer-events: none;
+		z-index: 1;
+		box-shadow: var(--launch-glass-highlight);
+	}
+
+	.webcamPreviewClip::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		pointer-events: none;
+		z-index: 1;
+		box-shadow: var(--launch-inner-shadow);
+	}
 }
 
 .webcamPreviewFrame {
 	position: absolute;
-	/* Tailwind preflight sets video { max-width: 100% } which would clamp the
-	   explicit framing box back to the container and distort the layout. */
 	max-width: none;
 	max-height: none;
-	/* cover, not fill: if the reported aspect ever disagrees with the stream,
-	   we crop a little instead of stretching the face. */
 	object-fit: cover;
 	transform-origin: center;
 	transition:
@@ -351,6 +772,59 @@
 	}
 	50% {
 		opacity: 0.2;
+	}
+}
+
+[data-reduce-motion="true"] .menuCard,
+[data-reduce-motion="true"] .webcamPreviewClip,
+[data-reduce-motion="true"] .webcamPreviewFrame,
+[data-reduce-motion="true"] .webcamPreviewShell,
+[data-reduce-motion="true"] .finalizingSpin,
+[data-reduce-motion="true"] .recDotBlink,
+[data-reduce-motion="true"] .recStatusDotBlink {
+	animation: none;
+	transition-duration: 0.01ms !important;
+}
+
+[data-reduce-motion="true"] .recDotBlink,
+[data-reduce-motion="true"] .recStatusDotBlink {
+	opacity: 1;
+}
+
+[data-reduce-motion="true"] .finalizingSpin {
+	opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.recDotBlink,
+	.recStatusDotBlink,
+	.finalizingSpin {
+		animation: none;
+	}
+
+	.recDotBlink,
+	.recStatusDotBlink {
+		opacity: 1;
+	}
+
+	.finalizingSpin {
+		opacity: 0.7;
+	}
+
+	.bar,
+	.menuCard,
+	.webcamPreviewClip,
+	.webcamPreviewFrame,
+	.webcamPreviewShell,
+	.ib,
+	.recBtn,
+	.stopBtn,
+	.cancelBtn {
+		transition-duration: 0.01ms !important;
+	}
+
+	.menuCard {
+		animation: none;
 	}
 }
 

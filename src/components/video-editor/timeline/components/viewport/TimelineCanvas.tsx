@@ -37,6 +37,7 @@ import { DEFAULT_CAPTION_DURATION_MS } from "../../hooks/actions/useTimelineCapt
 import { useTimelineAudioPeaks } from "../../hooks/useTimelineAudioPeaks";
 import Item from "../../Item";
 import glassStyles from "../../ItemGlass.module.css";
+import { surfaces } from "../../presentation";
 import Row from "../../Row";
 import {
 	getTimelineContentMinHeightPx,
@@ -785,6 +786,7 @@ const TimelineCanvasRows = memo(function TimelineCanvasRows({
 								className={cn(
 									glassStyles.glassPurple,
 									"w-full h-full overflow-hidden flex items-center justify-center cursor-default relative opacity-80",
+									glassStyles.ghost,
 								)}
 							>
 								<div className={cn(glassStyles.zoomEndCap, glassStyles.left)} />
@@ -845,6 +847,7 @@ const TimelineCanvasRows = memo(function TimelineCanvasRows({
 								className={cn(
 									glassStyles.glassMask,
 									"w-full h-full overflow-hidden flex items-center justify-center cursor-default relative opacity-80",
+									glassStyles.ghost,
 								)}
 							>
 								<div className="relative z-10 inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/45 bg-white/15 text-white">
@@ -903,6 +906,7 @@ const TimelineCanvasRows = memo(function TimelineCanvasRows({
 									className={cn(
 										glassStyles.glassGreen,
 										"w-full h-full overflow-hidden flex items-center justify-center cursor-default relative opacity-80",
+										glassStyles.ghost,
 									)}
 								>
 									<div className="relative z-10 inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/45 bg-white/15 text-white">
@@ -959,6 +963,7 @@ const TimelineCanvasRows = memo(function TimelineCanvasRows({
 									className={cn(
 										glassStyles.glassCaption,
 										"w-full h-full overflow-hidden flex items-center justify-center cursor-default relative opacity-80",
+										glassStyles.ghost,
 									)}
 								>
 									<div className="relative z-10 inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/45 bg-white/15 text-white">
@@ -1343,7 +1348,7 @@ export default function TimelineCanvas({
 				...style,
 				height: `max(100%, ${timelineContentMinHeightPx}px, calc(${TIMELINE_AXIS_HEIGHT_PX}px + (100% - ${TIMELINE_AXIS_HEIGHT_PX}px) * ${timelineViewportStretchFactor}))`,
 			}}
-			className="select-none bg-editor-bg relative cursor-pointer group flex flex-col"
+			className={`select-none bg-editor-bg relative cursor-pointer group flex flex-col ${surfaces.timelineLayerRows}`}
 			onMouseDown={handleTimelineMouseDown}
 			onClick={handleTimelineClick}
 			onMouseEnter={handleTimelineMouseEnter}
@@ -1361,7 +1366,7 @@ export default function TimelineCanvas({
 			/>
 			{canShowGhostPlayhead && (
 				<div
-					className="absolute top-0 bottom-0 z-[45] pointer-events-none"
+					className={`absolute top-0 bottom-0 ${surfaces.timelineLayerPlayhead} pointer-events-none`}
 					style={{
 						[sideProperty === "right" ? "marginRight" : "marginLeft"]:
 							`${sidebarWidth - 1}px`,
@@ -1375,7 +1380,7 @@ export default function TimelineCanvas({
 			)}
 
 			<div
-				className="relative z-10 flex flex-1 min-h-0 flex-col"
+				className={`relative ${surfaces.timelineLayerRows} flex flex-1 min-h-0 flex-col`}
 				style={{ minHeight: timelineRowsMinHeightPx }}
 			>
 				<TimelineCanvasRows

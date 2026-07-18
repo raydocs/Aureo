@@ -52,6 +52,7 @@ interface VideoExporterConfig extends ExportConfig {
 	showShadow: boolean;
 	shadowIntensity: number;
 	backgroundBlur: number;
+	backgroundEnabled?: boolean;
 	zoomMotionBlur?: number;
 	zoomMotionBlurTuning?: ZoomMotionBlurTuning;
 	zoomTemporalMotionBlur?: number;
@@ -230,6 +231,7 @@ export class VideoExporter {
 				showShadow: this.config.showShadow,
 				shadowIntensity: this.config.shadowIntensity,
 				backgroundBlur: this.config.backgroundBlur,
+				backgroundEnabled: this.config.backgroundEnabled,
 				zoomMotionBlur: this.config.zoomMotionBlur,
 				zoomMotionBlurTuning: this.config.zoomMotionBlurTuning,
 				zoomTemporalMotionBlur: this.config.zoomTemporalMotionBlur,

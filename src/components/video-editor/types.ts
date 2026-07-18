@@ -378,6 +378,14 @@ export function extendAutoFullTrackClip(
 	return [{ ...clip, endMs: nextTotalDurationMs }];
 }
 
+export function removeClipRegion(clips: ClipRegion[], id: string): ClipRegion[] | null {
+	if (clips.length <= 1 || !clips.some((clip) => clip.id === id)) {
+		return null;
+	}
+
+	return clips.filter((clip) => clip.id !== id);
+}
+
 /** Convert clip regions (kept segments) to trim regions (gaps to remove). */
 export function clipsToTrims(clips: ClipRegion[], totalDurationMs: number): TrimRegion[] {
 	if (clips.length === 0) return [];

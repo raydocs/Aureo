@@ -1,14 +1,14 @@
 import { Plus } from "@phosphor-icons/react";
 import type { Span } from "dnd-timeline";
-import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
 	SourceAudioTrackMeta,
 	SourceAudioTrackSettings,
 } from "@/components/video-editor/audio/audioTypes";
 import { useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
-import { fromFileUrl } from "../projectPersistence";
 import type { MaskAnnotationType } from "../maskTimeline";
+import { fromFileUrl } from "../projectPersistence";
 import type {
 	AnnotationRegion,
 	AudioRegion,
@@ -119,6 +119,7 @@ function extractLocalPathFromMediaServerUrl(input: string | null | undefined): s
 export interface TimelineEditorHandle {
 	addZoom: () => void;
 	suggestZooms: () => void;
+	zoomToPlayhead: () => void;
 	splitClip: () => void;
 	addAnnotation: (trackIndex?: number) => void;
 	addMask: (type?: MaskAnnotationType) => void;
@@ -221,6 +222,26 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 			totalMs,
 			timelineContainerRef,
 		});
+		const handleZoomToPlayhead = useCallback(() => {
+			if (totalMs <= 0) return;
+			const currentVisibleMs = Math.max(0, clampedRange.end - clampedRange.start);
+			const nextVisibleMs = Math.max(
+				timelineScale.minVisibleRangeMs,
+				Math.min(totalMs, currentVisibleMs / 2),
+			);
+			const start = Math.min(
+				Math.max(0, currentTimeMs - nextVisibleMs / 2),
+				Math.max(0, totalMs - nextVisibleMs),
+			);
+			setRange({ start, end: start + nextVisibleMs });
+		}, [
+			clampedRange.end,
+			clampedRange.start,
+			currentTimeMs,
+			setRange,
+			timelineScale.minVisibleRangeMs,
+			totalMs,
+		]);
 
 		const [liveSpanPreviewById, setLiveSpanPreviewById] = useState<Record<string, Span>>({});
 		const [isDragging, setIsDragging] = useState(false);
@@ -390,6 +411,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 			videoDuration,
 			totalMs,
 			currentTimeMs,
+			handleZoomToPlayhead,
 			safeMinDurationMs,
 			cursorTelemetry,
 			autoSuggestZoomsTrigger,

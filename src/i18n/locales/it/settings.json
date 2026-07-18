@@ -16,10 +16,10 @@
 		"selectRegion": "Seleziona una regione di velocità da modificare",
 		"deleteRegion": "Elimina regione di velocità",
 		"label": "Velocità",
-		"smartTypingRegion": "Smart Typing",
-		"detectTyping": "Detect & speed up typing",
-		"privacyHint": "Uses private timestamps only · no typed text is saved",
-		"recordingHint": "Available for new recordings with keyboard telemetry"
+		"smartTypingRegion": "Digitazione intelligente",
+		"detectTyping": "Rileva e accelera la digitazione",
+		"privacyHint": "Usa solo timestamp privati · nessun testo digitato viene salvato",
+		"recordingHint": "Disponibile per le nuove registrazioni con telemetria della tastiera"
 	},
 	"clip": {
 		"title": "Clip",
@@ -28,11 +28,11 @@
 		"unmutedState": "Audio in riproduzione",
 		"separateClipFromAudio": "Separa clip dall'audio",
 		"delete": "Elimina clip",
-		"cursor": "Cursor",
-		"hideCursor": "Hide mouse cursor",
-		"hideCursorDescription": "Hide the cursor only in this clip",
-		"disableCursorSmoothing": "Disable smooth mouse movement",
-		"disableCursorSmoothingDescription": "Use the original captured pointer movement"
+		"cursor": "Cursore",
+		"hideCursor": "Nascondi cursore del mouse",
+		"hideCursorDescription": "Nascondi il cursore solo in questo clip",
+		"disableCursorSmoothing": "Disattiva il movimento fluido del mouse",
+		"disableCursorSmoothingDescription": "Usa il movimento originale del puntatore acquisito"
 	},
 	"effects": {
 		"title": "Effetti video",
@@ -116,6 +116,32 @@
 		"cursorSpringDamping": "Smorzamento molla cursore",
 		"cursorSpringMass": "Massa molla cursore",
 		"off": "Off",
+		"cursorClickEffects": {
+			"title": "Effetti al clic",
+			"advanced": "Avanzate",
+			"advancedShow": "Mostra controlli avanzati dell’effetto al clic",
+			"advancedHide": "Nascondi controlli avanzati dell’effetto al clic",
+			"color": "Colore effetto",
+			"size": "Dimensione effetto",
+			"opacity": "Opacità effetto",
+			"duration": "Durata effetto",
+			"none": {
+				"label": "Off",
+				"description": "Nessuna grafica al clic. Cambia solo il movimento del cursore quando clicchi."
+			},
+			"ripple": {
+				"label": "Ondulazione",
+				"description": "Anelli espansivi si irradiano da ogni clic così i tocchi restano leggibili in movimento."
+			},
+			"spotlight": {
+				"label": "Faretto",
+				"description": "Un alone morbido lampeggia intorno al puntatore per evidenziare l’area cliccata."
+			},
+			"echo": {
+				"label": "Eco",
+				"description": "Una coppia di anelli morbidi che si espandono con un impulso più pulito."
+			}
+		},
 		"cursorMotionBlur": "Motion blur del cursore",
 		"cursorClickBounce": "Rimbalzo al clic del cursore",
 		"cursorClickBounceDuration": "Velocità rimbalzo",
@@ -185,7 +211,15 @@
 		"maxWidth": "Larghezza massima",
 		"boxRadius": "Raggio riquadro",
 		"backgroundOpacity": "Opacità sfondo",
-		"textColor": "Colore testo"
+		"textColor": "Colore testo",
+		"editor": {
+			"text": "Testo",
+			"start": "Inizio",
+			"end": "Fine",
+			"split": "Dividi",
+			"merge": "Unisci",
+			"delete": "Elimina"
+		}
 	},
 	"crop": {
 		"title": "Ritaglia video",

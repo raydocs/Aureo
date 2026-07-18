@@ -7,6 +7,7 @@ import {
 	getTimelineDurationMs,
 	mapSourceTimeToTimelineTime,
 	mapTimelineTimeToSourceTime,
+	removeClipRegion,
 	trimsToClips,
 } from "./types";
 
@@ -111,6 +112,25 @@ describe("extendAutoFullTrackClip", () => {
 				8_000,
 			),
 		).toBeNull();
+	});
+});
+
+describe("removeClipRegion", () => {
+	const clips = [
+		{ id: "clip-1", startMs: 0, endMs: 4_000, speed: 1 },
+		{ id: "clip-2", startMs: 5_000, endMs: 8_000, speed: 1 },
+	];
+
+	it("removes a clip when another clip remains", () => {
+		expect(removeClipRegion(clips, "clip-1")).toEqual([clips[1]]);
+	});
+
+	it("refuses to remove the final clip", () => {
+		expect(removeClipRegion([clips[0]], "clip-1")).toBeNull();
+	});
+
+	it("does not change the timeline for an unknown clip", () => {
+		expect(removeClipRegion(clips, "missing")).toBeNull();
 	});
 });
 

@@ -252,6 +252,8 @@ interface Window {
 			path?: string;
 			message?: string;
 			error?: string;
+			/** Soft audio-track integrity warnings; never forces stop failure. */
+			warnings?: string[];
 		}>;
 		recoverNativeScreenRecording: () => Promise<{
 			success: boolean;

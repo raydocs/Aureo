@@ -45,6 +45,7 @@ interface GifExporterConfig {
 	showShadow: boolean;
 	shadowIntensity: number;
 	backgroundBlur: number;
+	backgroundEnabled?: boolean;
 	zoomMotionBlur?: number;
 	zoomMotionBlurTuning?: ZoomMotionBlurTuning;
 	zoomTemporalMotionBlur?: number;
@@ -149,6 +150,7 @@ export function buildGifFrameRendererConfig(
 		showShadow: config.showShadow,
 		shadowIntensity: config.shadowIntensity,
 		backgroundBlur: config.backgroundBlur,
+		backgroundEnabled: config.backgroundEnabled,
 		zoomMotionBlur: config.zoomMotionBlur,
 		zoomMotionBlurTuning: config.zoomMotionBlurTuning,
 		zoomTemporalMotionBlur: config.zoomTemporalMotionBlur,

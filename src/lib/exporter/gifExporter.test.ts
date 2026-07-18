@@ -298,6 +298,29 @@ describe("GIF renderer config", () => {
 			clipRegions: [expect.objectContaining({ id: "clip-1", hideCursor: true })],
 		});
 	});
+
+	it("passes through backgroundEnabled to the frame renderer config", () => {
+		const config = buildGifFrameRendererConfig(
+			{
+				videoUrl: "file:///recording.mp4",
+				width: 1920,
+				height: 1080,
+				frameRate: 30,
+				loop: true,
+				sizePreset: "original",
+				wallpaper: "#101010",
+				backgroundEnabled: false,
+				zoomRegions: [],
+				showShadow: false,
+				shadowIntensity: 0,
+				backgroundBlur: 0,
+				cropRegion: { x: 0, y: 0, width: 1, height: 1 },
+			} as never,
+			{ width: 1920, height: 1080 },
+		);
+
+		expect(config.backgroundEnabled).toBe(false);
+	});
 });
 
 /**

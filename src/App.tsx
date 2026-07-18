@@ -3,6 +3,7 @@ import { CountdownOverlay } from "./components/countdown/CountdownOverlay";
 import { LaunchWindow } from "./components/launch/LaunchWindow";
 import { SourceSelector } from "./components/launch/SourceSelector";
 import { UpdateToastWindow } from "./components/launch/UpdateToastWindow";
+import { GlassSurface } from "./components/ui/glass-surface";
 import { Toaster } from "./components/ui/sonner";
 import { ShortcutsConfigDialog } from "./components/video-editor/ShortcutsConfigDialog";
 import VideoEditor from "./components/video-editor/VideoEditor";
@@ -47,13 +48,11 @@ export default function App() {
 		loadAllCustomFonts().catch((error) => {
 			console.error("Failed to load custom fonts:", error);
 		});
-	}, []);
+	}, [isMacOS]);
 
 	useEffect(() => {
 		document.title =
-			windowType === "editor"
-				? t("app.editorTitle", "Aureo Editor")
-				: t("app.name", "Aureo");
+			windowType === "editor" ? t("app.editorTitle", "Aureo Editor") : t("app.name", "Aureo");
 	}, [windowType, t]);
 
 	switch (windowType) {
@@ -79,23 +78,27 @@ export default function App() {
 			);
 		default:
 			return (
-				<div className="flex h-full w-full items-center justify-center bg-editor-bg text-foreground">
-					<div className="flex items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/5 px-6 py-5 shadow-2xl shadow-black/30 backdrop-blur-xl">
+				<main className="flex h-full w-full items-center justify-center bg-surface-content text-surface-foreground">
+					<GlassSurface
+						variant="regular"
+						padding="comfortable"
+						className="flex items-center gap-4 rounded-2xl"
+					>
 						<img
 							src={appIconSrc}
-							alt={t("app.name", "Aureo")}
-							className="h-12 w-12 rounded-xl"
+							alt=""
+							className="h-12 w-12 rounded-xl shadow-aureo-1"
 						/>
 						<div>
 							<h1 className="text-xl font-semibold tracking-tight">
 								{t("app.name", "Aureo")}
 							</h1>
-							<p className="text-sm text-foreground/65">
+							<p className="text-sm text-surface-foreground-muted">
 								{t("app.subtitle", "Screen recording and editing")}
 							</p>
 						</div>
-					</div>
-				</div>
+					</GlassSurface>
+				</main>
 			);
 	}
 }

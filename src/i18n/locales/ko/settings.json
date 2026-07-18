@@ -16,10 +16,10 @@
 		"selectRegion": "조정할 속도 구간을 선택하세요",
 		"deleteRegion": "속도 구간 삭제",
 		"label": "속도",
-		"smartTypingRegion": "Smart Typing",
-		"detectTyping": "Detect & speed up typing",
-		"privacyHint": "Uses private timestamps only · no typed text is saved",
-		"recordingHint": "Available for new recordings with keyboard telemetry"
+		"smartTypingRegion": "스마트 타이핑",
+		"detectTyping": "타이핑 감지 및 가속",
+		"privacyHint": "비공개 타임스탬프만 사용 · 입력 텍스트는 저장되지 않음",
+		"recordingHint": "키보드 텔레메트리가 있는 새 녹화에서 사용 가능"
 	},
 	"clip": {
 		"title": "클립",
@@ -28,11 +28,11 @@
 		"unmutedState": "오디오가 재생 중",
 		"separateClipFromAudio": "클립에서 오디오 분리",
 		"delete": "클립 삭제",
-		"cursor": "Cursor",
-		"hideCursor": "Hide mouse cursor",
-		"hideCursorDescription": "Hide the cursor only in this clip",
-		"disableCursorSmoothing": "Disable smooth mouse movement",
-		"disableCursorSmoothingDescription": "Use the original captured pointer movement"
+		"cursor": "커서",
+		"hideCursor": "마우스 커서 숨기기",
+		"hideCursorDescription": "이 클립에서만 커서를 숨깁니다",
+		"disableCursorSmoothing": "부드러운 마우스 이동 끄기",
+		"disableCursorSmoothingDescription": "캡처된 원래 포인터 이동을 사용합니다"
 	},
 	"effects": {
 		"title": "비디오 효과",
@@ -64,6 +64,11 @@
 		},
 		"backgroundBlur": "배경 블러",
 		"zoomMotionBlur": "확대 모션 블러",
+		"temporalZoomMotionBlur": "시간적 확대 블러",
+		"temporalZoomMotionBlurDescription": "새로운 확대 블러 패스에 사용되는 셔터 창과 프레임 샘플을 제어합니다.",
+		"zoomMotionBlurSamples": "블러 샘플",
+		"zoomMotionBlurShutter": "셔터",
+		"auto": "자동",
 		"connectZooms": "확대 구간 연결",
 		"connectZoomsDescription": "연속된 확대 구간을 하나의 부드러운 카메라 이동으로 연결합니다.",
 		"autoApplyFreshRecordingZooms": "새 녹화에 확대 자동 적용",
@@ -76,6 +81,20 @@
 		"zoomOutDescription": "카메라가 확대 구간에서 빠져나오는 방식을 제어합니다.",
 		"connectedZoomTitle": "확대 구간 사이",
 		"connectedZoomDescription": "연결이 활성화된 경우, 연속된 확대 구간 사이의 이동을 조정합니다.",
+		"motionPresetsTitle": "모션 프리셋",
+		"motionPresetsZoomHint": "확대 모션 프리셋은 설정에서 사용할 수 있습니다.",
+		"animationPresets": "애니메이션 프리셋",
+		"cursorMotionPresets": "커서 모션 프리셋",
+		"motionPresets": {
+			"focused": {
+				"label": "집중",
+				"description": "데모, 안내 영상, 일상 녹화에 적합한 더 빠른 모션입니다."
+			},
+			"smooth": {
+				"label": "부드러움",
+				"description": "프레젠테이션, 키노트 스타일 영상, 세련된 연출에 적합한 완만한 모션입니다."
+			}
+		},
 		"zoomInDuration": "확대 시작 시간",
 		"zoomInOverlap": "확대 시작 겹침",
 		"zoomOutDuration": "확대 종료 시간",
@@ -93,7 +112,36 @@
 		},
 		"cursorSize": "커서 크기",
 		"cursorSmoothing": "커서 보정",
+		"cursorSpringStiffness": "커서 스프링 강도",
+		"cursorSpringDamping": "커서 스프링 감쇠",
+		"cursorSpringMass": "커서 스프링 질량",
 		"off": "끔",
+		"cursorClickEffects": {
+			"title": "클릭 효과",
+			"advanced": "고급",
+			"advancedShow": "고급 클릭 효과 컨트롤 표시",
+			"advancedHide": "고급 클릭 효과 컨트롤 숨기기",
+			"color": "효과 색상",
+			"size": "효과 크기",
+			"opacity": "효과 불투명도",
+			"duration": "효과 지속 시간",
+			"none": {
+				"label": "끔",
+				"description": "클릭 그래픽 없음. 클릭 시 커서 움직임만 변합니다."
+			},
+			"ripple": {
+				"label": "리플",
+				"description": "클릭마다 확장되는 고리가 퍼져 탭이 움직임에서 분명하게 보입니다."
+			},
+			"spotlight": {
+				"label": "스포트라이트",
+				"description": "클릭한 영역을 강조하기 위해 포인터 주변에 부드러운 후광이 번쩍입니다."
+			},
+			"echo": {
+				"label": "에코",
+				"description": "더 깔끔한 펄스로 바깥으로 퍼지는 한 쌍의 부드러운 고리입니다."
+			}
+		},
 		"cursorMotionBlur": "커서 모션 블러",
 		"cursorClickBounce": "커서 클릭 바운스",
 		"cursorClickBounceDuration": "바운스 속도",
@@ -149,8 +197,6 @@
 		"generateFull": "자막 생성",
 		"regenerateFull": "자막 다시 생성",
 		"clearFull": "자막 지우기",
-		"editCurrent": "현재 자막 편집",
-		"editSaved": "자막이 업데이트되었습니다",
 		"fontSettings": "글꼴 설정",
 		"defaultFont": "기본값",
 		"fontFamily": "글꼴",
@@ -165,7 +211,15 @@
 		"maxWidth": "최대 너비",
 		"boxRadius": "박스 반경",
 		"backgroundOpacity": "배경 투명도",
-		"textColor": "텍스트 색상"
+		"textColor": "텍스트 색상",
+		"editor": {
+			"text": "텍스트",
+			"start": "시작",
+			"end": "종료",
+			"split": "분할",
+			"merge": "병합",
+			"delete": "삭제"
+		}
 	},
 	"crop": {
 		"title": "비디오 자르기",

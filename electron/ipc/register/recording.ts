@@ -77,6 +77,7 @@ import {
 	waitForWindowsCaptureStart,
 	waitForWindowsCaptureStop,
 } from "../recording/windows";
+import { collectWindowsNativeAudioIntegrityWarnings } from "../recording/windowsAudioIntegrity";
 import {
 	shouldStartWindowsBrowserMicrophoneFallback,
 	shouldUseWindowsBrowserMicrophoneFallback,
@@ -1005,7 +1006,19 @@ export function registerRecordingHandlers(
 					console.warn("Failed to persist cursor telemetry during native stop:", error);
 				}
 
-				return { success: true, path: finalVideoPath };
+				// Soft integrity check for expected native audio sidecars only.
+				// Browser mic fallback clears windowsMicAudioPath, so it is not expected.
+				// Missing/tiny/invalid audio must never hard-fail a valid video stop.
+				const warnings = await collectWindowsNativeAudioIntegrityWarnings(
+					diagnosticsSystemAudioPath,
+					diagnosticsMicAudioPath,
+				);
+
+				return {
+					success: true,
+					path: finalVideoPath,
+					...(warnings.length > 0 ? { warnings } : {}),
+				};
 			} catch (error) {
 				console.error("Failed to stop native Windows capture:", error);
 				const fallbackPath = await resolveExistingPath(
@@ -1061,7 +1074,15 @@ export function registerRecordingHandlers(
 								recoveredAfterStopFailure: true,
 							},
 						});
-						return { success: true, path: fallbackPath };
+						const warnings = await collectWindowsNativeAudioIntegrityWarnings(
+							diagnosticsSystemAudioPath,
+							diagnosticsMicAudioPath,
+						);
+						return {
+							success: true,
+							path: fallbackPath,
+							...(warnings.length > 0 ? { warnings } : {}),
+						};
 					} catch {
 						// File is absent or failed validation.
 					}

@@ -64,6 +64,11 @@
 		},
 		"backgroundBlur": "背景模糊",
 		"zoomMotionBlur": "缩放运动模糊",
+		"temporalZoomMotionBlur": "时序缩放模糊",
+		"temporalZoomMotionBlurDescription": "控制新版缩放模糊通道使用的快门窗口与帧采样。",
+		"zoomMotionBlurSamples": "模糊采样",
+		"zoomMotionBlurShutter": "快门",
+		"auto": "自动",
 		"connectZooms": "连接缩放",
 		"connectZoomsDescription": "将连续的缩放区域平滑连接为一次连续的镜头移动。",
 		"autoApplyFreshRecordingZooms": "自动为新录制应用缩放",
@@ -111,6 +116,32 @@
 		"cursorSpringDamping": "光标弹簧阻尼",
 		"cursorSpringMass": "光标弹簧质量",
 		"off": "关",
+		"cursorClickEffects": {
+			"title": "点击效果",
+			"advanced": "高级",
+			"advancedShow": "显示高级点击效果控件",
+			"advancedHide": "隐藏高级点击效果控件",
+			"color": "效果颜色",
+			"size": "效果大小",
+			"opacity": "效果不透明度",
+			"duration": "效果时长",
+			"none": {
+				"label": "关",
+				"description": "无点击图形。点击时仅改变光标动作。"
+			},
+			"ripple": {
+				"label": "涟漪",
+				"description": "每次点击时扩散出环形，让点击在动态中更清晰。"
+			},
+			"spotlight": {
+				"label": "聚光",
+				"description": "指针周围闪现柔和光晕，突出点击区域。"
+			},
+			"echo": {
+				"label": "回声",
+				"description": "一对柔和圆环以更干净的脉冲向外扩散。"
+			}
+		},
 		"cursorMotionBlur": "光标运动模糊",
 		"cursorClickBounce": "光标点击弹跳",
 		"cursorClickBounceDuration": "弹跳速度",
@@ -180,7 +211,15 @@
 		"maxWidth": "最大宽度",
 		"boxRadius": "字幕框圆角",
 		"backgroundOpacity": "背景透明度",
-		"textColor": "文字颜色"
+		"textColor": "文字颜色",
+		"editor": {
+			"text": "文本",
+			"start": "开始",
+			"end": "结束",
+			"split": "拆分",
+			"merge": "合并",
+			"delete": "删除"
+		}
 	},
 	"crop": {
 		"title": "裁剪视频",

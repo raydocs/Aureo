@@ -1,9 +1,22 @@
-import { createWriteStream } from "node:fs";
-import { constants as fsConstants } from "node:fs";
+import { createWriteStream, constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
-import { get as httpsGet } from "node:https";
 import type Electron from "electron";
-import { WHISPER_MODEL_DIR, WHISPER_MODEL_DOWNLOAD_URL, WHISPER_SMALL_MODEL_PATH } from "../constants";
+import {
+	WHISPER_MODEL_DIR,
+	WHISPER_MODEL_DOWNLOAD_URL,
+	WHISPER_SMALL_MODEL_PATH,
+} from "../constants";
+
+/** Idle timeout between download chunks (and before first response). Reset on every chunk. */
+export const WHISPER_DOWNLOAD_IDLE_TIMEOUT_MS = 30_000;
+
+export type DownloadFetch = (input: string, init?: { signal?: AbortSignal }) => Promise<Response>;
+
+export type DownloadFileWithProgressOptions = {
+	/** Injected transport for tests; production default is Electron `net.fetch` (proxy/PAC aware). */
+	fetchImpl?: DownloadFetch;
+	idleTimeoutMs?: number;
+};
 
 export function sendWhisperModelDownloadProgress(
 	webContents: Electron.WebContents,
@@ -34,79 +47,232 @@ export async function getWhisperSmallModelStatus() {
 	}
 }
 
-export function downloadFileWithProgress(
+function formatDownloadError(error: unknown, fallback: string): Error {
+	if (error instanceof Error) {
+		if (error.name === "AbortError") {
+			return new Error("Whisper model download timed out due to inactivity.");
+		}
+		return error;
+	}
+	return new Error(`${fallback}: ${String(error)}`);
+}
+
+async function defaultElectronFetch(
+	input: string,
+	init?: { signal?: AbortSignal },
+): Promise<Response> {
+	const { net } = await import("electron");
+	return net.fetch(input, init);
+}
+
+function readWithIdleTimeout(
+	reader: ReadableStreamDefaultReader<Uint8Array>,
+	idleTimeoutMs: number,
+	controller: AbortController,
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => {
+			const error = new Error("Whisper model download timed out due to inactivity.");
+			controller.abort(error);
+			void reader.cancel(error).catch(() => undefined);
+			reject(error);
+		}, idleTimeoutMs);
+
+		reader.read().then(
+			(result) => {
+				clearTimeout(timer);
+				resolve(result);
+			},
+			(error) => {
+				clearTimeout(timer);
+				reject(error);
+			},
+		);
+	});
+}
+
+function writeChunkToStream(fileStream: ReturnType<typeof createWriteStream>, chunk: Uint8Array) {
+	return new Promise<void>((resolve, reject) => {
+		fileStream.write(Buffer.from(chunk), (error) => {
+			if (error) {
+				reject(error);
+				return;
+			}
+			resolve();
+		});
+	});
+}
+
+function endFileStream(fileStream: ReturnType<typeof createWriteStream>) {
+	return new Promise<void>((resolve, reject) => {
+		const onError = (error: Error) => {
+			cleanup();
+			reject(error);
+		};
+		const onClose = () => {
+			cleanup();
+			resolve();
+		};
+		const cleanup = () => {
+			fileStream.off("error", onError);
+			fileStream.off("close", onClose);
+		};
+
+		fileStream.once("error", onError);
+		fileStream.once("close", onClose);
+		fileStream.end();
+	});
+}
+
+/**
+ * Download a file with streaming progress. Production uses Electron `net.fetch`
+ * so system proxy / PAC settings are honored. Redirects are followed by fetch.
+ */
+export async function downloadFileWithProgress(
 	url: string,
 	destinationPath: string,
 	onProgress: (progress: number) => void,
+	options: DownloadFileWithProgressOptions = {},
 ): Promise<void> {
-	const request = (currentUrl: string, redirectCount = 0): Promise<void> => {
-		return new Promise((resolve, reject) => {
-			const req = httpsGet(currentUrl, { timeout: 30_000 }, (response) => {
-				const statusCode = response.statusCode ?? 0;
-				const location = response.headers.location;
+	const fetchImpl = options.fetchImpl ?? defaultElectronFetch;
+	const idleTimeoutMs = options.idleTimeoutMs ?? WHISPER_DOWNLOAD_IDLE_TIMEOUT_MS;
+	const controller = new AbortController();
 
-				if (statusCode >= 300 && statusCode < 400 && location) {
-					response.resume();
-					if (redirectCount >= 5) {
-						reject(new Error("Too many redirects while downloading Whisper model."));
-						return;
-					}
-
-					const nextUrl = new URL(location, currentUrl).toString();
-					void request(nextUrl, redirectCount + 1)
-						.then(resolve)
-						.catch(reject);
-					return;
-				}
-
-				if (statusCode < 200 || statusCode >= 300) {
-					response.resume();
-					reject(new Error(`Whisper model download failed with status ${statusCode}.`));
-					return;
-				}
-
-				const totalBytes = Number.parseInt(
-					String(response.headers["content-length"] ?? "0"),
-					10,
-				);
-				let downloadedBytes = 0;
-				const fileStream = createWriteStream(destinationPath);
-
-				response.on("data", (chunk: Buffer) => {
-					downloadedBytes += chunk.length;
-					if (Number.isFinite(totalBytes) && totalBytes > 0) {
-						onProgress(Math.min(100, Math.round((downloadedBytes / totalBytes) * 100)));
-					}
-				});
-
-				response.on("error", (error) => {
-					fileStream.destroy(error);
-				});
-
-				fileStream.on("error", (error) => {
-					response.destroy(error);
-					reject(error);
-				});
-
-				fileStream.on("finish", () => {
-					onProgress(100);
-					resolve();
-				});
-
-				response.pipe(fileStream);
-			});
-
-			req.on("error", reject);
-			req.on("timeout", () => {
-				req.destroy(new Error("Whisper model download timed out."));
-			});
-		});
+	let idleTimer: ReturnType<typeof setTimeout> | undefined;
+	const clearIdleTimer = () => {
+		if (idleTimer !== undefined) {
+			clearTimeout(idleTimer);
+			idleTimer = undefined;
+		}
 	};
 
-	return request(url);
+	let response: Response;
+	try {
+		response = await Promise.race([
+			fetchImpl(url, { signal: controller.signal }),
+			new Promise<never>((_, reject) => {
+				idleTimer = setTimeout(() => {
+					const error = new Error("Whisper model download timed out due to inactivity.");
+					controller.abort(error);
+					reject(error);
+				}, idleTimeoutMs);
+			}),
+		]);
+	} catch (error) {
+		clearIdleTimer();
+		if (controller.signal.aborted) {
+			const reason = controller.signal.reason;
+			throw reason instanceof Error
+				? reason
+				: new Error("Whisper model download timed out due to inactivity.");
+		}
+		throw formatDownloadError(error, "Whisper model download failed");
+	} finally {
+		clearIdleTimer();
+	}
+
+	if (!response.ok) {
+		try {
+			await response.body?.cancel();
+		} catch {
+			// ignore cancel failures while surfacing the HTTP status
+		}
+		throw new Error(`Whisper model download failed with status ${response.status}.`);
+	}
+
+	const contentLengthHeader = response.headers.get("content-length");
+	const hasContentLength = contentLengthHeader !== null && contentLengthHeader !== "";
+	const totalBytes = hasContentLength ? Number.parseInt(contentLengthHeader, 10) : Number.NaN;
+	if (hasContentLength && !Number.isFinite(totalBytes)) {
+		try {
+			await response.body?.cancel();
+		} catch {
+			// ignore
+		}
+		throw new Error(
+			`Whisper model download failed: invalid Content-Length header (${contentLengthHeader}).`,
+		);
+	}
+
+	if (!response.body) {
+		throw new Error("Whisper model download failed: empty response body.");
+	}
+
+	const reader = response.body.getReader();
+	const fileStream = createWriteStream(destinationPath);
+	let fileStreamError: Error | null = null;
+	fileStream.on("error", (error) => {
+		fileStreamError ??= error;
+	});
+	let downloadedBytes = 0;
+	let settled = false;
+
+	const fail = async (error: unknown): Promise<never> => {
+		if (!settled) {
+			settled = true;
+			const streamClosed = fileStream.closed
+				? Promise.resolve()
+				: new Promise<void>((resolve) => fileStream.once("close", resolve));
+			fileStream.destroy();
+			await streamClosed;
+			try {
+				await reader.cancel();
+			} catch {
+				// ignore
+			}
+		}
+		if (controller.signal.aborted) {
+			const reason = controller.signal.reason;
+			throw reason instanceof Error
+				? reason
+				: new Error("Whisper model download timed out due to inactivity.");
+		}
+		throw formatDownloadError(error, "Whisper model download failed");
+	};
+
+	try {
+		while (true) {
+			const { done, value } = await readWithIdleTimeout(reader, idleTimeoutMs, controller);
+			if (done) {
+				break;
+			}
+			if (!value || value.byteLength === 0) {
+				continue;
+			}
+			if (fileStreamError) {
+				await fail(fileStreamError);
+			}
+
+			await writeChunkToStream(fileStream, value);
+			downloadedBytes += value.byteLength;
+
+			if (hasContentLength && totalBytes > 0) {
+				onProgress(Math.min(100, Math.round((downloadedBytes / totalBytes) * 100)));
+			}
+		}
+
+		if (hasContentLength && downloadedBytes !== totalBytes) {
+			await fail(
+				new Error(
+					`Whisper model download incomplete: expected ${totalBytes} bytes but received ${downloadedBytes}.`,
+				),
+			);
+		}
+		if (fileStreamError) {
+			await fail(fileStreamError);
+		}
+
+		await endFileStream(fileStream);
+		settled = true;
+		onProgress(100);
+	} catch (error) {
+		await fail(error);
+	}
 }
 
-export async function downloadWhisperSmallModel(webContents: Electron.WebContents): Promise<string> {
+export async function downloadWhisperSmallModel(
+	webContents: Electron.WebContents,
+): Promise<string> {
 	await fs.mkdir(WHISPER_MODEL_DIR, { recursive: true });
 	const tempPath = `${WHISPER_SMALL_MODEL_PATH}.download`;
 

@@ -1,17 +1,16 @@
 import {
+	ArrowClockwiseIcon,
+	DesktopIcon,
 	EyeIcon,
 	EyeSlashIcon,
 	FolderOpenIcon,
+	MoonIcon,
+	SunIcon,
 	TranslateIcon,
 	VideoCameraIcon,
-	ArrowClockwiseIcon,
-	SunIcon,
-	MoonIcon,
-	DesktopIcon,
 } from "@phosphor-icons/react";
 import type { ReactElement } from "react";
-import { useI18n } from "@/contexts/I18nContext";
-import { useScopedT } from "@/contexts/I18nContext";
+import { useI18n, useScopedT } from "@/contexts/I18nContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import type { AppLocale } from "@/i18n/config";
 import { SUPPORTED_LOCALES } from "@/i18n/config";
@@ -73,10 +72,12 @@ export function MorePopover({
 				requestOpen(POPOVER_ID);
 			}}
 			trigger={trigger}
+			aria-label={t("recording.more")}
 			align="end"
 		>
 			{supportsHudCaptureProtection && (
 				<DropdownItem
+					role="menuitemcheckbox"
 					icon={hideHudFromCapture ? <EyeSlashIcon size={16} /> : <EyeIcon size={16} />}
 					selected={hideHudFromCapture}
 					onClick={onToggleHudCaptureProtection}
@@ -128,6 +129,7 @@ export function MorePopover({
 				{t("recording.appearance", "Appearance")}
 			</div>
 			<DropdownItem
+				role="menuitemradio"
 				icon={<SunIcon size={16} />}
 				selected={preference === "light"}
 				onClick={() => {
@@ -138,6 +140,7 @@ export function MorePopover({
 				{t("common.light", "Light")}
 			</DropdownItem>
 			<DropdownItem
+				role="menuitemradio"
 				icon={<MoonIcon size={16} />}
 				selected={preference === "dark"}
 				onClick={() => {
@@ -148,6 +151,7 @@ export function MorePopover({
 				{t("common.dark", "Dark")}
 			</DropdownItem>
 			<DropdownItem
+				role="menuitemradio"
 				icon={<DesktopIcon size={16} />}
 				selected={preference === "system"}
 				onClick={() => {
@@ -163,6 +167,7 @@ export function MorePopover({
 			{SUPPORTED_LOCALES.map((code) => (
 				<DropdownItem
 					key={code}
+					role="menuitemradio"
 					icon={<TranslateIcon size={16} />}
 					selected={locale === code}
 					onClick={() => {

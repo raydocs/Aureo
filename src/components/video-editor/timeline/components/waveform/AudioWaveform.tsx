@@ -1,6 +1,8 @@
 import { useTimelineContext } from "dnd-timeline";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 import type { AudioPeaksData } from "../../core/timelineTypes";
+import { surfaces } from "../../presentation";
 
 interface AudioWaveformProps {
 	peaks: AudioPeaksData;
@@ -45,6 +47,7 @@ function AudioWaveformComponent({
 	}, []);
 
 	useEffect(() => {
+		void resizeKey;
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 		let rafId = 0;
@@ -79,15 +82,15 @@ function AudioWaveformComponent({
 			const visibleStartMs = segmentStartMs ?? range.start;
 			const visibleEndMs = segmentEndMs ?? range.end;
 			const visibleDurationMs = visibleEndMs - visibleStartMs;
-			
+
 			if (visibleDurationMs <= 0) return;
 
 			const midY = height / 2;
 			ctx.beginPath();
-			
+
 			for (let px = 0; px < width; px++) {
 				const t = visibleStartMs + (px / width) * visibleDurationMs;
-				
+
 				// If the timeline time is beyond the actual audio duration, we draw nothing (flat line)
 				if (t < 0 || t > durationMs) continue;
 
@@ -95,12 +98,12 @@ function AudioWaveformComponent({
 				const leftIndex = Math.floor(exactIndex);
 				const rightIndex = Math.min(peakData.length - 1, leftIndex + 1);
 				const mix = exactIndex - leftIndex;
-				
+
 				let amplitude = peakData[leftIndex] * (1 - mix) + peakData[rightIndex] * mix;
-				
+
 				if (normalize) amplitude = Math.sqrt(Math.max(0, amplitude));
 				amplitude = Math.max(0, Math.min(1, amplitude * gain));
-				
+
 				const barHeight = amplitude * midY * 0.85;
 
 				ctx.moveTo(px, midY - barHeight);
@@ -118,7 +121,7 @@ function AudioWaveformComponent({
 	return (
 		<canvas
 			ref={setCanvasRef}
-			className={className ?? "absolute inset-0 w-full h-full pointer-events-none"}
+			className={cn(surfaces.waveformCanvas, className)}
 			style={{ display: "block" }}
 		/>
 	);

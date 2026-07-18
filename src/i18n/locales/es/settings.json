@@ -6,7 +6,7 @@
 		"modeAuto": "Auto",
 		"modeManual": "Manual",
 		"modeManualDescription": "Establece un punto de enfoque fijo para este zoom",
-		"modeAutoDescription": "La cámara sigue el cursor automáticamente"
+		"modeAutoDescription": "La cámara se recentra cuando el cursor se acerca al borde de la vista ampliada"
 	},
 	"trim": {
 		"deleteRegion": "Eliminar región de recorte"
@@ -16,10 +16,10 @@
 		"selectRegion": "Selecciona una región de velocidad para ajustar",
 		"deleteRegion": "Eliminar región de velocidad",
 		"label": "Velocidad",
-		"smartTypingRegion": "Smart Typing",
-		"detectTyping": "Detect & speed up typing",
-		"privacyHint": "Uses private timestamps only · no typed text is saved",
-		"recordingHint": "Available for new recordings with keyboard telemetry"
+		"smartTypingRegion": "Escritura inteligente",
+		"detectTyping": "Detectar y acelerar la escritura",
+		"privacyHint": "Usa solo marcas de tiempo privadas · no se guarda el texto escrito",
+		"recordingHint": "Disponible en grabaciones nuevas con telemetría del teclado"
 	},
 	"clip": {
 		"title": "Clip",
@@ -29,10 +29,10 @@
 		"separateClipFromAudio": "Separar clip del audio",
 		"delete": "Eliminar clip",
 		"cursor": "Cursor",
-		"hideCursor": "Hide mouse cursor",
-		"hideCursorDescription": "Hide the cursor only in this clip",
-		"disableCursorSmoothing": "Disable smooth mouse movement",
-		"disableCursorSmoothingDescription": "Use the original captured pointer movement"
+		"hideCursor": "Ocultar cursor del ratón",
+		"hideCursorDescription": "Ocultar el cursor solo en este clip",
+		"disableCursorSmoothing": "Desactivar el movimiento suave del ratón",
+		"disableCursorSmoothingDescription": "Usar el movimiento original del puntero capturado"
 	},
 	"effects": {
 		"title": "Efectos de video",
@@ -56,18 +56,23 @@
 			"tahoe-inverted": "Tahoe invertido",
 			"dot": "Punto",
 			"figma": "Minimal",
-			"lavender": "Lavender",
+			"lavender": "Lavanda",
 			"parched": "Parched",
 			"chooper": "Chooper",
 			"amongus": "Among Us",
-			"turtle": "Turtle"
+			"turtle": "Tortuga"
 		},
 		"backgroundBlur": "Desenfoque de fondo",
 		"zoomMotionBlur": "Desenfoque de movimiento del zoom",
+		"temporalZoomMotionBlur": "Desenfoque temporal del zoom",
+		"temporalZoomMotionBlurDescription": "Controla la ventana del obturador y las muestras de fotogramas del nuevo paso de desenfoque del zoom.",
+		"zoomMotionBlurSamples": "Muestras de desenfoque",
+		"zoomMotionBlurShutter": "Obturador",
+		"auto": "Auto",
 		"connectZooms": "Conectar zooms",
 		"connectZoomsDescription": "Suaviza regiones de zoom consecutivas convirtiéndolas en un movimiento continuo de cámara.",
 		"autoApplyFreshRecordingZooms": "Aplicar automáticamente zooms a nuevas grabaciones",
-		"autoApplyFreshRecordingZoomsDescription": "Sugiere automáticamente zooms de seguimiento del cursor al abrir una nueva grabación.",
+		"autoApplyFreshRecordingZoomsDescription": "Sugiere automáticamente zooms de recentrado en los bordes al abrir una nueva grabación.",
 		"zoomGeneralTitle": "General",
 		"zoomGeneralDescription": "Ajustes globales de movimiento para todas las transiciones de zoom.",
 		"zoomInTitle": "Entrada",
@@ -76,6 +81,20 @@
 		"zoomOutDescription": "Controla cómo sale la cámara de una región de zoom.",
 		"connectedZoomTitle": "Entre zooms",
 		"connectedZoomDescription": "Ajusta el deslizamiento entre regiones de zoom consecutivas cuando la conexión está activada.",
+		"motionPresetsTitle": "Preajustes de movimiento",
+		"motionPresetsZoomHint": "Los preajustes de movimiento del zoom están disponibles en Ajustes.",
+		"animationPresets": "Preajustes de animación",
+		"cursorMotionPresets": "Preajustes de movimiento del cursor",
+		"motionPresets": {
+			"focused": {
+				"label": "Enfocado",
+				"description": "Movimiento más ágil para demos, recorridos y grabaciones del día a día."
+			},
+			"smooth": {
+				"label": "Suave",
+				"description": "Movimiento más suave para presentaciones, videos tipo keynote y revelaciones pulidas."
+			}
+		},
 		"zoomInDuration": "Duración de entrada",
 		"zoomInOverlap": "Solapamiento de entrada",
 		"zoomOutDuration": "Duración de salida",
@@ -93,7 +112,36 @@
 		},
 		"cursorSize": "Tamaño del cursor",
 		"cursorSmoothing": "Suavizado del cursor",
+		"cursorSpringStiffness": "Rigidez del muelle del cursor",
+		"cursorSpringDamping": "Amortiguación del muelle del cursor",
+		"cursorSpringMass": "Masa del muelle del cursor",
 		"off": "Desactivado",
+		"cursorClickEffects": {
+			"title": "Efectos de clic",
+			"advanced": "Avanzado",
+			"advancedShow": "Mostrar controles avanzados del efecto de clic",
+			"advancedHide": "Ocultar controles avanzados del efecto de clic",
+			"color": "Color del efecto",
+			"size": "Tamaño del efecto",
+			"opacity": "Opacidad del efecto",
+			"duration": "Duración del efecto",
+			"none": {
+				"label": "Desactivado",
+				"description": "Sin gráfico de clic. Solo cambia el movimiento del cursor al hacer clic."
+			},
+			"ripple": {
+				"label": "Ondas",
+				"description": "Anillos expansivos parten de cada clic para que los toques se vean claros en movimiento."
+			},
+			"spotlight": {
+				"label": "Foco",
+				"description": "Un halo suave destella alrededor del puntero para resaltar el área clicada."
+			},
+			"echo": {
+				"label": "Eco",
+				"description": "Un par de anillos suaves que se expanden con un pulso más limpio."
+			}
+		},
 		"cursorMotionBlur": "Desenfoque de movimiento del cursor",
 		"cursorClickBounce": "Rebote de clic del cursor",
 		"cursorClickBounceDuration": "Velocidad del rebote",
@@ -149,8 +197,6 @@
 		"generateFull": "Generar subtítulos",
 		"regenerateFull": "Regenerar subtítulos",
 		"clearFull": "Borrar subtítulos",
-		"editCurrent": "Editar subtítulo actual",
-		"editSaved": "Subtítulo actualizado",
 		"fontSettings": "Tipografía",
 		"defaultFont": "Predeterminado",
 		"fontFamily": "Fuente",
@@ -165,7 +211,15 @@
 		"maxWidth": "Ancho máximo",
 		"boxRadius": "Radio del contenedor",
 		"backgroundOpacity": "Opacidad del fondo",
-		"textColor": "Color del texto"
+		"textColor": "Color del texto",
+		"editor": {
+			"text": "Texto",
+			"start": "Inicio",
+			"end": "Fin",
+			"split": "Dividir",
+			"merge": "Fusionar",
+			"delete": "Eliminar"
+		}
 	},
 	"crop": {
 		"title": "Recortar video",

@@ -6,6 +6,7 @@ import {
 	BrowserWindow,
 	desktopCapturer,
 	dialog,
+	webContents as electronWebContents,
 	ipcMain,
 	Menu,
 	Notification,
@@ -14,7 +15,6 @@ import {
 	shell,
 	systemPreferences,
 	Tray,
-	webContents as electronWebContents,
 } from "electron";
 import { RECORDINGS_DIR } from "./appPaths";
 import { showCursor } from "./cursorHider";
@@ -28,9 +28,9 @@ import {
 	registerIpcHandlers,
 } from "./ipc/handlers";
 import { ensureMediaServer } from "./mediaServer";
+import { hardenWebContentsNavigation, shouldHardenWebContentsType } from "./navigationPolicy";
 import { shouldGrantDisplayCapture, shouldGrantMediaPermission } from "./permissionPolicy";
 import { ensurePackagedRendererServer, getPackagedRendererBaseUrl } from "./rendererServer";
-import { hardenWebContentsNavigation, shouldHardenWebContentsType } from "./navigationPolicy";
 import type { UpdateToastPayload } from "./updater";
 import {
 	checkForAppUpdates,
@@ -63,6 +63,7 @@ app.setName("Aureo");
 
 const electronMainDir = path.dirname(fileURLToPath(import.meta.url));
 const IS_SMOKE_EXPORT = process.env.AUREO_SMOKE_EXPORT === "1";
+const IS_CERTIFICATION = process.env.AUREO_CERTIFICATION_MODE === "1";
 
 function ignoreBrokenConsolePipe(stream: NodeJS.WritableStream | undefined) {
 	stream?.on("error", (error: NodeJS.ErrnoException) => {
@@ -942,6 +943,10 @@ function createSourceSelectorWindowWrapper() {
 // On macOS, applications and their menu bar stay active until the user quits
 // explicitly with Cmd + Q.
 app.on("before-quit", () => {
+	if (IS_CERTIFICATION) {
+		isForceClosing = true;
+		editorHasUnsavedChanges = false;
+	}
 	killWindowsCaptureProcess();
 	showCursor();
 	cleanupNativeVideoExportSessions();
@@ -991,6 +996,11 @@ app.whenReady().then(async () => {
 
 	session.defaultSession.setPermissionRequestHandler(
 		(webContents, permission, callback, details) => {
+			if (IS_CERTIFICATION) {
+				callback(false);
+				return;
+			}
+
 			const securityOrigin = "securityOrigin" in details ? details.securityOrigin : undefined;
 
 			callback(
@@ -1012,7 +1022,7 @@ app.whenReady().then(async () => {
 	// Aureo does not use WebHID, Web Serial, or WebUSB. Do not grant devices by default.
 	session.defaultSession.setDevicePermissionHandler(() => false);
 
-	if (process.platform === "darwin") {
+	if (!IS_CERTIFICATION && process.platform === "darwin") {
 		const cameraStatus = systemPreferences.getMediaAccessStatus("camera");
 		if (cameraStatus !== "granted") {
 			await systemPreferences.askForMediaAccess("camera");
@@ -1022,7 +1032,7 @@ app.whenReady().then(async () => {
 		if (micStatus !== "granted") {
 			await systemPreferences.askForMediaAccess("microphone");
 		}
-	} else if (process.platform === "win32") {
+	} else if (!IS_CERTIFICATION && process.platform === "win32") {
 		const cameraStatus = systemPreferences.getMediaAccessStatus("camera");
 		const micStatus = systemPreferences.getMediaAccessStatus("microphone");
 		if (cameraStatus !== "granted") {
@@ -1114,7 +1124,9 @@ app.whenReady().then(async () => {
 	}
 
 	createWindow();
-	setupAutoUpdates(getUpdateDialogWindow, sendUpdateToastToWindows);
+	if (!IS_CERTIFICATION) {
+		setupAutoUpdates(getUpdateDialogWindow, sendUpdateToastToWindows);
+	}
 
 	// Register the display media handler so that renderer's getDisplayMedia()
 	// calls land on the pre-selected source without showing a system picker.
@@ -1126,6 +1138,11 @@ app.whenReady().then(async () => {
 	// ignored by the native capture pipeline.
 	session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
 		try {
+			if (IS_CERTIFICATION) {
+				callback({});
+				return;
+			}
+
 			const frame = request.frame;
 			const isLiveFrame = Boolean(frame && !frame.isDestroyed());
 			const requestingWebContents =

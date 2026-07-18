@@ -15,6 +15,7 @@ export function DropdownItem({
 	children,
 	trailing,
 	role = "menuitem",
+	disabled = false,
 }: {
 	onClick: () => void;
 	selected?: boolean;
@@ -22,6 +23,7 @@ export function DropdownItem({
 	children: ReactNode;
 	trailing?: ReactNode;
 	role?: "menuitem" | "menuitemradio" | "menuitemcheckbox";
+	disabled?: boolean;
 }) {
 	const supportsCheckedState = role === "menuitemradio" || role === "menuitemcheckbox";
 	return (
@@ -30,6 +32,7 @@ export function DropdownItem({
 			role={role}
 			aria-checked={supportsCheckedState ? Boolean(selected) : undefined}
 			className={`${styles.ddItem} ${selected ? styles.ddItemSelected : ""}`}
+			disabled={disabled}
 			onClick={onClick}
 		>
 			<span className="shrink-0">{icon}</span>

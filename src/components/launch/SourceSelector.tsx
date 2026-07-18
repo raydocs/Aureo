@@ -1,4 +1,11 @@
-import { AppWindowIcon, CaretUpIcon, MonitorIcon } from "@phosphor-icons/react";
+import {
+	AppWindowIcon,
+	CaretUpIcon,
+	FrameCornersIcon,
+	MonitorIcon,
+	SelectionSlashIcon,
+	VideoCameraIcon,
+} from "@phosphor-icons/react";
 import * as React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useScopedT } from "@/contexts/I18nContext";
 import { cn } from "@/lib/utils";
 import {
+	type CaptureSourceType,
 	type DesktopSource,
 	isScreenSource,
 	isWindowSource,
@@ -15,6 +23,14 @@ import "./launchTheme.css";
 import "./SourceSelector.css";
 import { useHudInteraction } from "./contexts/HudInteractionContext";
 
+type SourceMode = "screen" | "window" | "area" | "device";
+
+interface DeviceSourceState {
+	devices: DesktopSource[];
+	loading: boolean;
+	error: string | null;
+}
+
 interface SourceSelectorProps {
 	/** List of available screen sources */
 	screenSources?: DesktopSource[];
@@ -23,12 +39,12 @@ interface SourceSelectorProps {
 	/** Currently selected source name */
 	selectedSource?: string;
 	/** Currently selected source type */
-	selectedSourceType?: "screen" | "window";
-	/** Loading state */
+	selectedSourceType?: CaptureSourceType;
+	/** Loading state for desktop sources */
 	loading?: boolean;
 	/** Callback when a source is selected */
 	onSourceSelect?: (source: DesktopSource) => void;
-	/** Callback to fetch sources */
+	/** Callback to fetch desktop sources */
 	onFetchSources?: () => Promise<void>;
 	/** Whether the popover is open */
 	open?: boolean;
@@ -74,6 +90,85 @@ export function MarqueeText({ text }: { text: string }) {
 	);
 }
 
+export function buildDeviceSource(device: MediaDeviceInfo, index: number): DesktopSource {
+	const label = device.label || `Video device ${index + 1}`;
+	return {
+		id: `device:${device.deviceId}`,
+		name: label,
+		thumbnail: null,
+		display_id: "",
+		appIcon: null,
+		sourceType: "device",
+		deviceId: device.deviceId,
+	};
+}
+
+async function enumerateVideoDevices(): Promise<MediaDeviceInfo[]> {
+	if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) {
+		return [];
+	}
+	try {
+		const devices = await navigator.mediaDevices.enumerateDevices();
+		return devices.filter((d) => d.kind === "videoinput");
+	} catch (error) {
+		console.error("Failed to enumerate video devices:", error);
+		throw error;
+	}
+}
+
+const allModes: SourceMode[] = ["screen", "window", "area", "device"];
+
+function normalizeMode(mode: CaptureSourceType | undefined): SourceMode {
+	switch (mode) {
+		case "screen":
+		case "window":
+		case "area":
+		case "device":
+			return mode;
+		default:
+			return "screen";
+	}
+}
+
+function iconForMode(mode: SourceMode) {
+	switch (mode) {
+		case "screen":
+			return MonitorIcon;
+		case "window":
+			return AppWindowIcon;
+		case "area":
+			return FrameCornersIcon;
+		case "device":
+			return VideoCameraIcon;
+	}
+}
+
+function labelKeyForMode(mode: SourceMode): string {
+	switch (mode) {
+		case "screen":
+			return "screens";
+		case "window":
+			return "windows";
+		case "area":
+			return "area";
+		case "device":
+			return "device";
+	}
+}
+
+function fallbackLabelForMode(mode: SourceMode): string {
+	switch (mode) {
+		case "screen":
+			return "Screens";
+		case "window":
+			return "Windows";
+		case "area":
+			return "Area";
+		case "device":
+			return "Device";
+	}
+}
+
 /**
  * SourceSelectorContent - The actual list of sources
  */
@@ -85,6 +180,7 @@ export const SourceSelectorContent = ({
 	loading = false,
 	open = false,
 	onSourceSelect = () => undefined,
+	onOpenAreaSelector,
 }: Pick<
 	SourceSelectorProps,
 	| "screenSources"
@@ -93,22 +189,69 @@ export const SourceSelectorContent = ({
 	| "selectedSourceType"
 	| "loading"
 	| "onSourceSelect"
-> & { open?: boolean }) => {
+> & { open?: boolean; onOpenAreaSelector?: () => Promise<DesktopSource | null> }) => {
 	const t = useScopedT("launch");
 	const listRef = useRef<HTMLDivElement>(null);
 	const tabsRef = useRef<HTMLDivElement>(null);
 	const [failedThumbnails, setFailedThumbnails] = useState<Set<string>>(new Set());
-	const [mode, setMode] = useState<"screen" | "window">(selectedSourceType);
+	const [mode, setMode] = useState<SourceMode>(normalizeMode(selectedSourceType));
+	const [deviceState, setDeviceState] = useState<DeviceSourceState>({
+		devices: [],
+		loading: false,
+		error: null,
+	});
 
 	useEffect(() => {
-		setMode(selectedSourceType);
+		setMode(normalizeMode(selectedSourceType));
 	}, [selectedSourceType]);
 
-	const orderedSources = useMemo(
-		() => (mode === "screen" ? screenSources : windowSources),
-		[mode, screenSources, windowSources],
-	);
+	const orderedSources = useMemo(() => {
+		switch (mode) {
+			case "screen":
+				return screenSources;
+			case "window":
+				return windowSources;
+			case "device":
+				return deviceState.devices;
+			default:
+				return [];
+		}
+	}, [mode, screenSources, windowSources, deviceState.devices]);
 	const hasSelectedSource = orderedSources.some((source) => source.name === selectedSource);
+
+	// Enumerate video devices while the popover is open, and listen for device changes
+	useEffect(() => {
+		if (mode !== "device" || !open) return;
+		let cancelled = false;
+		setDeviceState((prev) => ({ ...prev, loading: true, error: null }));
+		const refresh = async () => {
+			try {
+				const devices = await enumerateVideoDevices();
+				if (cancelled) return;
+				setDeviceState({
+					devices: devices.map(buildDeviceSource),
+					loading: false,
+					error: null,
+				});
+			} catch (error) {
+				if (cancelled) return;
+				setDeviceState((prev) => ({
+					...prev,
+					loading: false,
+					error: error instanceof Error ? error.message : String(error),
+				}));
+			}
+		};
+		refresh();
+		const handleDeviceChange = () => {
+			if (!cancelled) void refresh();
+		};
+		navigator.mediaDevices?.addEventListener?.("devicechange", handleDeviceChange);
+		return () => {
+			cancelled = true;
+			navigator.mediaDevices?.removeEventListener?.("devicechange", handleDeviceChange);
+		};
+	}, [mode, open]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -118,11 +261,13 @@ export const SourceSelectorContent = ({
 				selected.focus();
 				return;
 			}
-			const firstOption = listRef.current?.querySelector<HTMLElement>('[role="option"]');
-			firstOption?.focus();
+			const firstInteractive = listRef.current?.querySelector<HTMLElement>(
+				mode === "area" ? ".source-selector-action-button" : '[role="option"]',
+			);
+			firstInteractive?.focus();
 		}, 0);
 		return () => clearTimeout(timeoutId);
-	}, [open]);
+	}, [open, mode]);
 
 	const handleImageError = useCallback((sourceId: string) => {
 		setFailedThumbnails((previous) => new Set([...previous, sourceId]));
@@ -163,16 +308,31 @@ export const SourceSelectorContent = ({
 
 	const handleTabKeyDown = (
 		event: React.KeyboardEvent<HTMLButtonElement>,
-		tabMode: "screen" | "window",
+		tabMode: SourceMode,
 	) => {
 		if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
 		event.preventDefault();
-		const nextMode = tabMode === "screen" ? "window" : "screen";
+		const currentIndex = allModes.indexOf(tabMode);
+		const delta = event.key === "ArrowRight" ? 1 : -1;
+		const nextIndex = (currentIndex + delta + allModes.length) % allModes.length;
+		const nextMode = allModes[nextIndex];
 		setMode(nextMode);
 		const nextTab = tabsRef.current?.querySelector<HTMLButtonElement>(
 			`[data-mode="${nextMode}"]`,
 		);
 		queueMicrotask(() => nextTab?.focus());
+	};
+
+	const handleAreaAction = async () => {
+		if (!onOpenAreaSelector) return;
+		try {
+			const source = await onOpenAreaSelector();
+			if (source) {
+				onSourceSelect(source);
+			}
+		} catch (error) {
+			console.error("Failed to open area selector:", error);
+		}
 	};
 
 	const renderModeTabs = () => {
@@ -183,50 +343,48 @@ export const SourceSelectorContent = ({
 				aria-label={t("recording.source", "Recording source")}
 				className="source-selector-mode-tabs"
 			>
-				<button
-					type="button"
-					role="radio"
-					data-mode="screen"
-					aria-checked={mode === "screen"}
-					tabIndex={mode === "screen" ? 0 : -1}
-					onClick={() => setMode("screen")}
-					onKeyDown={(event) => handleTabKeyDown(event, "screen")}
-					className={cn(
-						"source-selector-mode-tab",
-						mode === "screen" && "source-selector-mode-tab-active",
-					)}
-				>
-					<MonitorIcon className="w-3.5 h-3.5" />
-					{t("sourceSelector.screens")}
-					<span
-						className="source-selector-count"
-						aria-label={`${screenSources.length} ${t("sourceSelector.screens")}`}
-					>
-						{screenSources.length}
-					</span>
-				</button>
-				<button
-					type="button"
-					role="radio"
-					data-mode="window"
-					aria-checked={mode === "window"}
-					tabIndex={mode === "window" ? 0 : -1}
-					onClick={() => setMode("window")}
-					onKeyDown={(event) => handleTabKeyDown(event, "window")}
-					className={cn(
-						"source-selector-mode-tab",
-						mode === "window" && "source-selector-mode-tab-active",
-					)}
-				>
-					<AppWindowIcon className="w-3.5 h-3.5" />
-					{t("sourceSelector.windows")}
-					<span
-						className="source-selector-count"
-						aria-label={`${windowSources.length} ${t("sourceSelector.windows")}`}
-					>
-						{windowSources.length}
-					</span>
-				</button>
+				{allModes.map((tabMode) => {
+					const ModeIcon = iconForMode(tabMode);
+					const count =
+						tabMode === "screen"
+							? screenSources.length
+							: tabMode === "window"
+								? windowSources.length
+								: tabMode === "device"
+									? deviceState.devices.length
+									: 0;
+					const labelKey = labelKeyForMode(tabMode);
+					const label = t(`sourceSelector.${labelKey}`, fallbackLabelForMode(tabMode));
+					return (
+						<button
+							key={tabMode}
+							type="button"
+							role="radio"
+							data-mode={tabMode}
+							aria-checked={mode === tabMode}
+							tabIndex={mode === tabMode ? 0 : -1}
+							onClick={() => setMode(tabMode)}
+							onKeyDown={(event) => handleTabKeyDown(event, tabMode)}
+							className={cn(
+								"source-selector-mode-tab",
+								mode === tabMode && "source-selector-mode-tab-active",
+							)}
+						>
+							<ModeIcon className="w-3.5 h-3.5" />
+							{label}
+							{tabMode === "screen" ||
+							tabMode === "window" ||
+							tabMode === "device" ? (
+								<span
+									className="source-selector-count"
+									aria-label={`${count} ${label}`}
+								>
+									{count}
+								</span>
+							) : null}
+						</button>
+					);
+				})}
 			</div>
 		);
 	};
@@ -238,6 +396,7 @@ export const SourceSelectorContent = ({
 		const thumbnailFailed = failedThumbnails.has(source.id);
 		const orderedIndex = orderedSources.findIndex((candidate) => candidate.id === source.id);
 		const isTabStop = isSelected || (!hasSelectedSource && orderedIndex === 0);
+		const ModeIcon = iconForMode(mode);
 		return (
 			<button
 				key={`${source.id}-${index}`}
@@ -264,11 +423,7 @@ export const SourceSelectorContent = ({
 						/>
 					) : (
 						<div className="source-selector-thumb-fallback w-12 h-8 rounded-[8px] flex items-center justify-center">
-							{source.sourceType === "window" ? (
-								<AppWindowIcon className="w-5 h-5 source-selector-muted" />
-							) : (
-								<MonitorIcon className="w-5 h-5 source-selector-muted" />
-							)}
+							<ModeIcon className="w-5 h-5 source-selector-muted" />
 						</div>
 					)}
 				</div>
@@ -287,20 +442,17 @@ export const SourceSelectorContent = ({
 
 	const renderGroup = () => {
 		const sources = orderedSources;
-		const label = mode === "screen" ? t("sourceSelector.screens") : t("sourceSelector.windows");
-		const icon =
-			mode === "screen" ? (
-				<MonitorIcon className="w-3.5 h-3.5" />
-			) : (
-				<AppWindowIcon className="w-3.5 h-3.5" />
-			);
-		const groupKey = mode === "screen" ? "screens" : "windows";
+		const labelKey = labelKeyForMode(mode);
+		const label = t(`sourceSelector.${labelKey}`, fallbackLabelForMode(mode));
+		const ModeIcon = iconForMode(mode);
+		const groupKey = mode;
+		const isLoading = mode === "device" ? deviceState.loading : loading;
 		return (
 			<div key={mode} className="space-y-1" role="group" aria-label={label}>
 				<div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] source-selector-label">
-					{icon}
+					{ModeIcon && <ModeIcon className="w-3.5 h-3.5" />}
 					{label}
-					{loading && (
+					{isLoading && (
 						<span className="normal-case tracking-normal text-[10px] source-selector-muted opacity-100 transition-opacity duration-150">
 							{t("common.loading", "Refreshing...")}
 						</span>
@@ -312,16 +464,58 @@ export const SourceSelectorContent = ({
 					</div>
 				) : (
 					<div className="px-3 py-4 text-xs source-selector-muted rounded-[11px] bg-[var(--launch-hover)]/30">
-						{groupKey === "screens"
-							? t("sourceSelector.noScreensAvailable")
-							: t("sourceSelector.noWindowsAvailable")}
+						{groupKey === "screen" &&
+							t("sourceSelector.noScreensAvailable", "No screens available")}
+						{groupKey === "window" &&
+							t("sourceSelector.noWindowsAvailable", "No windows available")}
+						{groupKey === "device" &&
+							t("sourceSelector.noDevicesAvailable", "No video devices available")}
 					</div>
 				)}
 			</div>
 		);
 	};
 
-	if (loading && orderedSources.length === 0) {
+	const renderAreaPanel = () => {
+		return (
+			<div className="source-selector-action-panel">
+				<FrameCornersIcon className="w-10 h-10 source-selector-muted" />
+				<p className="source-selector-action-title">
+					{t("sourceSelector.selectArea", "Select a recording area")}
+				</p>
+				<p className="source-selector-action-body">
+					{t(
+						"sourceSelector.areaDescription",
+						"Drag across one or more displays to choose the exact area to record.",
+					)}
+				</p>
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					onClick={handleAreaAction}
+					className="source-selector-action-button"
+				>
+					{t("sourceSelector.chooseArea", "Choose area")}
+				</Button>
+			</div>
+		);
+	};
+
+	const renderErrorPanel = (message: string) => {
+		return (
+			<div className="source-selector-empty">
+				<SelectionSlashIcon className="w-8 h-8" />
+				<p>{t("sourceSelector.deviceError", "Could not list devices")}</p>
+				<small>{message}</small>
+			</div>
+		);
+	};
+
+	const contentLoading = loading && orderedSources.length === 0 && mode !== "device";
+	const modeHasList = mode === "screen" || mode === "window" || mode === "device";
+
+	if (contentLoading) {
 		return (
 			<>
 				{renderModeTabs()}
@@ -342,13 +536,19 @@ export const SourceSelectorContent = ({
 			className="max-h-[320px] overflow-y-auto overflow-x-hidden p-2 source-selector-scroll"
 		>
 			{renderModeTabs()}
-			<div
-				className="space-y-3"
-				role="listbox"
-				aria-label={t("recording.source", "Recording source")}
-			>
-				{renderGroup()}
-			</div>
+			{mode === "area" ? (
+				renderAreaPanel()
+			) : deviceState.error && mode === "device" ? (
+				renderErrorPanel(deviceState.error)
+			) : (
+				<div
+					className="space-y-3"
+					role={modeHasList ? "listbox" : undefined}
+					aria-label={modeHasList ? t("recording.source", "Recording source") : undefined}
+				>
+					{renderGroup()}
+				</div>
+			)}
 		</div>
 	);
 };
@@ -375,9 +575,8 @@ export const SourceSelector = React.memo(function SourceSelector({
 	const [internalSources, setInternalSources] = useState<DesktopSource[]>([]);
 	const [internalLoading, setInternalLoading] = useState(false);
 	const [internalSelectedSource, setInternalSelectedSource] = useState("Screen");
-	const [internalSelectedSourceType, setInternalSelectedSourceType] = useState<
-		"screen" | "window"
-	>("screen");
+	const [internalSelectedSourceType, setInternalSelectedSourceType] =
+		useState<CaptureSourceType>("screen");
 
 	// Determine if we should use internal or external state/logic
 	const isAutonomous = propsOpen === undefined;
@@ -407,6 +606,20 @@ export const SourceSelector = React.memo(function SourceSelector({
 
 	const onFetchSources = propsOnFetchSources ?? defaultFetchSources;
 
+	const onOpenAreaSelector = useCallback(async (): Promise<DesktopSource | null> => {
+		if (!window.electronAPI?.openAreaSelector) return null;
+		try {
+			const result = await window.electronAPI.openAreaSelector();
+			if (result && result.source) {
+				return result.source as DesktopSource;
+			}
+			return null;
+		} catch (error) {
+			console.error("Failed to open area selector:", error);
+			return null;
+		}
+	}, []);
+
 	// Default selection logic
 	const onSourceSelect = useCallback(
 		async (source: DesktopSource) => {
@@ -419,7 +632,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 				const result = await window.electronAPI.selectSource(source);
 				if (result) {
 					setInternalSelectedSource(source.name);
-					setInternalSelectedSourceType(isWindowSource(source) ? "window" : "screen");
+					setInternalSelectedSourceType(source.sourceType ?? "screen");
 				}
 			} catch (error) {
 				console.error("Failed to select source:", error);
@@ -512,6 +725,10 @@ export const SourceSelector = React.memo(function SourceSelector({
 		>
 			{selectedSourceType === "window" ? (
 				<AppWindowIcon size={16} className="shrink-0" />
+			) : selectedSourceType === "area" ? (
+				<FrameCornersIcon size={16} className="shrink-0" />
+			) : selectedSourceType === "device" ? (
+				<VideoCameraIcon size={16} className="shrink-0" />
 			) : (
 				<MonitorIcon size={16} className="shrink-0" />
 			)}
@@ -519,7 +736,11 @@ export const SourceSelector = React.memo(function SourceSelector({
 				<span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#90909c]">
 					{selectedSourceType === "window"
 						? t("recording.window")
-						: t("recording.screen")}
+						: selectedSourceType === "area"
+							? t("recording.area", "Area")
+							: selectedSourceType === "device"
+								? t("recording.device", "Device")
+								: t("recording.screen")}
 				</span>
 				<MarqueeText text={selectedSource} />
 			</div>
@@ -569,6 +790,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 					loading={loading}
 					open={open}
 					onSourceSelect={onSourceSelect}
+					onOpenAreaSelector={onOpenAreaSelector}
 				/>
 			</PopoverContent>
 		</Popover>

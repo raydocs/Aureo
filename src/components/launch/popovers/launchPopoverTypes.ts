@@ -1,10 +1,14 @@
+export type CaptureSourceType = "screen" | "window" | "area" | "device";
+
 export interface DesktopSource {
 	id: string;
 	name: string;
 	thumbnail: string | null;
 	display_id: string;
 	appIcon: string | null;
-	sourceType?: "screen" | "window";
+	sourceType?: CaptureSourceType;
+	deviceId?: string;
+	geometry?: ProcessedDesktopSource["geometry"];
 	appName?: string;
 	windowTitle?: string;
 }
@@ -21,6 +25,14 @@ export function isScreenSource(s: DesktopSource): boolean {
  */
 export function isWindowSource(s: DesktopSource): boolean {
 	return s.sourceType === "window" || s.id.startsWith("window:");
+}
+
+export function isAreaSource(s: DesktopSource): boolean {
+	return s.sourceType === "area" || s.id.startsWith("area:");
+}
+
+export function isDeviceSource(s: DesktopSource): boolean {
+	return s.sourceType === "device" || s.id.startsWith("device:");
 }
 
 export function mapRawSource(s: DesktopSource): DesktopSource {
@@ -42,6 +54,8 @@ export function mapRawSource(s: DesktopSource): DesktopSource {
 		display_id: s.display_id,
 		appIcon: s.appIcon,
 		sourceType: type,
+		deviceId: s.deviceId,
+		geometry: s.geometry,
 		appName,
 		windowTitle: s.windowTitle ?? displayName,
 	};

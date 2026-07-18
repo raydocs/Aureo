@@ -177,6 +177,15 @@ export function getNormalizedCursorPoint() {
 		? { x: linuxCursorCache.x / primarySf, y: linuxCursorCache.y / primarySf }
 		: fallbackCursor;
 
+	const areaSelection =
+		selectedSource?.sourceType === "area" ? selectedSource.geometry?.selection : null;
+	if (areaSelection && areaSelection.width > 0 && areaSelection.height > 0) {
+		return {
+			cx: clamp((cursor.x - areaSelection.x) / areaSelection.width, 0, 1),
+			cy: clamp((cursor.y - areaSelection.y) / areaSelection.height, 0, 1),
+		};
+	}
+
 	const windowBounds = selectedSource?.id?.startsWith("window:") ? selectedWindowBounds : null;
 	if (windowBounds) {
 		const sf =

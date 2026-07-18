@@ -62,6 +62,8 @@
 		"stop": "Detener",
 		"cancel": "Cancelar",
 		"more": "Más",
+		"quality": "Calidad",
+		"qualityPreset": "Calidad de grabación",
 		"update": {
 			"update": "Actualizar",
 			"updated": "Actualizado",

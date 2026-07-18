@@ -10,23 +10,18 @@ import {
 	selectWebcamRecordingMimeType,
 } from "./recordingMimeType";
 import {
+	computeRecordingBitrate,
+	getRecordingQualityPreset,
+	loadRecordingQualityPreset,
+	type RecordingQualityPresetId,
+	saveRecordingQualityPreset,
+} from "./recordingQuality";
+import {
 	buildRecordingWebcamAppearance,
 	type RecordingWebcamAppearanceSnapshot,
 } from "./recordingWebcamAppearance";
 import { loadWebcamDeviceSettings, saveWebcamDeviceSettings } from "./webcamDeviceSettings";
 
-const TARGET_FRAME_RATE = 60;
-const TARGET_WIDTH = 3840;
-const TARGET_HEIGHT = 2160;
-const FOUR_K_PIXELS = TARGET_WIDTH * TARGET_HEIGHT;
-const QHD_WIDTH = 2560;
-const QHD_HEIGHT = 1440;
-const QHD_PIXELS = QHD_WIDTH * QHD_HEIGHT;
-const BITRATE_4K = 45_000_000;
-const BITRATE_QHD = 28_000_000;
-const BITRATE_BASE = 18_000_000;
-const HIGH_FRAME_RATE_THRESHOLD = 60;
-const HIGH_FRAME_RATE_BOOST = 1.7;
 const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
 const CODEC_ALIGNMENT = 2;
@@ -157,6 +152,8 @@ type UseScreenRecorderReturn = {
 	setWebcamEnabled: (enabled: boolean) => void;
 	webcamDeviceId: string | undefined;
 	setWebcamDeviceId: (deviceId: string | undefined) => void;
+	recordingQualityPresetId: RecordingQualityPresetId;
+	setRecordingQualityPresetId: (presetId: RecordingQualityPresetId) => void;
 	countdownDelay: number;
 	setCountdownDelay: (delay: number) => void;
 };
@@ -228,6 +225,37 @@ export function shouldUseNativeWindowsCaptureForSource(
 	source: Pick<ProcessedDesktopSource, "id"> | null | undefined,
 ): boolean {
 	return source?.id?.startsWith("screen:") === true || source?.id?.startsWith("window:") === true;
+}
+
+/**
+ * Native macOS ScreenCaptureKit path eligibility.
+ * Area sources with any valid geometry (single- or multi-display) use native capture.
+ */
+export function shouldUseNativeMacScreenCaptureForSource(
+	source: Pick<ProcessedDesktopSource, "id" | "sourceType" | "geometry"> | null | undefined,
+): boolean {
+	if (!source) {
+		return false;
+	}
+	if (source.id?.startsWith("screen:") || source.id?.startsWith("window:")) {
+		return true;
+	}
+	return (
+		source.sourceType === "area" &&
+		Array.isArray(source.geometry?.segments) &&
+		source.geometry.segments.length > 0
+	);
+}
+
+export function resolveCaptureDeviceId(
+	source: Pick<ProcessedDesktopSource, "id" | "sourceType" | "deviceId"> | null | undefined,
+): string | null {
+	if (!source || (source.sourceType !== "device" && !source.id.startsWith("device:"))) {
+		return null;
+	}
+
+	const deviceId = source.deviceId?.trim() || source.id.slice("device:".length).trim();
+	return deviceId || null;
 }
 
 export function createProcessedMicrophoneConstraints(
@@ -348,6 +376,9 @@ export function useScreenRecorder({
 	const [webcamDeviceId, setWebcamDeviceId] = useState<string | undefined>(
 		() => loadWebcamDeviceSettings().deviceId ?? undefined,
 	);
+	const [recordingQualityPresetId, setRecordingQualityPresetIdState] =
+		useState<RecordingQualityPresetId>(loadRecordingQualityPreset);
+	const recordingQualityPreset = getRecordingQualityPreset(recordingQualityPresetId);
 
 	useEffect(() => {
 		saveWebcamDeviceSettings({
@@ -571,22 +602,6 @@ export function useScreenRecorder({
 	const selectWebcamMimeType = useCallback(() => {
 		return selectWebcamRecordingMimeType();
 	}, []);
-
-	const computeBitrate = (width: number, height: number) => {
-		const pixels = width * height;
-		const highFrameRateBoost =
-			TARGET_FRAME_RATE >= HIGH_FRAME_RATE_THRESHOLD ? HIGH_FRAME_RATE_BOOST : 1;
-
-		if (pixels >= FOUR_K_PIXELS) {
-			return Math.round(BITRATE_4K * highFrameRateBoost);
-		}
-
-		if (pixels >= QHD_PIXELS) {
-			return Math.round(BITRATE_QHD * highFrameRateBoost);
-		}
-
-		return Math.round(BITRATE_BASE * highFrameRateBoost);
-	};
 
 	const cleanupCapturedMedia = useCallback(() => {
 		if (stream.current) {
@@ -1376,6 +1391,11 @@ export function useScreenRecorder({
 		void window.electronAPI.setRecordingPreferences({ voiceEnhancementMode: mode });
 	}, []);
 
+	const persistRecordingQualityPresetId = useCallback((presetId: RecordingQualityPresetId) => {
+		setRecordingQualityPresetIdState(presetId);
+		saveRecordingQualityPreset(presetId);
+	}, []);
+
 	useEffect(() => {
 		let cleanup: (() => void) | undefined;
 
@@ -1490,13 +1510,19 @@ export function useScreenRecorder({
 				return;
 			}
 
+			const selectedCaptureDeviceId = resolveCaptureDeviceId(selectedSource);
 			recordingSessionTimestamp.current = Date.now();
 			resetRecordingClock(recordingSessionTimestamp.current);
-			await prepareWebcamRecorder();
+			if (selectedCaptureDeviceId && selectedCaptureDeviceId === webcamDeviceId) {
+				toast.info(
+					"The selected capture device is being used as the main recording source, so the webcam overlay is disabled for this recording.",
+				);
+			} else {
+				await prepareWebcamRecorder();
+			}
 			const useNativeMacScreenCapture =
 				platform === "darwin" &&
-				(selectedSource.id?.startsWith("screen:") ||
-					selectedSource.id?.startsWith("window:")) &&
+				shouldUseNativeMacScreenCaptureForSource(selectedSource) &&
 				typeof window.electronAPI.startNativeScreenRecording === "function";
 
 			let useNativeWindowsCapture = false;
@@ -1548,6 +1574,9 @@ export function useScreenRecorder({
 					{
 						capturesSystemAudio: systemAudioEnabled,
 						capturesMicrophone: microphoneEnabled,
+						fps: recordingQualityPreset.frameRate,
+						maxWidth: recordingQualityPreset.maxWidth,
+						maxHeight: recordingQualityPreset.maxHeight,
 						microphoneDeviceId,
 						microphoneLabel: micLabel,
 						voiceEnhancementMode,
@@ -1673,14 +1702,21 @@ export function useScreenRecorder({
 				}
 			}
 
-			const browserCursorPolicy = resolveBrowserCaptureCursorPolicy({
-				nativeWindowsCaptureStartFailed,
-			});
+			const captureDeviceId = selectedCaptureDeviceId;
+			const browserCursorPolicy = captureDeviceId
+				? {
+						streamCursor: "never" as const,
+						hideOsCursorBeforeRecording: false,
+						hideEditorOverlayCursorByDefault: true,
+					}
+				: resolveBrowserCaptureCursorPolicy({ nativeWindowsCaptureStartFailed });
 			hideEditorOverlayCursorByDefault.current =
 				browserCursorPolicy.hideEditorOverlayCursorByDefault;
 
 			const wantsAudioCapture = microphoneEnabled || systemAudioEnabled;
-			const browserCaptureSource = await resolveBrowserCaptureSource(selectedSource);
+			const browserCaptureSource = captureDeviceId
+				? selectedSource
+				: await resolveBrowserCaptureSource(selectedSource);
 
 			if (
 				browserCaptureSource?.id?.startsWith("screen:fallback:") ||
@@ -1713,14 +1749,37 @@ export function useScreenRecorder({
 				mandatory: {
 					chromeMediaSource: CHROME_MEDIA_SOURCE,
 					chromeMediaSourceId: browserCaptureSource.id,
-					maxWidth: TARGET_WIDTH,
-					maxHeight: TARGET_HEIGHT,
-					maxFrameRate: TARGET_FRAME_RATE,
+					maxWidth: recordingQualityPreset.maxWidth,
+					maxHeight: recordingQualityPreset.maxHeight,
+					maxFrameRate: recordingQualityPreset.frameRate,
 					minFrameRate: MIN_FRAME_RATE,
 					googCaptureCursor: browserCursorPolicy.streamCursor === "always",
 				},
 				cursor: browserCursorPolicy.streamCursor,
 			};
+			const captureDeviceVideoConstraints: MediaTrackConstraints | undefined = captureDeviceId
+				? {
+						deviceId: { exact: captureDeviceId },
+						width: {
+							ideal: recordingQualityPreset.maxWidth,
+							max: recordingQualityPreset.maxWidth,
+						},
+						height: {
+							ideal: recordingQualityPreset.maxHeight,
+							max: recordingQualityPreset.maxHeight,
+						},
+						frameRate: {
+							ideal: recordingQualityPreset.frameRate,
+							max: recordingQualityPreset.frameRate,
+						},
+					}
+				: undefined;
+
+			if (captureDeviceId && systemAudioEnabled) {
+				toast.info(
+					"System audio is unavailable for device capture. Microphone audio can still be recorded.",
+				);
+			}
 
 			if (wantsAudioCapture) {
 				let screenMediaStream: MediaStream;
@@ -1729,16 +1788,30 @@ export function useScreenRecorder({
 						audio: withAudio,
 						video: {
 							displaySurface: "monitor",
-							width: { ideal: TARGET_WIDTH, max: TARGET_WIDTH },
-							height: { ideal: TARGET_HEIGHT, max: TARGET_HEIGHT },
-							frameRate: { ideal: TARGET_FRAME_RATE, max: TARGET_FRAME_RATE },
+							width: {
+								ideal: recordingQualityPreset.maxWidth,
+								max: recordingQualityPreset.maxWidth,
+							},
+							height: {
+								ideal: recordingQualityPreset.maxHeight,
+								max: recordingQualityPreset.maxHeight,
+							},
+							frameRate: {
+								ideal: recordingQualityPreset.frameRate,
+								max: recordingQualityPreset.frameRate,
+							},
 							cursor: browserCursorPolicy.streamCursor,
 						},
 						selfBrowserSurface: "exclude",
 						surfaceSwitching: "exclude",
 					});
 
-				if (systemAudioEnabled) {
+				if (captureDeviceVideoConstraints) {
+					screenMediaStream = await mediaDevices.getUserMedia({
+						audio: false,
+						video: captureDeviceVideoConstraints,
+					});
+				} else if (systemAudioEnabled) {
 					try {
 						screenMediaStream = useLinuxPortal
 							? await acquireLinuxPortalStream(true)
@@ -1833,25 +1906,39 @@ export function useScreenRecorder({
 					stream.current.addTrack(micAudioTrack);
 				}
 			} else {
-				const mediaStream = useLinuxPortal
-					? await mediaDevices.getDisplayMedia({
+				const mediaStream = captureDeviceVideoConstraints
+					? await mediaDevices.getUserMedia({
 							audio: false,
-							video: {
-								displaySurface: selectedSource.id?.startsWith("window:")
-									? "window"
-									: "monitor",
-								width: { ideal: TARGET_WIDTH, max: TARGET_WIDTH },
-								height: { ideal: TARGET_HEIGHT, max: TARGET_HEIGHT },
-								frameRate: { ideal: TARGET_FRAME_RATE, max: TARGET_FRAME_RATE },
-								cursor: browserCursorPolicy.streamCursor,
-							},
-							selfBrowserSurface: "exclude",
-							surfaceSwitching: "exclude",
+							video: captureDeviceVideoConstraints,
 						})
-					: await mediaDevices.getUserMedia({
-							audio: false,
-							video: browserScreenVideoConstraints,
-						});
+					: useLinuxPortal
+						? await mediaDevices.getDisplayMedia({
+								audio: false,
+								video: {
+									displaySurface: selectedSource.id?.startsWith("window:")
+										? "window"
+										: "monitor",
+									width: {
+										ideal: recordingQualityPreset.maxWidth,
+										max: recordingQualityPreset.maxWidth,
+									},
+									height: {
+										ideal: recordingQualityPreset.maxHeight,
+										max: recordingQualityPreset.maxHeight,
+									},
+									frameRate: {
+										ideal: recordingQualityPreset.frameRate,
+										max: recordingQualityPreset.frameRate,
+									},
+									cursor: browserCursorPolicy.streamCursor,
+								},
+								selfBrowserSurface: "exclude",
+								surfaceSwitching: "exclude",
+							})
+						: await mediaDevices.getUserMedia({
+								audio: false,
+								video: browserScreenVideoConstraints,
+							});
 
 				stream.current = mediaStream;
 				videoTrack = mediaStream.getVideoTracks()[0];
@@ -1863,13 +1950,22 @@ export function useScreenRecorder({
 
 			try {
 				await videoTrack.applyConstraints({
-					frameRate: { ideal: TARGET_FRAME_RATE, max: TARGET_FRAME_RATE },
-					width: { ideal: TARGET_WIDTH, max: TARGET_WIDTH },
-					height: { ideal: TARGET_HEIGHT, max: TARGET_HEIGHT },
+					frameRate: {
+						ideal: recordingQualityPreset.frameRate,
+						max: recordingQualityPreset.frameRate,
+					},
+					width: {
+						ideal: recordingQualityPreset.maxWidth,
+						max: recordingQualityPreset.maxWidth,
+					},
+					height: {
+						ideal: recordingQualityPreset.maxHeight,
+						max: recordingQualityPreset.maxHeight,
+					},
 				} as MediaTrackConstraints);
 			} catch (error) {
 				console.warn(
-					"Unable to lock 4K/60fps constraints, using best available track settings.",
+					`Unable to lock ${recordingQualityPreset.resolutionLabel}/${recordingQualityPreset.frameRate}fps constraints, using best available track settings.`,
 					error,
 				);
 			}
@@ -1877,17 +1973,21 @@ export function useScreenRecorder({
 			let {
 				width = DEFAULT_WIDTH,
 				height = DEFAULT_HEIGHT,
-				frameRate = TARGET_FRAME_RATE,
+				frameRate = recordingQualityPreset.frameRate,
 			} = videoTrack.getSettings();
 
 			width = Math.floor(width / CODEC_ALIGNMENT) * CODEC_ALIGNMENT;
 			height = Math.floor(height / CODEC_ALIGNMENT) * CODEC_ALIGNMENT;
 
-			const videoBitsPerSecond = computeBitrate(width, height);
+			const videoBitsPerSecond = computeRecordingBitrate(
+				width,
+				height,
+				recordingQualityPreset.frameRate,
+			);
 			const mimeType = selectMimeType();
 
 			console.log(
-				`Recording at ${width}x${height} @ ${frameRate ?? TARGET_FRAME_RATE}fps using ${mimeType ?? "browser default"} / ${Math.round(
+				`Recording at ${width}x${height} @ ${frameRate ?? recordingQualityPreset.frameRate}fps using ${mimeType ?? "browser default"} / ${Math.round(
 					videoBitsPerSecond / BITS_PER_MEGABIT,
 				)} Mbps`,
 			);
@@ -2240,6 +2340,8 @@ export function useScreenRecorder({
 		setWebcamEnabled,
 		webcamDeviceId,
 		setWebcamDeviceId,
+		recordingQualityPresetId,
+		setRecordingQualityPresetId: persistRecordingQualityPresetId,
 		countdownDelay,
 		setCountdownDelay,
 	};

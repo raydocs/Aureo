@@ -14,6 +14,16 @@ describe("DropdownItem", () => {
 		expect(html).not.toContain("aria-checked");
 	});
 
+	it("exposes unavailable actions as disabled controls", () => {
+		const html = renderToStaticMarkup(
+			<DropdownItem icon={<span />} onClick={vi.fn()} disabled>
+				Unavailable
+			</DropdownItem>,
+		);
+
+		expect(html).toContain("disabled");
+	});
+
 	it.each([
 		"menuitemradio",
 		"menuitemcheckbox",

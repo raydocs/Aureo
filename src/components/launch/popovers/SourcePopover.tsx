@@ -2,6 +2,7 @@ import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { SourceSelector } from "../SourceSelector";
 import { useLaunchPopoverCoordinator } from "./LaunchPopoverCoordinator";
 import {
+	type CaptureSourceType,
 	type DesktopSource,
 	isScreenSource,
 	isWindowSource,
@@ -19,7 +20,7 @@ export function SourcePopover({
 }: {
 	trigger: ReactNode;
 	selectedSource: string;
-	selectedSourceType?: "screen" | "window";
+	selectedSourceType?: CaptureSourceType;
 	onSourceSelect: (source: DesktopSource) => Promise<void> | void;
 	onOpen?: () => void;
 }) {
@@ -48,6 +49,18 @@ export function SourcePopover({
 	const screenSources = useMemo(() => sources.filter(isScreenSource), [sources]);
 	const windowSources = useMemo(() => sources.filter(isWindowSource), [sources]);
 
+	const handleSourceSelect = useCallback(
+		async (source: DesktopSource) => {
+			try {
+				await onSourceSelect(source);
+				requestClose(POPOVER_ID);
+			} catch (error) {
+				console.error("Failed to select source:", error);
+			}
+		},
+		[onSourceSelect, requestClose],
+	);
+
 	return (
 		<SourceSelector
 			screenSources={screenSources}
@@ -55,14 +68,7 @@ export function SourcePopover({
 			selectedSource={selectedSource}
 			selectedSourceType={selectedSourceType}
 			loading={loading}
-			onSourceSelect={async (source) => {
-				try {
-					await onSourceSelect(source);
-					requestClose(POPOVER_ID);
-				} catch (error) {
-					console.error("Failed to select source:", error);
-				}
-			}}
+			onSourceSelect={handleSourceSelect}
 			onFetchSources={fetchSources}
 			open={open}
 			onOpenChange={(nextOpen) => {

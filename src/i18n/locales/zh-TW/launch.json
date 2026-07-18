@@ -62,6 +62,8 @@
 		"stop": "停止",
 		"cancel": "取消",
 		"more": "更多",
+		"quality": "畫質",
+		"qualityPreset": "錄製畫質",
 		"update": {
 			"update": "更新",
 			"updated": "已更新",

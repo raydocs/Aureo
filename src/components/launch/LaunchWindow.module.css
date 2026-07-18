@@ -224,6 +224,11 @@
 	max-width: 158px;
 }
 
+.qualityControl {
+	width: 144px;
+	max-width: 144px;
+}
+
 .controlText {
 	min-width: 0;
 	max-width: 126px;
@@ -573,6 +578,16 @@
 .ddItem:hover {
 	background: var(--launch-hover);
 	color: var(--launch-text);
+}
+
+.ddItem:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+.ddItem:disabled:hover {
+	background: transparent;
+	color: var(--launch-text-muted);
 }
 
 .ddItem:active {

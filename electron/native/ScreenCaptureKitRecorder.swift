@@ -3,10 +3,20 @@ import ScreenCaptureKit
 import AVFoundation
 import CoreGraphics
 
+struct CaptureRectConfig: Codable {
+	let x: Double
+	let y: Double
+	let width: Double
+	let height: Double
+}
+
 struct CaptureConfig: Codable {
 	let fps: Int?
+	let maxWidth: Int?
+	let maxHeight: Int?
 	let displayId: CGDirectDisplayID?
 	let windowId: UInt32?
+	let sourceRect: CaptureRectConfig?
 	let outputPath: String?
 	let capturesSystemAudio: Bool?
 	let capturesMicrophone: Bool?
@@ -16,7 +26,7 @@ struct CaptureConfig: Codable {
 	let microphoneOutputPath: String?
 }
 
-let targetCaptureFPS = 60
+let defaultCaptureFPS = 60
 let maxInlineAudioTailExtension = CMTime(seconds: 2.0, preferredTimescale: 600)
 
 final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
@@ -53,6 +63,7 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 	private var capturesMicrophone = false
 	private var writesSystemAudioToSeparateTrack = false
 	private var writesMicrophoneToSeparateTrack = false
+	private var captureFPS = defaultCaptureFPS
 
 	private let microphoneOutputTypeRawValue = 2
 
@@ -77,8 +88,8 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 		}
 		writesSystemAudioToSeparateTrack = capturesSystemAudio
 		writesMicrophoneToSeparateTrack = capturesSystemAudio && capturesMicrophone
-		let requestedFPS = max(targetCaptureFPS, config.fps ?? targetCaptureFPS)
-		streamConfig.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(requestedFPS))
+		captureFPS = max(1, config.fps ?? defaultCaptureFPS)
+		streamConfig.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(captureFPS))
 		streamConfig.queueDepth = 6
 		streamConfig.pixelFormat = kCVPixelFormatType_32BGRA
 		streamConfig.showsCursor = false
@@ -110,8 +121,14 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 				$0.frame.intersects(window.frame) || $0.frame.contains(CGPoint(x: window.frame.midX, y: window.frame.midY))
 			})
 			let scaleFactor = ScreenCaptureRecorder.scaleFactor(for: candidateDisplay?.displayID ?? CGMainDisplayID())
-			outputWidth = max(2, Int(window.frame.width) * scaleFactor)
-			outputHeight = max(2, Int(window.frame.height) * scaleFactor)
+			let outputSize = ScreenCaptureRecorder.constrainedOutputSize(
+				width: max(2, Int(window.frame.width) * scaleFactor),
+				height: max(2, Int(window.frame.height) * scaleFactor),
+				maxWidth: config.maxWidth,
+				maxHeight: config.maxHeight
+			)
+			outputWidth = outputSize.width
+			outputHeight = outputSize.height
 			if #available(macOS 14.0, *) {
 				streamConfig.ignoreShadowsSingleWindow = true
 			}
@@ -127,8 +144,31 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 			filter = SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
 			let displayBounds = CGDisplayBounds(display.displayID)
 			let scaleFactor = ScreenCaptureRecorder.scaleFactor(for: display.displayID)
-			outputWidth = max(2, Int(displayBounds.width) * scaleFactor)
-			outputHeight = max(2, Int(displayBounds.height) * scaleFactor)
+			let fullSourceRect = CGRect(x: 0, y: 0, width: displayBounds.width, height: displayBounds.height)
+			let sourceRect: CGRect
+			if let requestedSourceRect = config.sourceRect {
+				let requestedRect = CGRect(
+					x: requestedSourceRect.x,
+					y: requestedSourceRect.y,
+					width: requestedSourceRect.width,
+					height: requestedSourceRect.height
+				)
+				sourceRect = requestedRect.intersection(fullSourceRect)
+				guard !sourceRect.isNull, sourceRect.width > 0, sourceRect.height > 0 else {
+					throw NSError(domain: "AureoCapture", code: 18, userInfo: [NSLocalizedDescriptionKey: "Capture area is outside the selected display"])
+				}
+				streamConfig.sourceRect = sourceRect
+			} else {
+				sourceRect = fullSourceRect
+			}
+			let outputSize = ScreenCaptureRecorder.constrainedOutputSize(
+				width: max(2, Int(sourceRect.width) * scaleFactor),
+				height: max(2, Int(sourceRect.height) * scaleFactor),
+				maxWidth: config.maxWidth,
+				maxHeight: config.maxHeight
+			)
+			outputWidth = outputSize.width
+			outputHeight = outputSize.height
 			streamConfig.width = outputWidth
 			streamConfig.height = outputHeight
 		}
@@ -466,7 +506,7 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 			return lastVideoDuration
 		}
 
-		return CMTime(value: 1, timescale: CMTimeScale(targetCaptureFPS))
+		return CMTime(value: 1, timescale: CMTimeScale(captureFPS))
 	}
 
 	private func latestInlineAudioEndTime() -> CMTime {
@@ -581,6 +621,20 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 				}
 			}
 		}
+	}
+
+	private static func constrainedOutputSize(
+		width: Int,
+		height: Int,
+		maxWidth: Int?,
+		maxHeight: Int?
+	) -> (width: Int, height: Int) {
+		let widthLimit = max(2, maxWidth ?? width)
+		let heightLimit = max(2, maxHeight ?? height)
+		let scale = min(1.0, min(Double(widthLimit) / Double(width), Double(heightLimit) / Double(height)))
+		let scaledWidth = max(2, Int(floor(Double(width) * scale)) / 2 * 2)
+		let scaledHeight = max(2, Int(floor(Double(height) * scale)) / 2 * 2)
+		return (scaledWidth, scaledHeight)
 	}
 
 	private static func scaleFactor(for displayId: CGDirectDisplayID) -> Int {

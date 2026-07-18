@@ -62,6 +62,8 @@
 		"stop": "중지",
 		"cancel": "취소",
 		"more": "더 보기",
+		"quality": "화질",
+		"qualityPreset": "녹화 화질",
 		"update": {
 			"update": "업데이트",
 			"updated": "업데이트 완료",

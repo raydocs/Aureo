@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CURSOR_TELEMETRY_VERSION } from "../constants";
 
-const { writeFile, rm } = vi.hoisted(() => ({
+const { writeFile, rm, cursorScreenPoint } = vi.hoisted(() => ({
 	writeFile: vi.fn(),
 	rm: vi.fn(),
+	cursorScreenPoint: { x: 0, y: 0 },
 }));
 
 vi.mock("node:fs/promises", () => ({
@@ -23,16 +24,22 @@ vi.mock("electron", () => ({
 vi.mock("../utils", () => ({
 	getTelemetryPathForVideo: vi.fn(() => "/tmp/recording.cursor.json"),
 	getScreen: vi.fn(() => ({
-		getCursorScreenPoint: () => ({ x: 0, y: 0 }),
+		getCursorScreenPoint: () => cursorScreenPoint,
 		getPrimaryDisplay: () => ({ scaleFactor: 1 }),
 		getDisplayNearestPoint: () => ({ bounds: { x: 0, y: 0, width: 1, height: 1 } }),
 		getAllDisplays: () => [],
 	})),
 }));
 
-import { activeCursorSamples, setActiveCursorSamples, setCursorCaptureStartTimeMs } from "../state";
+import {
+	activeCursorSamples,
+	setActiveCursorSamples,
+	setCursorCaptureStartTimeMs,
+	setSelectedSource,
+} from "../state";
 import {
 	getCursorCaptureElapsedMs,
+	getNormalizedCursorPoint,
 	normalizeCursorTelemetrySamples,
 	pauseCursorCapture,
 	pauseCursorCaptureAtBoundary,
@@ -48,6 +55,9 @@ describe("cursor telemetry pause clock", () => {
 		rm.mockReset();
 		setCursorCaptureStartTimeMs(1_000);
 		setActiveCursorSamples([]);
+		setSelectedSource(null);
+		cursorScreenPoint.x = 0;
+		cursorScreenPoint.y = 0;
 		resetCursorCaptureClock();
 	});
 
@@ -82,6 +92,24 @@ describe("cursor telemetry pause clock", () => {
 
 		resumeCursorCapture(1_700);
 		expect(getCursorCaptureElapsedMs(1_900)).toBe(400);
+	});
+
+	it("normalizes cursor positions against a cross-display Area selection", () => {
+		setSelectedSource({
+			id: "area:-100,50,400x200",
+			name: "Area 400×200",
+			sourceType: "area",
+			geometry: {
+				selection: { x: -100, y: 50, width: 400, height: 200 },
+				outputScaleFactor: 2,
+				outputSize: { width: 800, height: 400 },
+				segments: [],
+			},
+		});
+		cursorScreenPoint.x = 100;
+		cursorScreenPoint.y = 100;
+
+		expect(getNormalizedCursorPoint()).toEqual({ cx: 0.5, cy: 0.25 });
 	});
 
 	it("normalizes cursor telemetry samples before persisting them", async () => {

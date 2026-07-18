@@ -73,6 +73,7 @@ type RendererMarketplaceSearchResult =
 	import("./extensions/extensionTypes").MarketplaceSearchResult;
 type RendererRecordingSessionData = import("./ipc/types").RecordingSessionData;
 type RendererRecordingWebcamAppearance = import("./ipc/types").RecordingWebcamAppearance;
+type RendererRecordingHealthResult = import("./ipc/recording/healthCore").RecordingHealthResult;
 
 interface RendererFfmpegAudioMuxMetrics {
 	tempVideoWriteMs?: number;
@@ -224,6 +225,20 @@ interface Window {
 		getSources: (opts: Electron.SourcesOptions) => Promise<ProcessedDesktopSource[]>;
 		switchToEditor: () => Promise<void>;
 		openSourceSelector: () => Promise<void>;
+		openAreaSelector: () => Promise<
+			{ canceled: false; source: ProcessedDesktopSource } | { canceled: true; source: null }
+		>;
+		cancelAreaSelection: () => Promise<{ canceled: true; source: null }>;
+		completeAreaSelection: (localRect: {
+			x: number;
+			y: number;
+			width: number;
+			height: number;
+		}) => Promise<
+			| { canceled: false; source: ProcessedDesktopSource }
+			| { canceled: false; source: null; error?: string }
+			| { canceled: true; source: null; error?: string }
+		>;
 		selectSource: (source: ProcessedDesktopSource) => Promise<ProcessedDesktopSource>;
 		showSourceHighlight: (source: ProcessedDesktopSource) => Promise<{ success: boolean }>;
 		getSelectedSource: () => Promise<ProcessedDesktopSource | null>;
@@ -235,6 +250,9 @@ interface Window {
 			options?: {
 				capturesSystemAudio?: boolean;
 				capturesMicrophone?: boolean;
+				fps?: number;
+				maxWidth?: number;
+				maxHeight?: number;
 				microphoneDeviceId?: string;
 				microphoneLabel?: string;
 				voiceEnhancementMode?: "off" | "standard" | "strong";
@@ -624,6 +642,8 @@ interface Window {
 			status: string;
 			error?: string;
 		}>;
+		/** Read-only polling snapshot for launch HUD preflight. Never prompts. */
+		getRecordingHealthStatus: () => Promise<RendererRecordingHealthResult>;
 		openScreenRecordingPreferences: () => Promise<{ success: boolean; error?: string }>;
 		openAccessibilityPreferences: () => Promise<{ success: boolean; error?: string }>;
 		saveExportedVideo: (
@@ -958,9 +978,12 @@ interface ProcessedDesktopSource {
 	thumbnail: string | null;
 	appIcon: string | null;
 	originalName?: string;
-	sourceType?: "screen" | "window";
+	sourceType?: "screen" | "window" | "area" | "device";
+	deviceId?: string;
 	appName?: string;
 	windowTitle?: string;
+	/** Present when sourceType is "area". Scale-aware multi-display layout. */
+	geometry?: import("./ipc/recording/areaGeometry").AreaCaptureLayout;
 }
 
 interface CursorTelemetryPoint {

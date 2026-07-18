@@ -109,7 +109,7 @@
 	justify-content: center;
 	gap: 6px;
 	height: 32px;
-	padding: 0 8px;
+	padding: 0 6px;
 	border-radius: 8px;
 	border: 1px solid transparent;
 	background: transparent;
@@ -422,8 +422,9 @@
 	}
 }
 
-/* Empty state */
-.source-selector-empty {
+/* Empty / action panel states */
+.source-selector-empty,
+.source-selector-action-panel {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -436,8 +437,54 @@
 	font-weight: 500;
 }
 
-.source-selector-empty small {
+.source-selector-empty small,
+.source-selector-action-body {
 	font-size: 11px;
 	font-weight: 400;
 	opacity: 0.75;
+	line-height: 1.35;
+	max-width: 220px;
+}
+
+.source-selector-action-panel {
+	gap: 12px;
+}
+
+.source-selector-action-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--launch-text);
+}
+
+.source-selector-action-button {
+	min-width: 120px;
+	border: 1px solid var(--launch-border-strong);
+	background: var(--launch-selected);
+	color: var(--launch-accent);
+	font-weight: 600;
+	font-size: 12px;
+	border-radius: 8px;
+	padding: 6px 12px;
+	cursor: pointer;
+	transition:
+		background-color 0.12s ease,
+		color 0.12s ease,
+		border-color 0.12s ease;
+}
+
+.source-selector-action-button:hover {
+	background: var(--launch-hover);
+}
+
+.source-selector-action-button:focus-visible {
+	outline: 2px solid var(--launch-accent);
+	outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+	.source-selector-action-button {
+		border: 1px solid ButtonText !important;
+		background: ButtonFace !important;
+		color: ButtonText !important;
+	}
 }

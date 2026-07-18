@@ -1,4 +1,5 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
+import type { AreaCompositionLayout } from "./recording/macAreaComposition";
 import type {
 	CursorInteractionType,
 	CursorTelemetryPoint,
@@ -31,6 +32,27 @@ export let nativeCaptureSystemAudioPath: string | null = null;
 export let nativeCaptureMicrophonePath: string | null = null;
 export let nativeCaptureVoiceEnhancementMode: "off" | "standard" | "strong" = "standard";
 export let nativeCapturePaused = false;
+
+/** One native helper process for a multi-display Area segment. */
+export type NativeAreaHelperEntry = {
+	process: ChildProcessWithoutNullStreams;
+	tempOutputPath: string;
+	outputBuffer: string;
+};
+
+/**
+ * Multi-display Area session: one helper per geometry segment, composed into
+ * finalOutputPath after stop. Single-display Area continues to use the
+ * singleton nativeCaptureProcess path.
+ */
+export type NativeAreaRecordingSession = {
+	finalOutputPath: string;
+	layout: AreaCompositionLayout;
+	frameRate: number;
+	helpers: NativeAreaHelperEntry[];
+};
+
+export let nativeAreaRecordingSession: NativeAreaRecordingSession | null = null;
 
 // ── Native cursor monitor ─────────────────────────────────────────────────────
 export let nativeCursorMonitorProcess: ChildProcessWithoutNullStreams | null = null;
@@ -150,6 +172,10 @@ export function setNativeCaptureVoiceEnhancementMode(v: "off" | "standard" | "st
 }
 export function setNativeCapturePaused(v: boolean) {
 	nativeCapturePaused = v;
+}
+
+export function setNativeAreaRecordingSession(v: NativeAreaRecordingSession | null) {
+	nativeAreaRecordingSession = v;
 }
 
 export function setNativeCursorMonitorProcess(v: ChildProcessWithoutNullStreams | null) {

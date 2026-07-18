@@ -17,6 +17,8 @@ interface LaunchPopoverCoordinatorValue {
 
 const LaunchPopoverCoordinatorContext = createContext<LaunchPopoverCoordinatorValue | null>(null);
 
+export { LaunchPopoverCoordinatorContext };
+
 export function LaunchPopoverCoordinatorProvider({ children }: { children: ReactNode }) {
 	const [openId, setOpenId] = useState<string | null>(null);
 

@@ -1,20 +1,34 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { app, BrowserWindow, desktopCapturer, ipcMain } from "electron";
+import {
+	closeAreaSelectorWindow,
+	createAreaSelectorWindow,
+	getAreaSelectorWindow,
+	reassertHudOverlayMousePassthrough,
+} from "../../windows";
 import { ALLOW_AUREO_WINDOW_CAPTURE } from "../constants";
-import { selectedSource, setSelectedSource } from "../state";
-import type { SelectedSource } from "../types";
-import { getScreen, parseWindowId } from "../utils";
-import { getDisplayBoundsForSource, getDisplayWorkAreaForSource } from "../recording/ffmpeg";
-import { getScreenSourceIdForDisplay } from "./sourceMapping";
 import {
 	getNativeMacWindowSources,
+	resolveLinuxWindowBounds,
 	resolveMacWindowBounds,
 	resolveWindowsWindowBounds,
-	resolveLinuxWindowBounds,
 	stopWindowBoundsCapture,
 } from "../cursor/bounds";
-import { reassertHudOverlayMousePassthrough } from "../../windows";
+import {
+	buildAreaSelectedSource,
+	type CaptureDisplay,
+	type CaptureRect,
+	createAreaCaptureLayout,
+	getVirtualDesktopBounds,
+	isValidAreaSelection,
+	windowLocalRectToGlobal,
+} from "../recording/areaGeometry";
+import { getDisplayBoundsForSource, getDisplayWorkAreaForSource } from "../recording/ffmpeg";
+import { selectedSource, setSelectedSource } from "../state";
+import type { AreaSelectionResult, SelectedSource } from "../types";
+import { getScreen, parseWindowId } from "../utils";
+import { getScreenSourceIdForDisplay } from "./sourceMapping";
 
 const execFileAsync = promisify(execFile);
 const SOURCE_LIST_CACHE_TTL_MS = 1200;
@@ -36,6 +50,51 @@ function broadcastSelectedSourceChange() {
 			window.webContents.send("selected-source-changed", selectedSource);
 		}
 	}
+}
+
+function mapDisplaysToCaptureDisplays(): CaptureDisplay[] {
+	return getScreen()
+		.getAllDisplays()
+		.map((display) => ({
+			id: String(display.id),
+			bounds: {
+				x: display.bounds.x,
+				y: display.bounds.y,
+				width: display.bounds.width,
+				height: display.bounds.height,
+			},
+			scaleFactor: display.scaleFactor || 1,
+		}));
+}
+
+function isCaptureRectLike(value: unknown): value is CaptureRect {
+	if (!value || typeof value !== "object") {
+		return false;
+	}
+	const rect = value as Partial<CaptureRect>;
+	return (
+		typeof rect.x === "number" &&
+		typeof rect.y === "number" &&
+		typeof rect.width === "number" &&
+		typeof rect.height === "number"
+	);
+}
+
+let areaSelectionSession:
+	| {
+			resolve: (result: AreaSelectionResult) => void;
+			window: BrowserWindow;
+			desktopBounds: CaptureRect;
+	  }
+	| null = null;
+
+function settleAreaSelection(result: AreaSelectionResult) {
+	const session = areaSelectionSession;
+	areaSelectionSession = null;
+	if (session) {
+		session.resolve(result);
+	}
+	closeAreaSelectorWindow();
 }
 
 export function registerSourceHandlers({
@@ -314,6 +373,97 @@ export function registerSourceHandlers({
 			sourceSelectorWin.close();
 		}
 		return selectedSource;
+	});
+
+	ipcMain.handle("open-area-selector", async (): Promise<AreaSelectionResult> => {
+		if (areaSelectionSession) {
+			const existing = getAreaSelectorWindow();
+			if (existing && !existing.isDestroyed()) {
+				existing.focus();
+				existing.moveTop();
+			}
+			// A selection is already in progress; wait for that session.
+			return new Promise<AreaSelectionResult>((resolve) => {
+				const previousResolve = areaSelectionSession!.resolve;
+				areaSelectionSession!.resolve = (result) => {
+					previousResolve(result);
+					resolve(result);
+				};
+			});
+		}
+
+		const displays = mapDisplaysToCaptureDisplays();
+		const desktopBounds = getVirtualDesktopBounds(displays);
+		if (!desktopBounds) {
+			return { canceled: true, source: null };
+		}
+
+		return new Promise<AreaSelectionResult>((resolve) => {
+			const window = createAreaSelectorWindow(desktopBounds);
+			areaSelectionSession = {
+				resolve,
+				window,
+				desktopBounds,
+			};
+
+			window.once("closed", () => {
+				// Escape / OS close without an explicit cancel IPC still cancels.
+				if (areaSelectionSession?.window === window) {
+					settleAreaSelection({ canceled: true, source: null });
+				}
+			});
+		});
+	});
+
+	ipcMain.handle("cancel-area-selection", () => {
+		if (!areaSelectionSession) {
+			closeAreaSelectorWindow();
+			return { canceled: true as const, source: null };
+		}
+		settleAreaSelection({ canceled: true, source: null });
+		return { canceled: true as const, source: null };
+	});
+
+	ipcMain.handle("complete-area-selection", (_, payload: { localRect?: CaptureRect }) => {
+		const session = areaSelectionSession;
+		if (!session) {
+			return { canceled: true as const, source: null, error: "No active area selection." };
+		}
+
+		if (!isCaptureRectLike(payload?.localRect)) {
+			return {
+				canceled: true as const,
+				source: null,
+				error: "Area selection rect is required.",
+			};
+		}
+
+		const globalRect = windowLocalRectToGlobal(session.desktopBounds, payload.localRect);
+		if (!isValidAreaSelection(globalRect)) {
+			// Too small: keep overlay open so the user can reselect.
+			return {
+				canceled: false as const,
+				source: null,
+				error: "Selection is too small. Drag a larger region or press Escape to cancel.",
+			};
+		}
+
+		const displays = mapDisplaysToCaptureDisplays();
+		const layout = createAreaCaptureLayout(globalRect, displays);
+		if (!layout) {
+			return {
+				canceled: false as const,
+				source: null,
+				error: "Selection is outside the available displays. Try again.",
+			};
+		}
+
+		const source = buildAreaSelectedSource(layout);
+		setSelectedSource(source);
+		broadcastSelectedSourceChange();
+		stopWindowBoundsCapture();
+		settleAreaSelection({ canceled: false, source });
+		return { canceled: false as const, source };
 	});
 
 	ipcMain.handle("show-source-highlight", async (_, source: SelectedSource) => {

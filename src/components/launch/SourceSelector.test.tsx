@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/contexts/I18nContext";
 import type { DesktopSource } from "./popovers/launchPopoverTypes";
-import { SourceSelectorContent } from "./SourceSelector";
+import { buildDeviceSource, SourceSelectorContent } from "./SourceSelector";
 
 const screen: DesktopSource = {
 	id: "screen:1",
@@ -47,7 +47,7 @@ describe("SourceSelectorContent", () => {
 		);
 
 		expect(html.match(/role="radiogroup"/g)).toHaveLength(1);
-		expect(html.match(/role="radio"/g)).toHaveLength(2);
+		expect(html.match(/role="radio"/g)).toHaveLength(4);
 		expect(html).toMatch(/role="radio"[^>]*aria-checked="true"[^>]*tabindex="0"/);
 		expect(html).toMatch(/role="radio"[^>]*aria-checked="false"[^>]*tabindex="-1"/);
 		expect(html.match(/role="listbox"/g)).toHaveLength(1);
@@ -75,5 +75,63 @@ describe("SourceSelectorContent", () => {
 		expect(html).not.toContain("Main display");
 		expect(html.match(/role="option"/g)).toHaveLength(1);
 		expect(html).toMatch(/aria-selected="true"[^>]*tabindex="0"/);
+	});
+
+	it("renders the area action panel without a listbox", () => {
+		const html = renderToStaticMarkup(
+			<I18nProvider>
+				<SourceSelectorContent
+					screenSources={[screen]}
+					windowSources={[windowSource]}
+					selectedSource={screen.name}
+					selectedSourceType="area"
+					onSourceSelect={vi.fn()}
+				/>
+			</I18nProvider>,
+		);
+
+		expect(html.match(/role="radio"/g)).toHaveLength(4);
+		expect(html.match(/role="listbox"/g)).toBeNull();
+		expect(html).toContain("Choose area");
+		expect(html).toContain("Select a recording area");
+		expect(html).not.toContain('role="option"');
+	});
+
+	it("maps browser video inputs into first-class device sources", () => {
+		const source = buildDeviceSource(
+			{
+				deviceId: "capture-card-1",
+				groupId: "group-1",
+				kind: "videoinput",
+				label: "HDMI Capture",
+				toJSON: () => ({}),
+			},
+			0,
+		);
+		expect(source).toMatchObject({
+			id: "device:capture-card-1",
+			name: "HDMI Capture",
+			sourceType: "device",
+			deviceId: "capture-card-1",
+		});
+	});
+
+	it("renders the device empty state before enumeration returns inputs", () => {
+		const html = renderToStaticMarkup(
+			<I18nProvider>
+				<SourceSelectorContent
+					screenSources={[screen]}
+					windowSources={[windowSource]}
+					selectedSource="HDMI Capture"
+					selectedSourceType="device"
+					onSourceSelect={vi.fn()}
+					open={true}
+				/>
+			</I18nProvider>,
+		);
+
+		expect(html.match(/role="radio"/g)).toHaveLength(4);
+		expect(html.match(/role="listbox"/g)).toHaveLength(1);
+		expect(html).toContain("No video devices available");
 	});
 });

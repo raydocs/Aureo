@@ -6,31 +6,20 @@
 	-webkit-app-region: no-drag;
 }
 
-/* Unified capture toolbar: one glass surface with flat controls. */
+/* Refined smoked-glass capture controller */
 .bar {
-	--launch-text: #f5f5f7;
-	--launch-text-muted: rgba(245, 245, 247, 0.68);
-	--launch-label: rgba(245, 245, 247, 0.56);
-	--launch-hover: rgba(255, 255, 255, 0.1);
-	--launch-selected: rgba(255, 255, 255, 0.14);
-	--launch-border: rgba(255, 255, 255, 0.12);
-	--launch-border-strong: rgba(255, 255, 255, 0.22);
-	--launch-accent: #ffffff;
 	display: flex;
 	align-items: center;
-	gap: 4px;
+	gap: 2px;
 	width: max-content;
-	max-width: min(1440px, calc(100vw - 32px));
-	min-height: 66px;
-	background: rgba(61, 61, 64, 0.88);
-	background-color: #3d3d40;
-	border: 1px solid rgba(255, 255, 255, 0.18);
-	border-radius: 24px;
-	padding: 8px 12px 8px 10px;
-	box-shadow:
-		0 24px 44px rgba(0, 0, 0, 0.26),
-		0 8px 18px rgba(0, 0, 0, 0.2),
-		inset 0 1px 0 rgba(255, 255, 255, 0.16);
+	max-width: min(940px, calc(100vw - 24px));
+	min-height: 58px;
+	background: var(--launch-bar-bg);
+	background-color: var(--launch-bar-bg-solid);
+	border: 1px solid var(--launch-bar-border);
+	border-radius: 20px;
+	padding: 4px 8px 4px 6px;
+	box-shadow: var(--launch-bar-shadow);
 	overflow: visible;
 	position: relative;
 	transform-origin: center bottom;
@@ -41,13 +30,13 @@
 @supports ((-webkit-backdrop-filter: blur(12px)) or (backdrop-filter: blur(12px))) {
 	.bar {
 		background:
-			linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 56%),
-			rgba(61, 61, 64, 0.82);
-		border-color: rgba(255, 255, 255, 0.18);
+			linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, transparent 52%),
+			var(--launch-bar-bg);
+		border-color: var(--launch-bar-border);
 		box-shadow:
-			0 24px 44px rgba(0, 0, 0, 0.26),
+			0 22px 44px rgba(0, 0, 0, 0.28),
 			0 8px 18px rgba(0, 0, 0, 0.2),
-			inset 0 1px 0 rgba(255, 255, 255, 0.16);
+			inset 0 1px 0 rgba(255, 255, 255, 0.14);
 		-webkit-backdrop-filter: blur(24px) saturate(1.22);
 		backdrop-filter: blur(24px) saturate(1.22);
 	}
@@ -75,7 +64,7 @@
 
 .bar[data-reduce-transparency="true"],
 .bar[data-high-contrast="true"] {
-	background: #3d3d40 !important;
+	background: #252529 !important;
 	-webkit-backdrop-filter: none !important;
 	backdrop-filter: none !important;
 	border: 1px solid var(--launch-border-strong) !important;
@@ -91,7 +80,7 @@
 
 @media (prefers-reduced-transparency: reduce), (forced-colors: active), (prefers-contrast: more) {
 	.bar {
-		background: #3d3d40 !important;
+		background: #252529 !important;
 		-webkit-backdrop-filter: none !important;
 		backdrop-filter: none !important;
 		border: 1px solid var(--launch-border-strong) !important;
@@ -118,7 +107,7 @@
 	display: flex;
 	align-items: center;
 	flex: 0 1 auto;
-	min-height: 48px;
+	min-height: 50px;
 	min-width: fit-content;
 	z-index: 0;
 }
@@ -126,7 +115,7 @@
 .barState {
 	display: flex;
 	align-items: center;
-	gap: 4px;
+	gap: 2px;
 	flex: 0 1 auto;
 	white-space: nowrap;
 	min-width: fit-content;
@@ -143,12 +132,13 @@
 
 .toolbarControl {
 	position: relative;
-	height: 46px;
+	height: 44px;
 	min-width: 0;
 	flex-shrink: 0;
-	padding: 0 12px;
+	gap: 5px;
+	padding: 0 8px;
 	border: 1px solid transparent;
-	border-radius: 13px;
+	border-radius: 10px;
 	background: transparent;
 	box-shadow: none;
 	color: var(--launch-text-muted);
@@ -161,7 +151,7 @@
 }
 
 .toolbarControl:hover {
-	border-color: rgba(255, 255, 255, 0.06);
+	border-color: var(--launch-border);
 	background: var(--launch-hover);
 	color: var(--launch-text);
 }
@@ -171,29 +161,31 @@
 }
 
 .toolbarControl:focus-visible {
-	outline: 2px solid rgba(255, 255, 255, 0.9);
+	outline: 2px solid var(--launch-accent);
 	outline-offset: 1px;
 }
 
 .toolbarControlActive {
 	background: var(--launch-selected);
 	color: var(--launch-text);
+	border-color: var(--launch-border-strong);
 }
 
 .toolbarControlEnabled {
-	border-color: rgba(255, 255, 255, 0.12);
-	background: rgba(255, 255, 255, 0.06);
+	border-color: var(--launch-border-strong);
+	background: var(--launch-hover);
+	color: var(--launch-text);
 }
 
 .toolbarControlEnabled:hover {
-	border-color: rgba(255, 255, 255, 0.16);
-	background: rgba(255, 255, 255, 0.1);
+	border-color: var(--launch-border-strong);
+	background: var(--launch-hover);
 }
 
 .toolbarControlOpen {
 	background: var(--launch-selected);
 	color: var(--launch-text);
-	border-color: rgba(255, 255, 255, 0.14);
+	border-color: var(--launch-border-strong);
 }
 
 .toolbarControlOpen:hover {
@@ -210,49 +202,157 @@
 	}
 }
 
-.sourceControl {
-	width: 190px;
-	max-width: 190px;
+/* Source mode dock */
+.sourceModeDock {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 1px 2px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 11px;
+	background: rgba(0, 0, 0, 0.28);
+	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.sourceModeButton {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1px;
+	width: 52px;
+	height: 48px;
+	min-width: 52px;
+	padding: 2px 4px;
+	border: 1px solid transparent;
+	border-radius: 9px;
+	background: transparent;
+	color: var(--launch-text-muted);
+	font-size: 10px;
+	line-height: 1;
+	font-weight: 600;
+	cursor: pointer;
+	transition:
+		background-color 0.16s ease,
+		border-color 0.16s ease,
+		color 0.16s ease,
+		transform 0.1s ease;
+}
+
+.sourceModeButton:hover {
+	background: var(--launch-hover);
+	color: var(--launch-text);
+}
+
+.sourceModeButton:focus-visible {
+	outline: 2px solid var(--launch-accent);
+	outline-offset: 1px;
+}
+
+.sourceModeButton:active {
+	transform: scale(0.985);
+}
+
+.sourceModeButtonActive {
+	background: var(--launch-selected);
+	color: var(--launch-text);
+	border-color: var(--launch-border-strong);
+}
+
+.sourceModeButtonActive:hover {
+	background: var(--launch-selected);
+	color: var(--launch-text);
+}
+
+.sourceModeButtonOpen {
+	background: var(--launch-selected);
+	color: var(--launch-text);
+	border-color: var(--launch-border-strong);
+}
+
+.sourceModeLabel {
+	white-space: nowrap;
+}
+
+@media (max-width: 999px) {
+	.sourceModeLabel {
+		display: none;
+	}
+
+	.sourceModeButton {
+		width: 36px;
+		min-width: 36px;
+		padding: 0;
+	}
+}
+
+@media (forced-colors: active) {
+	.sourceModeDock {
+		border: 1px solid ButtonText;
+		background: ButtonFace;
+	}
+
+	.sourceModeButtonActive,
+	.sourceModeButtonOpen {
+		border-color: ButtonText !important;
+		background: ButtonFace !important;
+		color: ButtonText !important;
+	}
 }
 
 .deviceControl {
-	width: 172px;
-	max-width: 172px;
+	width: 126px;
+	max-width: 126px;
 }
 
 .systemAudioControl {
-	max-width: 158px;
+	width: 118px;
+	max-width: 118px;
 }
 
 .qualityControl {
-	width: 144px;
-	max-width: 144px;
+	width: 94px;
+	max-width: 94px;
+	justify-content: center;
+}
+
+.compactStatusLabel {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 11px;
+	font-weight: 550;
+	white-space: nowrap;
+}
+
+.deviceCaret {
+	flex-shrink: 0;
 }
 
 .controlText {
 	min-width: 0;
-	max-width: 126px;
+	max-width: 98px;
 	overflow: hidden;
-	font-size: 12px;
+	font-size: 11px;
 	font-weight: 550;
 	letter-spacing: -0.01em;
 	color: inherit;
 }
 
 .systemAudioLabel {
-	font-size: 12px;
+	font-size: 11px;
 	font-weight: 550;
 	letter-spacing: -0.01em;
 }
 
 .dragHandle {
 	display: flex;
-	width: 12px;
-	height: 42px;
+	width: 6px;
+	height: 44px;
 	align-items: center;
 	justify-content: center;
 	border-radius: 8px;
-	color: rgba(255, 255, 255, 0.3);
+	color: var(--launch-text-muted);
 	cursor: grab;
 	transition:
 		color 0.15s ease,
@@ -260,32 +360,61 @@
 }
 
 .dragHandle:hover {
-	background: rgba(255, 255, 255, 0.06);
-	color: rgba(255, 255, 255, 0.64);
+	background: var(--launch-hover);
+	color: var(--launch-text);
 }
 
 .dragHandle:active {
 	cursor: grabbing;
 }
 
+.sep {
+	width: 1px;
+	height: 30px;
+	background: var(--launch-border-strong);
+	margin: 0 2px;
+	flex-shrink: 0;
+}
+
 @media (max-width: 1299px) {
 	.bar {
-		max-width: calc(100vw - 20px);
+		max-width: calc(100vw - 24px);
 		padding-right: 10px;
 	}
 
-	.sourceControl {
-		width: 160px;
-		max-width: 160px;
-	}
-
 	.deviceControl {
-		width: 146px;
-		max-width: 146px;
+		width: 126px;
+		max-width: 126px;
 	}
 
 	.systemAudioControl {
 		padding-inline: 10px;
+	}
+
+	.sep {
+		margin: 0 2px;
+	}
+}
+
+@media (max-width: 899px) {
+	.bar {
+		gap: 3px;
+		padding: 6px 8px 6px 6px;
+		border-radius: 20px;
+	}
+
+	.deviceControl,
+	.qualityControl {
+		width: 42px;
+		max-width: 42px;
+		padding: 0;
+		justify-content: center;
+	}
+
+	.controlText,
+	.compactStatusLabel,
+	.deviceCaret {
+		display: none;
 	}
 
 	.sep {
@@ -299,18 +428,10 @@
 	}
 
 	.systemAudioControl {
-		width: 42px;
+		width: 38px;
 		padding: 0;
 		justify-content: center;
 	}
-}
-
-.sep {
-	width: 1px;
-	height: 34px;
-	background: rgba(255, 255, 255, 0.16);
-	margin: 0 7px;
-	flex-shrink: 0;
 }
 
 /* Compact icon buttons (toolbar style) */
@@ -348,11 +469,11 @@
 }
 
 .closeButton {
-	width: 36px;
-	height: 36px;
-	border-radius: 50%;
-	background: rgba(255, 255, 255, 0.94);
-	color: #3d3d40;
+	width: 32px;
+	height: 32px;
+	border-radius: 999px !important;
+	background: var(--launch-text);
+	color: var(--launch-surface-solid);
 }
 
 .closeButton:hover {
@@ -361,12 +482,12 @@
 }
 
 .closeButton:focus-visible {
-	outline-color: #ffffff;
+	outline-color: var(--launch-text);
 	outline-offset: 3px;
 }
 
 .ibActive {
-	color: var(--launch-accent);
+	color: #ffffff;
 	background: var(--launch-selected);
 	transition:
 		color 0.15s ease,
@@ -375,7 +496,7 @@
 }
 
 .ibActive:hover {
-	color: var(--launch-accent);
+	color: #ffffff;
 	background: var(--launch-selected);
 }
 
@@ -419,8 +540,9 @@
 
 /* Popover / menu cards (functional chrome only) */
 .menuCard {
-	width: 300px;
-	max-height: 400px;
+	width: 320px;
+	max-width: calc(100vw - 24px);
+	max-height: min(400px, calc(100vh - 120px));
 	overflow-y: auto;
 	background: var(--launch-surface);
 	background-color: var(--launch-surface-solid);
@@ -601,12 +723,43 @@
 
 .ddItemSelected {
 	background: var(--launch-selected);
-	color: var(--launch-accent);
+	color: #ffffff;
 }
 
 .ddItemSelected:hover {
 	background: var(--launch-selected);
-	color: var(--launch-accent);
+	color: #ffffff;
+}
+
+.confirmAction {
+	height: 32px;
+	padding: 0 12px;
+	border: 1px solid var(--launch-border-strong);
+	border-radius: 8px;
+	background: var(--launch-selected);
+	color: var(--launch-text);
+	font-size: 12px;
+	font-weight: 650;
+	cursor: pointer;
+}
+
+.confirmAction:hover {
+	background: var(--launch-hover);
+}
+
+.confirmAction:focus-visible {
+	outline: 2px solid var(--launch-accent);
+	outline-offset: 2px;
+}
+
+.confirmActionPrimary {
+	border-color: #f43f5e;
+	background: #f43f5e;
+	color: #ffffff;
+}
+
+.confirmActionPrimary:hover {
+	background: #ff5a75;
 }
 
 /* Finalizing state: explicit copy + activity */
@@ -649,11 +802,11 @@
 	}
 }
 
-/* Record button: primary, safe, content-first */
+/* Record button: dominant, unmistakable primary action */
 .recBtn {
 	position: relative;
-	width: 40px;
-	height: 40px;
+	width: 42px;
+	height: 42px;
 	border-radius: 50%;
 	border: none;
 	background: #f43f5e;
@@ -667,12 +820,26 @@
 		box-shadow 0.2s ease,
 		transform 0.1s ease;
 	flex-shrink: 0;
-	box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.3);
+	box-shadow:
+		0 0 0 0 rgba(244, 63, 94, 0),
+		inset 0 2px 4px rgba(255, 255, 255, 0.18);
 }
 
 .recBtn:hover {
 	background: #ff5a75;
-	box-shadow: 0 0 0 5px rgba(244, 63, 94, 0.12);
+	box-shadow:
+		0 0 0 6px rgba(244, 63, 94, 0.12),
+		inset 0 2px 4px rgba(255, 255, 255, 0.18);
+}
+
+.recBtn::before {
+	content: "";
+	position: absolute;
+	inset: -3px;
+	border-radius: 50%;
+	border: 2px solid rgba(244, 63, 94, 0.35);
+	pointer-events: none;
+	animation: recReadyPulse 2s ease-in-out infinite;
 }
 
 .recBtn:active {
@@ -681,7 +848,7 @@
 
 .recBtn:focus-visible {
 	outline: 2px solid #fff;
-	outline-offset: 2px;
+	outline-offset: 3px;
 }
 
 .recBtn:disabled {
@@ -692,6 +859,11 @@
 .recBtn:disabled:hover {
 	background: #f43f5e;
 	box-shadow: none;
+}
+
+.recBtn:disabled::before {
+	animation: none;
+	border-color: transparent;
 }
 
 .recDot {
@@ -707,6 +879,30 @@
 
 .recDotBlink {
 	animation: blink 1.2s ease-in-out infinite;
+}
+
+@keyframes recReadyPulse {
+	0%,
+	100% {
+		transform: scale(1);
+		border-color: rgba(244, 63, 94, 0.35);
+	}
+	50% {
+		transform: scale(1.08);
+		border-color: rgba(244, 63, 94, 0.12);
+	}
+}
+
+[data-reduce-motion="true"] .recBtn::before {
+	animation: none;
+	border-color: rgba(244, 63, 94, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.recBtn::before {
+		animation: none;
+		border-color: rgba(244, 63, 94, 0.25);
+	}
 }
 
 /* Stop recording button: large, safe, clearly the main action */

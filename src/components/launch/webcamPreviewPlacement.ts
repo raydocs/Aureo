@@ -1,5 +1,6 @@
 import { loadAppSetting, saveAppSetting } from "@/lib/appSettings";
 import { clampHudOffsetToViewport } from "./hudViewportBounds";
+import { clampWebcamPreviewSizeToViewport } from "./webcamPreviewAppearance";
 
 export interface WebcamPreviewPlacement {
 	offsetX: number;
@@ -44,23 +45,23 @@ export function saveWebcamPreviewPlacement(value: WebcamPreviewPlacement): boole
 /**
  * Clamp a restored placement so the absolute preview rect lies fully inside the
  * viewport. Anchor is bottom-right: base left/top = viewport − anchor − size.
+ *
+ * Always offset-clamps (including when the un-offset base sits off-screen due to
+ * anchors or a large size). Callers should size-clamp first when the square may
+ * exceed the viewport; otherwise one edge can still overflow.
  */
 export function resolveRestoredPreviewPlacement(
 	saved: WebcamPreviewPlacement,
 	viewport: { width: number; height: number },
 	previewSize: number,
 ): WebcamPreviewPlacement {
-	const left0 = viewport.width - WEBCAM_PREVIEW_ANCHOR.right - previewSize;
-	const top0 = viewport.height - WEBCAM_PREVIEW_ANCHOR.bottom - previewSize;
+	const safeSize =
+		typeof previewSize === "number" && Number.isFinite(previewSize) && previewSize > 0
+			? previewSize
+			: 0;
 
-	if (left0 < 0 || top0 < 0) {
-		return {
-			offsetX: 0,
-			offsetY: 0,
-			visible: saved.visible,
-		};
-	}
-
+	const left0 = viewport.width - WEBCAM_PREVIEW_ANCHOR.right - safeSize;
+	const top0 = viewport.height - WEBCAM_PREVIEW_ANCHOR.bottom - safeSize;
 	const left = left0 + saved.offsetX;
 	const top = top0 + saved.offsetY;
 	const clamped = clampHudOffsetToViewport(
@@ -68,8 +69,8 @@ export function resolveRestoredPreviewPlacement(
 		{
 			left,
 			top,
-			right: left + previewSize,
-			bottom: top + previewSize,
+			right: left + safeSize,
+			bottom: top + safeSize,
 		},
 		viewport,
 	);
@@ -79,4 +80,18 @@ export function resolveRestoredPreviewPlacement(
 		offsetY: clamped.y,
 		visible: saved.visible,
 	};
+}
+
+/**
+ * Fit both size and placement so the full preview square remains visible after
+ * restore or a viewport/display size change.
+ */
+export function resolveViewportConstrainedPreview(params: {
+	size: number;
+	placement: WebcamPreviewPlacement;
+	viewport: { width: number; height: number };
+}): { size: number; placement: WebcamPreviewPlacement } {
+	const size = clampWebcamPreviewSizeToViewport(params.size, params.viewport);
+	const placement = resolveRestoredPreviewPlacement(params.placement, params.viewport, size);
+	return { size, placement };
 }

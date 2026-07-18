@@ -77,11 +77,11 @@ export function MicPopover({
 		>
 			{microphoneEnabled && (
 				<div className="flex items-center gap-2 border-b border-[var(--launch-border)] px-3 py-3">
-					<MicrophoneIcon size={15} className="shrink-0 text-[var(--launch-accent)]" />
+					<MicrophoneIcon size={15} className="shrink-0 text-[var(--launch-text)]" />
 					<div className="relative h-1 flex-1 overflow-hidden rounded-full bg-[var(--launch-border-strong)]">
 						<div
 							ref={attachPopoverMeter}
-							className="absolute inset-0 origin-left rounded-full bg-[var(--launch-accent)]"
+							className="absolute inset-0 origin-left rounded-full bg-[var(--launch-text)]"
 							style={{ transform: "scaleX(0)" }}
 						/>
 					</div>

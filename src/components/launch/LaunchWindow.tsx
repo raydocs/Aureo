@@ -6,7 +6,6 @@ import {
 	GearSixIcon,
 	MicrophoneIcon,
 	MicrophoneSlashIcon,
-	MinusIcon,
 	MonitorIcon,
 	SpeakerHighIcon,
 	SpeakerXIcon,
@@ -17,7 +16,7 @@ import {
 	XIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
-import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RxDragHandleDots2 } from "react-icons/rx";
 import { cn } from "@/lib/utils";
 import { useScopedT } from "../../contexts/I18nContext";
@@ -46,6 +45,7 @@ import {
 	LaunchPopoverCoordinatorProvider,
 	useLaunchPopoverCoordinator,
 } from "./popovers/LaunchPopoverCoordinator";
+import { type CaptureSourceType } from "./popovers/launchPopoverTypes";
 import { MicPopover } from "./popovers/MicPopover";
 import { MorePopover } from "./popovers/MorePopover";
 import { ProjectPopover } from "./popovers/ProjectPopover";
@@ -144,6 +144,14 @@ function LaunchWindowContent() {
 		syncSelectedSource,
 		refreshProjectLibrary,
 	} = useLaunchWindowActions();
+	const [sourcePopoverInitialMode, setSourcePopoverInitialMode] = useState<CaptureSourceType>(
+		selectedSourceType ?? "screen",
+	);
+	useEffect(() => {
+		if (openId !== "sources") {
+			setSourcePopoverInitialMode(selectedSourceType ?? "screen");
+		}
+	}, [selectedSourceType, openId]);
 	const preflightHealthEnabled = !certificationMode && !recording && !finalizing;
 	const { health: recordingHealth, loading: recordingHealthLoading } =
 		useRecordingHealth(preflightHealthEnabled);
@@ -436,14 +444,22 @@ function LaunchWindowContent() {
 						) : (
 							<MicrophoneSlashIcon size={20} className="shrink-0" />
 						)}
-						<div className={cn(styles.controlText, "flex-1")}>
-							<PillLabel domain={t("recording.microphone")} value={micPillLabel} />
-						</div>
+						{microphoneEnabled ? (
+							<div className={cn(styles.controlText, "flex-1")}>
+								<PillLabel
+									domain={t("recording.microphone")}
+									value={micPillLabel}
+								/>
+							</div>
+						) : (
+							<span className={styles.compactStatusLabel}>{micPillLabel}</span>
+						)}
 						<CaretUpIcon
 							size={11}
 							className={cn(
+								styles.deviceCaret,
 								"ml-auto shrink-0 opacity-60 transition-transform duration-200",
-								openId === "mic" ? "" : "rotate-180",
+								openId === "mic" ? "rotate-180" : "",
 							)}
 						/>
 						{microphoneEnabled && (
@@ -504,14 +520,21 @@ function LaunchWindowContent() {
 						) : (
 							<VideoCameraSlashIcon size={20} className="shrink-0" />
 						)}
-						<div className={cn(styles.controlText, "flex-1")}>
-							<PillLabel domain={t("recording.webcam")} value={webcamPillLabel} />
-						</div>
+						{webcamEnabled ? (
+							<div className={cn(styles.controlText, "flex-1")}>
+								<PillLabel domain={t("recording.webcam")} value={webcamPillLabel} />
+							</div>
+						) : (
+							<span className={styles.compactStatusLabel}>
+								{t("recording.webcamGenericLabel", "Camera")}
+							</span>
+						)}
 						<CaretUpIcon
 							size={11}
 							className={cn(
+								styles.deviceCaret,
 								"ml-auto shrink-0 opacity-60 transition-transform duration-200",
-								openId === "webcam" ? "" : "rotate-180",
+								openId === "webcam" ? "rotate-180" : "",
 							)}
 						/>
 					</Button>
@@ -520,59 +543,62 @@ function LaunchWindowContent() {
 		</div>
 	);
 
+	const sourceModeDock = (
+		<div
+			className={cn(styles.sourceModeDock, styles.electronNoDrag)}
+			role="group"
+			aria-label={t("recording.source", "Recording source")}
+		>
+			{(
+				[
+					["screen", MonitorIcon, t("recording.display", "Display")],
+					["window", AppWindowIcon, t("recording.window", "Window")],
+					["area", FrameCornersIcon, t("recording.area", "Area")],
+					["device", VideoCameraIcon, t("recording.device", "Device")],
+				] as const
+			).map(([mode, Icon, label]) => {
+				const isActive = selectedSourceType === mode;
+				return (
+					<button
+						key={mode}
+						type="button"
+						aria-current={isActive ? "true" : undefined}
+						aria-expanded={openId === "sources"}
+						aria-haspopup="listbox"
+						aria-label={label}
+						title={label}
+						className={cn(
+							styles.sourceModeButton,
+							styles.electronNoDrag,
+							isActive && styles.sourceModeButtonActive,
+							openId === "sources" &&
+								sourcePopoverInitialMode === mode &&
+								styles.sourceModeButtonOpen,
+						)}
+						onClick={(event) => {
+							event.stopPropagation();
+							beginInteractiveHudAction();
+							setSourcePopoverInitialMode(mode);
+							requestOpen("sources");
+						}}
+					>
+						<Icon size={18} className="shrink-0" />
+						<span className={styles.sourceModeLabel}>{label}</span>
+					</button>
+				);
+			})}
+		</div>
+	);
+
 	const sourceControls = (
 		<div className={styles.barGroup} role="group" aria-label={selectedSource}>
 			<SourcePopover
 				selectedSource={selectedSource}
 				selectedSourceType={selectedSourceType}
+				initialMode={sourcePopoverInitialMode}
 				onSourceSelect={handleSourceSelect}
 				onOpen={beginInteractiveHudAction}
-				trigger={
-					<Button
-						variant="ghost"
-						className={cn(
-							styles.electronNoDrag,
-							styles.toolbarControl,
-							styles.sourceControl,
-							hasSelectedSource && styles.toolbarControlEnabled,
-							openId === "sources" && styles.toolbarControlOpen,
-						)}
-						title={selectedSource}
-						aria-haspopup="listbox"
-						aria-expanded={openId === "sources"}
-					>
-						{selectedSourceType === "window" ? (
-							<AppWindowIcon size={22} className="shrink-0" />
-						) : selectedSourceType === "area" ? (
-							<FrameCornersIcon size={22} className="shrink-0" />
-						) : selectedSourceType === "device" ? (
-							<VideoCameraIcon size={22} className="shrink-0" />
-						) : (
-							<MonitorIcon size={22} className="shrink-0" />
-						)}
-						<div className={cn(styles.controlText, "flex-1")}>
-							<PillLabel
-								domain={
-									selectedSourceType === "window"
-										? t("recording.window")
-										: selectedSourceType === "area"
-											? t("recording.area", "Area")
-											: selectedSourceType === "device"
-												? t("recording.device", "Device")
-												: t("recording.screen")
-								}
-								value={selectedSource}
-							/>
-						</div>
-						<CaretUpIcon
-							size={11}
-							className={cn(
-								"ml-auto shrink-0 opacity-60 transition-transform duration-200",
-								openId === "sources" ? "" : "rotate-180",
-							)}
-						/>
-					</Button>
-				}
+				trigger={sourceModeDock}
 			/>
 		</div>
 	);
@@ -624,10 +650,11 @@ function LaunchWindowContent() {
 	);
 
 	const presetSummary = `${recordingQualityPreset.label} ${recordingQualityPreset.resolutionLabel} / ${recordingQualityPreset.frameRate} FPS`;
+	const presetDetails = `${recordingQualityPreset.resolutionLabel} · ${recordingQualityPreset.frameRate}fps`;
 	const recordingHealthLabel = t("health.recordingHealth", "Recording health");
 	const recordingHealthControl = (
 		<RecordingHealthPopover
-			disabled={countdownActive || certificationMode}
+			disabled={countdownActive}
 			health={recordingHealth}
 			loading={recordingHealthLoading}
 			microphoneEnabled={microphoneEnabled}
@@ -641,7 +668,7 @@ function LaunchWindowContent() {
 					variant="ghost"
 					size="icon"
 					iconSize="lg"
-					disabled={countdownActive || certificationMode}
+					disabled={countdownActive}
 					title={recordingHealthLabel}
 					aria-label={recordingHealthLabel}
 					className={cn(styles.ib, openId === "recording-health" && styles.ibActive)}
@@ -671,17 +698,12 @@ function LaunchWindowContent() {
 							openId === "quality" && styles.toolbarControlOpen,
 						)}
 					>
-						<FrameCornersIcon size={20} className="shrink-0" />
 						<div className={cn(styles.controlText, "flex-1")}>
-							<PillLabel domain={t("recording.quality")} value={presetSummary} />
+							<PillLabel
+								domain={recordingQualityPreset.label}
+								value={presetDetails}
+							/>
 						</div>
-						<CaretUpIcon
-							size={11}
-							className={cn(
-								"ml-auto shrink-0 opacity-60 transition-transform duration-200",
-								openId === "quality" ? "" : "rotate-180",
-							)}
-						/>
 					</Button>
 				}
 			/>
@@ -760,15 +782,9 @@ function LaunchWindowContent() {
 						variant="ghost"
 						title={t("recording.more")}
 						aria-label={t("recording.more")}
-						className={`${styles.toolbarControl} w-[54px] justify-center px-2 ${openId === "more" ? styles.toolbarControlActive : ""}`}
+						className={`${styles.toolbarControl} w-9 justify-center px-0 ${openId === "more" ? styles.toolbarControlActive : ""}`}
 					>
-						<GearSixIcon size={20} />
-						<CaretUpIcon
-							size={10}
-							className={`opacity-60 transition-transform duration-200 ${
-								openId === "more" ? "" : "rotate-180"
-							}`}
-						/>
+						<GearSixIcon size={18} />
 					</Button>
 				}
 			/>
@@ -800,20 +816,6 @@ function LaunchWindowContent() {
 		</Button>
 	);
 
-	const hideControl = (
-		<Button
-			variant="ghost"
-			size="icon"
-			iconSize="lg"
-			onClick={() => window.electronAPI?.hudOverlayHide?.()}
-			title={t("recording.hideHud")}
-			aria-label={t("recording.hideHud")}
-			className={styles.ib}
-		>
-			<MinusIcon size={18} />
-		</Button>
-	);
-
 	const idleControls = (
 		<>
 			{projectPopoverAnchor}
@@ -835,10 +837,6 @@ function LaunchWindowContent() {
 			<div className={styles.sep} role="separator" aria-orientation="vertical" />
 
 			{actionControls}
-
-			<div className={styles.sep} role="separator" aria-orientation="vertical" />
-
-			{hideControl}
 		</>
 	);
 
@@ -887,7 +885,7 @@ function LaunchWindowContent() {
 								ref={hudBarRef}
 								layout={!showRecordingWebcamPreview && !isHudDragging}
 								transition={hudStateTransition}
-								className={`${styles.bar} launch-theme mb-2`}
+								className={`${styles.bar} launch-theme launch-hud-theme mb-2`}
 								data-hud-interactive
 								{...a11yDataAttrs}
 							>

@@ -50,6 +50,8 @@ interface SourceSelectorProps {
 	open?: boolean;
 	/** Callback when open state changes */
 	onOpenChange?: (open: boolean) => void;
+	/** Optional controlled display mode for the popover tabs. When provided, overrides the mode derived from selectedSourceType. */
+	mode?: SourceMode;
 	/** Optional custom trigger element */
 	children?: React.ReactNode;
 }
@@ -169,6 +171,24 @@ function fallbackLabelForMode(mode: SourceMode): string {
 	}
 }
 
+function countForMode(
+	mode: SourceMode,
+	screenSources: DesktopSource[],
+	windowSources: DesktopSource[],
+	devices: DesktopSource[],
+): number {
+	switch (mode) {
+		case "screen":
+			return screenSources.length;
+		case "window":
+			return windowSources.length;
+		case "device":
+			return devices.length;
+		default:
+			return 0;
+	}
+}
+
 /**
  * SourceSelectorContent - The actual list of sources
  */
@@ -179,6 +199,7 @@ export const SourceSelectorContent = ({
 	selectedSourceType = "screen",
 	loading = false,
 	open = false,
+	mode: controlledMode,
 	onSourceSelect = () => undefined,
 	onOpenAreaSelector,
 }: Pick<
@@ -189,12 +210,15 @@ export const SourceSelectorContent = ({
 	| "selectedSourceType"
 	| "loading"
 	| "onSourceSelect"
+	| "mode"
 > & { open?: boolean; onOpenAreaSelector?: () => Promise<DesktopSource | null> }) => {
 	const t = useScopedT("launch");
 	const listRef = useRef<HTMLDivElement>(null);
 	const tabsRef = useRef<HTMLDivElement>(null);
 	const [failedThumbnails, setFailedThumbnails] = useState<Set<string>>(new Set());
-	const [mode, setMode] = useState<SourceMode>(normalizeMode(selectedSourceType));
+	const [mode, setMode] = useState<SourceMode>(
+		controlledMode ?? normalizeMode(selectedSourceType),
+	);
 	const [deviceState, setDeviceState] = useState<DeviceSourceState>({
 		devices: [],
 		loading: false,
@@ -202,8 +226,8 @@ export const SourceSelectorContent = ({
 	});
 
 	useEffect(() => {
-		setMode(normalizeMode(selectedSourceType));
-	}, [selectedSourceType]);
+		setMode(controlledMode ?? normalizeMode(selectedSourceType));
+	}, [controlledMode, selectedSourceType]);
 
 	const orderedSources = useMemo(() => {
 		switch (mode) {
@@ -264,7 +288,11 @@ export const SourceSelectorContent = ({
 			const firstInteractive = listRef.current?.querySelector<HTMLElement>(
 				mode === "area" ? ".source-selector-action-button" : '[role="option"]',
 			);
-			firstInteractive?.focus();
+			if (firstInteractive) {
+				firstInteractive.focus();
+				return;
+			}
+			tabsRef.current?.querySelector<HTMLElement>(`[data-mode="${mode}"]`)?.focus();
 		}, 0);
 		return () => clearTimeout(timeoutId);
 	}, [open, mode]);
@@ -344,17 +372,14 @@ export const SourceSelectorContent = ({
 				className="source-selector-mode-tabs"
 			>
 				{allModes.map((tabMode) => {
-					const ModeIcon = iconForMode(tabMode);
-					const count =
-						tabMode === "screen"
-							? screenSources.length
-							: tabMode === "window"
-								? windowSources.length
-								: tabMode === "device"
-									? deviceState.devices.length
-									: 0;
 					const labelKey = labelKeyForMode(tabMode);
 					const label = t(`sourceSelector.${labelKey}`, fallbackLabelForMode(tabMode));
+					const count = countForMode(
+						tabMode,
+						screenSources,
+						windowSources,
+						deviceState.devices,
+					);
 					return (
 						<button
 							key={tabMode}
@@ -370,18 +395,13 @@ export const SourceSelectorContent = ({
 								mode === tabMode && "source-selector-mode-tab-active",
 							)}
 						>
-							<ModeIcon className="w-3.5 h-3.5" />
-							{label}
-							{tabMode === "screen" ||
-							tabMode === "window" ||
-							tabMode === "device" ? (
-								<span
-									className="source-selector-count"
-									aria-label={`${count} ${label}`}
-								>
-									{count}
-								</span>
-							) : null}
+							<span className="source-selector-tab-label">{label}</span>
+							<span
+								className="source-selector-count"
+								aria-label={`${count} ${label}`}
+							>
+								{count}
+							</span>
 						</button>
 					);
 				})}
@@ -489,15 +509,13 @@ export const SourceSelectorContent = ({
 						"Drag across one or more displays to choose the exact area to record.",
 					)}
 				</p>
-				<Button
+				<button
 					type="button"
-					variant="outline"
-					size="sm"
 					onClick={handleAreaAction}
 					className="source-selector-action-button"
 				>
 					{t("sourceSelector.chooseArea", "Choose area")}
-				</Button>
+				</button>
 			</div>
 		);
 	};
@@ -512,7 +530,8 @@ export const SourceSelectorContent = ({
 		);
 	};
 
-	const contentLoading = loading && orderedSources.length === 0 && mode !== "device";
+	const contentLoading =
+		loading && orderedSources.length === 0 && (mode === "screen" || mode === "window");
 	const modeHasList = mode === "screen" || mode === "window" || mode === "device";
 
 	if (contentLoading) {
@@ -567,6 +586,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 	onFetchSources: propsOnFetchSources,
 	open: propsOpen,
 	onOpenChange: propsOnOpenChange,
+	mode: propsMode,
 	children,
 }: SourceSelectorProps) {
 	const t = useScopedT("launch");
@@ -716,8 +736,8 @@ export const SourceSelector = React.memo(function SourceSelector({
 			onFocusCapture={prefetchSources}
 			className={cn(
 				"group gap-2 px-3 min-w-0 max-w-[180px] rounded-[11px] font-medium text-[12px] [ -webkit-app-region:no-drag ] shrink-0",
-				"border-[#2a2a34] bg-[#1a1a22] text-[#eeeef2] hover:border-[#3e3e4c] hover:bg-[#20202a] transition-all",
-				"data-[state=open]:border-[#3e3e4c] data-[state=open]:bg-[#20202a]",
+				"border-[var(--launch-border-strong)] bg-[var(--launch-surface-solid)] text-[var(--launch-text)] hover:border-[var(--launch-border-strong)] hover:bg-[var(--launch-hover-solid)] transition-all",
+				"data-[state=open]:border-[var(--launch-border-strong)] data-[state=open]:bg-[var(--launch-hover-solid)]",
 			)}
 			title={selectedSource}
 			aria-haspopup="listbox"
@@ -733,7 +753,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 				<MonitorIcon size={16} className="shrink-0" />
 			)}
 			<div className="flex-1 min-w-0 flex flex-col items-start leading-[1.15]">
-				<span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#90909c]">
+				<span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--launch-label)]">
 					{selectedSourceType === "window"
 						? t("recording.window")
 						: selectedSourceType === "area"
@@ -747,8 +767,8 @@ export const SourceSelector = React.memo(function SourceSelector({
 			<CaretUpIcon
 				size={10}
 				className={cn(
-					"text-[#6b6b78] ml-0.5 shrink-0 transition-transform duration-200",
-					open ? "" : "rotate-180",
+					"text-[var(--launch-text-muted)] ml-0.5 shrink-0 transition-transform duration-200",
+					open ? "rotate-180" : "",
 				)}
 			/>
 		</Button>
@@ -759,7 +779,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 	const popoverHeader = (
 		<div className="source-selector-header">
 			<span id="source-selector-header-title" className="source-selector-header-title">
-				{selectedSource}
+				{t("recording.source", "Recording source")}
 			</span>
 		</div>
 	);
@@ -768,14 +788,14 @@ export const SourceSelector = React.memo(function SourceSelector({
 		<Popover open={open} onOpenChange={onOpenChange} modal={false}>
 			<PopoverTrigger asChild>{trigger}</PopoverTrigger>
 			<PopoverContent
-				className="launch-theme w-80 p-0 source-selector-popover"
+				className="launch-theme launch-hud-theme w-80 p-0 source-selector-popover"
 				unstyled
 				align="start"
 				sideOffset={8}
 				side="top"
 				alignOffset={-8}
 				avoidCollisions={true}
-				collisionPadding={10}
+				collisionPadding={12}
 				usePortal={false}
 				onMouseEnter={onMouseEnter}
 				role="dialog"
@@ -789,6 +809,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 					selectedSourceType={selectedSourceType}
 					loading={loading}
 					open={open}
+					mode={propsMode}
 					onSourceSelect={onSourceSelect}
 					onOpenAreaSelector={onOpenAreaSelector}
 				/>

@@ -36,6 +36,41 @@ function finiteOr(value: unknown, fallback: number): number {
 	return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+/**
+ * Largest square preview that can sit fully inside the viewport.
+ * Never negative; independent of the normal persisted min/max range.
+ */
+export function maxWebcamPreviewSizeForViewport(viewport: {
+	width: number;
+	height: number;
+}): number {
+	if (
+		!Number.isFinite(viewport.width) ||
+		!Number.isFinite(viewport.height) ||
+		viewport.width <= 0 ||
+		viewport.height <= 0
+	) {
+		return 0;
+	}
+	return Math.max(0, Math.floor(Math.min(viewport.width, viewport.height)));
+}
+
+/**
+ * Clamp a preview size so the full square remains on-screen.
+ * On normal large screens this preserves WEBCAM_PREVIEW_SIZE_RANGE.
+ * On very small viewports it may drop below the normal min (never below 0).
+ */
+export function clampWebcamPreviewSizeToViewport(
+	size: number,
+	viewport: { width: number; height: number },
+): number {
+	const maxForViewport = maxWebcamPreviewSizeForViewport(viewport);
+	const effectiveMax = Math.min(WEBCAM_PREVIEW_SIZE_RANGE.max, maxForViewport);
+	const effectiveMin = Math.min(WEBCAM_PREVIEW_SIZE_RANGE.min, effectiveMax);
+	const preferred = finiteOr(size, DEFAULT_WEBCAM_PREVIEW_APPEARANCE.size);
+	return Math.round(clamp(preferred, effectiveMin, effectiveMax));
+}
+
 function normalizeCenter(value: unknown, fallback: number): number {
 	return Math.round(clamp(finiteOr(value, fallback), 0, 1) * 1000) / 1000;
 }

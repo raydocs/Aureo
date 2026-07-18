@@ -85,6 +85,7 @@ describe("SourceSelectorContent", () => {
 					windowSources={[windowSource]}
 					selectedSource={screen.name}
 					selectedSourceType="area"
+					loading={true}
 					onSourceSelect={vi.fn()}
 				/>
 			</I18nProvider>,

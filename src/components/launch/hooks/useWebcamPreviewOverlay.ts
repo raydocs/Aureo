@@ -1,11 +1,12 @@
 import { type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { canShowFloatingWebcamPreview } from "../floatingWebcamPreview";
-import { clampHudOffsetToViewport } from "../hudViewportBounds";
 import {
 	cacheWebcamPreviewAppearance,
+	clampWebcamPreviewSizeToViewport,
 	loadWebcamPreviewAppearance,
 	normalizeWebcamPreviewAppearance,
 	saveWebcamPreviewAppearance,
+	WEBCAM_PREVIEW_SIZE_RANGE,
 	type WebcamPreviewAppearance,
 } from "../webcamPreviewAppearance";
 import {
@@ -15,7 +16,7 @@ import {
 } from "../webcamPreviewFraming";
 import {
 	loadWebcamPreviewPlacement,
-	resolveRestoredPreviewPlacement,
+	resolveViewportConstrainedPreview,
 	saveWebcamPreviewPlacement,
 	type WebcamPreviewPlacement,
 } from "../webcamPreviewPlacement";
@@ -29,21 +30,30 @@ const PLACEMENT_SAVE_DEBOUNCE_MS = 250;
 
 interface InitialWebcamPreviewState {
 	appearance: WebcamPreviewAppearance;
+	preferredSize: number;
 	offset: { x: number; y: number };
 	visible: boolean;
 }
 
 function createInitialWebcamPreviewState(): InitialWebcamPreviewState {
-	const appearance = loadWebcamPreviewAppearance();
-	const placement = resolveRestoredPreviewPlacement(
-		loadWebcamPreviewPlacement(),
-		{ width: window.innerWidth, height: window.innerHeight },
-		appearance.size,
-	);
+	const loadedAppearance = loadWebcamPreviewAppearance();
+	const viewport = { width: window.innerWidth, height: window.innerHeight };
+	const constrained = resolveViewportConstrainedPreview({
+		size: loadedAppearance.size,
+		placement: loadWebcamPreviewPlacement(),
+		viewport,
+	});
+	const appearance =
+		constrained.size === loadedAppearance.size
+			? loadedAppearance
+			: { ...loadedAppearance, size: constrained.size };
+	// Runtime-only undersized values must not overwrite the persisted preferred size.
+	cacheWebcamPreviewAppearance(appearance);
 	return {
 		appearance,
-		offset: { x: placement.offsetX, y: placement.offsetY },
-		visible: placement.visible,
+		preferredSize: loadedAppearance.size,
+		offset: { x: constrained.placement.offsetX, y: constrained.placement.offsetY },
+		visible: constrained.placement.visible,
 	};
 }
 
@@ -101,6 +111,7 @@ export function useWebcamPreviewOverlay({
 	const [videoAspect, setVideoAspect] = useState(DEFAULT_VIDEO_ASPECT);
 	const webcamPreviewOffsetRef = useRef(initialState.offset);
 	const webcamPreviewAppearanceRef = useRef(webcamPreviewAppearance);
+	const preferredWebcamPreviewSizeRef = useRef(initialState.preferredSize);
 	const videoAspectRef = useRef(videoAspect);
 	const appearanceSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const pendingAppearanceSaveRef = useRef<WebcamPreviewAppearance | null>(null);
@@ -211,11 +222,19 @@ export function useWebcamPreviewOverlay({
 	}, []);
 
 	const updateWebcamPreviewAppearance = useCallback((patch: Partial<WebcamPreviewAppearance>) => {
-		const next = normalizeWebcamPreviewAppearance({
-			...webcamPreviewAppearanceRef.current,
+		const current = webcamPreviewAppearanceRef.current;
+		const normalized = normalizeWebcamPreviewAppearance({
+			...current,
 			...patch,
 		});
+		const next =
+			patch.size === undefined && current.size < WEBCAM_PREVIEW_SIZE_RANGE.min
+				? { ...normalized, size: current.size }
+				: normalized;
 		webcamPreviewAppearanceRef.current = next;
+		if (patch.size !== undefined) {
+			preferredWebcamPreviewSizeRef.current = next.size;
+		}
 		cacheWebcamPreviewAppearance(next);
 		setWebcamPreviewAppearance(next);
 
@@ -332,16 +351,54 @@ export function useWebcamPreviewOverlay({
 		};
 	}, [releaseHudPassthrough]);
 
+	const applyRuntimePreviewSize = useCallback((nextSize: number) => {
+		const current = webcamPreviewAppearanceRef.current;
+		if (current.size === nextSize) {
+			return;
+		}
+		// Viewport fits are runtime-only: never overwrite the user's preferred size on disk.
+		// Values inside the normal range still skip normalize so a temporary undershoot
+		// path stays consistent; pointer-up persists intentional resizes separately.
+		const next =
+			nextSize >= WEBCAM_PREVIEW_SIZE_RANGE.min
+				? normalizeWebcamPreviewAppearance({ ...current, size: nextSize })
+				: { ...current, size: nextSize };
+		webcamPreviewAppearanceRef.current = next;
+		cacheWebcamPreviewAppearance(next);
+		setWebcamPreviewAppearance(next);
+	}, []);
+
 	const keepWebcamPreviewInsideViewport = useCallback(() => {
-		if (isWebcamPreviewDraggingRef.current || !recordingWebcamPreviewContainerRef.current) {
+		if (
+			isWebcamPreviewDraggingRef.current ||
+			isWebcamPreviewResizingRef.current ||
+			!recordingWebcamPreviewContainerRef.current
+		) {
 			return;
 		}
 
-		const bounds = recordingWebcamPreviewContainerRef.current.getBoundingClientRect();
-		const nextOffset = clampHudOffsetToViewport(webcamPreviewOffsetRef.current, bounds, {
-			width: window.innerWidth,
-			height: window.innerHeight,
+		const viewport = { width: window.innerWidth, height: window.innerHeight };
+		const constrained = resolveViewportConstrainedPreview({
+			size: preferredWebcamPreviewSizeRef.current,
+			placement: {
+				offsetX: webcamPreviewOffsetRef.current.x,
+				offsetY: webcamPreviewOffsetRef.current.y,
+				visible: true,
+			},
+			viewport,
 		});
+
+		const shell = recordingWebcamPreviewContainerRef.current;
+		if (constrained.size !== webcamPreviewAppearanceRef.current.size) {
+			applyRuntimePreviewSize(constrained.size);
+			shell.style.width = `${constrained.size}px`;
+			shell.style.height = `${constrained.size}px`;
+		}
+
+		const nextOffset = {
+			x: constrained.placement.offsetX,
+			y: constrained.placement.offsetY,
+		};
 		if (
 			nextOffset.x === webcamPreviewOffsetRef.current.x &&
 			nextOffset.y === webcamPreviewOffsetRef.current.y
@@ -350,9 +407,9 @@ export function useWebcamPreviewOverlay({
 		}
 
 		webcamPreviewOffsetRef.current = nextOffset;
-		recordingWebcamPreviewContainerRef.current.style.transform = `translate(${nextOffset.x}px, ${nextOffset.y}px)`;
+		shell.style.transform = `translate(${nextOffset.x}px, ${nextOffset.y}px)`;
 		setWebcamPreviewOffset(nextOffset);
-	}, []);
+	}, [applyRuntimePreviewSize]);
 
 	useEffect(() => {
 		window.addEventListener("resize", keepWebcamPreviewInsideViewport);
@@ -605,7 +662,8 @@ export function useWebcamPreviewOverlay({
 		}
 
 		previewResizePendingPointerRef.current = null;
-		const result = computeResizedPreviewBox({
+		const viewport = { width: window.innerWidth, height: window.innerHeight };
+		const raw = computeResizedPreviewBox({
 			corner: resizeState.corner,
 			startSize: resizeState.startSize,
 			startOffset: resizeState.startOffset,
@@ -616,8 +674,28 @@ export function useWebcamPreviewOverlay({
 			centerScale: pointer.centerScale,
 			quantize: pointer.quantize,
 			snapSizes: WEBCAM_PREVIEW_SNAP_SIZES,
-			viewport: { width: window.innerWidth, height: window.innerHeight },
+			viewport,
 		});
+		// Hard stop against available viewport width/height (including cases where
+		// the normal min cannot fit, or the resize engine overshoots an edge).
+		const constrained = resolveViewportConstrainedPreview({
+			size: raw.size,
+			placement: {
+				offsetX: raw.offset.x,
+				offsetY: raw.offset.y,
+				visible: true,
+			},
+			viewport,
+		});
+		const result = {
+			size: constrained.size,
+			offset: {
+				x: constrained.placement.offsetX,
+				y: constrained.placement.offsetY,
+			},
+			snappedTo:
+				raw.snappedTo !== null && constrained.size === raw.snappedTo ? raw.snappedTo : null,
+		};
 		previewResizeResultRef.current = result;
 
 		const shell = recordingWebcamPreviewContainerRef.current;
@@ -722,7 +800,11 @@ export function useWebcamPreviewOverlay({
 			if (result) {
 				webcamPreviewOffsetRef.current = result.offset;
 				setWebcamPreviewOffset(result.offset);
-				updateWebcamPreviewAppearance({ size: result.size });
+				if (result.size >= WEBCAM_PREVIEW_SIZE_RANGE.min) {
+					updateWebcamPreviewAppearance({ size: result.size });
+				} else {
+					applyRuntimePreviewSize(result.size);
+				}
 			}
 
 			webcamPreviewResizeStartRef.current = null;
@@ -736,7 +818,12 @@ export function useWebcamPreviewOverlay({
 			}
 			releaseHudPassthrough();
 		},
-		[applyPendingWebcamPreviewResize, releaseHudPassthrough, updateWebcamPreviewAppearance],
+		[
+			applyPendingWebcamPreviewResize,
+			applyRuntimePreviewSize,
+			releaseHudPassthrough,
+			updateWebcamPreviewAppearance,
+		],
 	);
 
 	const syncVideoAspectFromNode = useCallback((videoElement: HTMLVideoElement) => {
@@ -878,19 +965,30 @@ export function useWebcamPreviewOverlay({
 	}, []);
 
 	useEffect(() => {
-		const previewSize = webcamPreviewAppearance.size;
+		// Re-run when the committed preview size changes (resize end / viewport fit).
+		const preferredSize = Number.isFinite(preferredWebcamPreviewSizeRef.current)
+			? preferredWebcamPreviewSizeRef.current
+			: webcamPreviewAppearance.size;
 		const timeoutId = window.setTimeout(() => {
 			const preview = recordingWebcamPreviewContainerRef.current;
-			if (!preview) return;
+			if (!preview || isWebcamPreviewResizingRef.current) return;
+
+			const viewport = { width: window.innerWidth, height: window.innerHeight };
+			const safeSize = clampWebcamPreviewSizeToViewport(preferredSize, viewport);
+			if (safeSize !== webcamPreviewAppearanceRef.current.size) {
+				applyRuntimePreviewSize(safeSize);
+				preview.style.width = `${safeSize}px`;
+				preview.style.height = `${safeSize}px`;
+			}
 
 			const rect = preview.getBoundingClientRect();
 			const clampedLeft = Math.min(
 				Math.max(0, rect.left),
-				Math.max(0, window.innerWidth - previewSize),
+				Math.max(0, viewport.width - safeSize),
 			);
 			const clampedTop = Math.min(
 				Math.max(0, rect.top),
-				Math.max(0, window.innerHeight - previewSize),
+				Math.max(0, viewport.height - safeSize),
 			);
 			const correctionX = clampedLeft - rect.left;
 			const correctionY = clampedTop - rect.top;
@@ -906,7 +1004,7 @@ export function useWebcamPreviewOverlay({
 		}, 200);
 
 		return () => window.clearTimeout(timeoutId);
-	}, [webcamPreviewAppearance.size]);
+	}, [applyRuntimePreviewSize, webcamPreviewAppearance.size]);
 
 	useEffect(() => {
 		let mounted = true;

@@ -1,4 +1,13 @@
+/*
+ * Source selector popover: dark neutral HUD chrome.
+ * All colors are inherited from the centralized `.hud-overlay-window .launch-theme`
+ * token set, so selected/open/hover states render as white-on-neutral.
+ */
 .source-selector-popover {
+	width: 320px;
+	max-width: calc(100vw - 24px);
+	max-height: min(400px, calc(100vh - 120px));
+	overflow: hidden;
 	background: var(--launch-surface);
 	background-color: var(--launch-surface-solid);
 	border: 1px solid var(--launch-border);
@@ -8,7 +17,6 @@
 	-webkit-backdrop-filter: blur(var(--launch-popover-blur, 24px))
 		saturate(var(--launch-popover-saturate, 160%));
 	box-shadow: var(--launch-bar-shadow);
-	overflow: hidden;
 	isolation: isolate;
 	transform-origin: var(--radix-popover-content-transform-origin, center bottom);
 	animation: sourceSelectorIn 0.18s cubic-bezier(0.22, 1, 0.36, 1);
@@ -98,23 +106,25 @@
 
 .source-selector-mode-tabs {
 	display: flex;
-	gap: 4px;
+	min-width: 0;
+	gap: 3px;
 	padding: 8px 8px 0;
 }
 
 .source-selector-mode-tab {
-	flex: 1;
+	flex: 1 1 0;
+	min-width: 0;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 6px;
+	gap: 4px;
 	height: 32px;
-	padding: 0 6px;
+	padding: 0 4px;
 	border-radius: 8px;
 	border: 1px solid transparent;
 	background: transparent;
 	color: var(--launch-text-muted);
-	font-size: 12px;
+	font-size: 11px;
 	font-weight: 600;
 	cursor: pointer;
 	transition:
@@ -135,22 +145,28 @@
 
 .source-selector-mode-tab-active {
 	background: var(--launch-selected);
-	color: var(--launch-accent);
+	color: var(--launch-text);
 	border-color: var(--launch-border-strong);
 }
 
 .source-selector-mode-tab-active:hover {
 	background: var(--launch-selected);
-	color: var(--launch-accent);
+	color: var(--launch-text);
+}
+
+.source-selector-tab-label {
+	min-width: 0;
+	white-space: nowrap;
 }
 
 .source-selector-count {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	min-width: 18px;
-	height: 18px;
-	padding: 0 5px;
+	min-width: 16px;
+	height: 16px;
+	padding: 0 3px;
+	flex-shrink: 0;
 	border-radius: 999px;
 	background: var(--launch-hover);
 	color: var(--launch-text-muted);
@@ -160,8 +176,8 @@
 }
 
 .source-selector-mode-tab-active .source-selector-count {
-	background: rgba(255, 255, 255, 0.1);
-	color: var(--launch-accent);
+	background: var(--launch-hover);
+	color: var(--launch-text);
 }
 
 @media (forced-colors: active) {
@@ -240,18 +256,17 @@
 
 .source-selector-item-selected {
 	background: var(--launch-selected);
-	color: var(--launch-accent);
-	border-color: var(--launch-accent);
+	color: var(--launch-text);
+	border-color: var(--launch-border-strong);
 }
 
 .source-selector-item-selected:hover {
 	background: var(--launch-selected);
-	color: var(--launch-accent);
+	color: var(--launch-text);
 }
 
 .source-selector-item-selected .source-selector-muted {
-	color: var(--launch-accent);
-	opacity: 0.7;
+	color: var(--launch-text-muted);
 }
 
 .source-selector-thumb-fallback {
@@ -283,15 +298,15 @@
 	width: 6px;
 	height: 6px;
 	border-radius: 50%;
-	background: var(--launch-accent);
+	background: var(--launch-text);
 }
 
 .source-selector-dot-inner {
-	background: #f8fbff;
+	background: var(--launch-text);
 }
 
 .source-selector-accent-border {
-	border-color: var(--launch-accent);
+	border-color: var(--launch-text);
 }
 
 /* Custom Scrollbar for Source Selector */
@@ -305,19 +320,19 @@
 }
 
 .source-selector-scroll::-webkit-scrollbar-thumb {
-	background: rgba(107, 107, 120, 0.2);
+	background: var(--launch-border-strong);
 	border-radius: 20px;
 	transition: background 0.2s ease;
 }
 
 .source-selector-scroll::-webkit-scrollbar-thumb:hover {
-	background: rgba(107, 107, 120, 0.4);
+	background: var(--launch-border-strong);
 }
 
 /* Support for Firefox */
 .source-selector-scroll {
 	scrollbar-width: thin;
-	scrollbar-color: rgba(107, 107, 120, 0.2) transparent;
+	scrollbar-color: var(--launch-border-strong) transparent;
 }
 
 .source-selector-marquee {
@@ -444,6 +459,12 @@
 	opacity: 0.75;
 	line-height: 1.35;
 	max-width: 220px;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+.source-selector-action-body {
+	width: 100%;
 }
 
 .source-selector-action-panel {
@@ -460,7 +481,7 @@
 	min-width: 120px;
 	border: 1px solid var(--launch-border-strong);
 	background: var(--launch-selected);
-	color: var(--launch-accent);
+	color: var(--launch-text);
 	font-weight: 600;
 	font-size: 12px;
 	border-radius: 8px;

@@ -95,14 +95,14 @@ export function HudPopover({
 		<Popover open={open} onOpenChange={onOpenChange} modal={false}>
 			<PopoverTrigger asChild>{trigger}</PopoverTrigger>
 			<PopoverContent
-				className={`launch-theme ${styles.menuCard} ${styles.electronNoDrag}`}
+				className={`launch-theme launch-hud-theme ${styles.menuCard} ${styles.electronNoDrag}`}
 				data-hud-interactive
 				unstyled
 				side="top"
 				align={align}
 				sideOffset={8}
 				avoidCollisions
-				collisionPadding={10}
+				collisionPadding={12}
 				usePortal={false}
 				onMouseEnter={onMouseEnter}
 				role={role}

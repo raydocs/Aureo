@@ -9,7 +9,7 @@
 	}
 
 	*:focus-visible {
-		outline: 2px solid rgb(var(--brand-accent-rgb));
+		outline: 2px solid var(--ui-focus-ring);
 		outline-offset: 2px;
 		-webkit-tap-highlight-color: transparent;
 	}
@@ -114,10 +114,30 @@
 		--radius-control-xs: 0.25rem;
 		--radius-surface: 0.75rem;
 		--radius-surface-lg: 1rem;
-		--motion-duration-instant: 0ms;
-		--motion-duration-fast: 100ms;
-		--motion-duration-normal: 180ms;
-		--motion-duration-slow: 260ms;
+		/* Shared UI semantics. Components consume these roles instead of inventing surfaces. */
+		--ui-material-panel: hsl(var(--surface-panel));
+		--ui-material-elevated: hsl(var(--surface-elevated));
+		--ui-material-floating: hsl(var(--surface-glass-regular));
+		--ui-material-opaque: hsl(var(--surface-glass-solid));
+		--ui-label-primary: hsl(var(--surface-foreground));
+		--ui-label-secondary: hsl(var(--surface-foreground-muted));
+		--ui-label-tertiary: hsl(var(--surface-foreground-muted) / 0.72);
+		--ui-label-inverse: hsl(var(--surface-foreground-inverse));
+		--ui-separator: hsl(var(--hairline));
+		--ui-separator-strong: hsl(var(--hairline-strong));
+		--ui-control-hover: hsl(var(--surface-foreground) / 0.06);
+		--ui-control-pressed: hsl(var(--surface-foreground) / 0.1);
+		--ui-control-selected: hsl(var(--primary) / 0.14);
+		--ui-control-disabled-opacity: 0.45;
+		--ui-focus-ring: rgb(var(--brand-accent-rgb));
+		--ui-motion-duration-instant: 0ms;
+		--ui-motion-duration-fast: 100ms;
+		--ui-motion-duration-normal: 180ms;
+		--ui-motion-duration-slow: 260ms;
+		--motion-duration-instant: var(--ui-motion-duration-instant);
+		--motion-duration-fast: var(--ui-motion-duration-fast);
+		--motion-duration-normal: var(--ui-motion-duration-normal);
+		--motion-duration-slow: var(--ui-motion-duration-slow);
 		--motion-easing-default: cubic-bezier(0.4, 0, 0.2, 1);
 		--motion-easing-emphasis: cubic-bezier(0.2, 0, 0, 1);
 		--motion-easing-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);

@@ -1,16 +1,29 @@
 .launch-theme {
 	/* Light mode (content-first functional chrome) */
-	--launch-surface: rgba(255, 255, 255, 0.66);
+	--ui-material-panel: rgba(250, 251, 253, 0.72);
+	--ui-material-elevated: #ffffff;
+	--ui-material-floating: rgba(255, 255, 255, 0.66);
+	--ui-material-opaque: #ffffff;
+	--ui-label-primary: #020617;
+	--ui-label-secondary: #475569;
+	--ui-label-tertiary: #64748b;
+	--ui-separator: rgba(0, 0, 0, 0.1);
+	--ui-separator-strong: rgba(0, 0, 0, 0.16);
+	--ui-control-hover: rgba(0, 0, 0, 0.05);
+	--ui-control-pressed: rgba(0, 0, 0, 0.08);
+	--ui-control-selected: rgba(37, 99, 235, 0.14);
+	--ui-focus-ring: #2563eb;
+	--launch-surface: var(--ui-material-floating);
 	--launch-surface-solid: #ffffff;
-	--launch-panel: rgba(250, 251, 253, 0.72);
-	--launch-border: rgba(0, 0, 0, 0.1);
-	--launch-border-strong: rgba(0, 0, 0, 0.16);
-	--launch-text: #020617;
-	--launch-text-muted: #475569;
-	--launch-label: #64748b;
-	--launch-hover: rgba(0, 0, 0, 0.05);
+	--launch-panel: var(--ui-material-panel);
+	--launch-border: var(--ui-separator);
+	--launch-border-strong: var(--ui-separator-strong);
+	--launch-text: var(--ui-label-primary);
+	--launch-text-muted: var(--ui-label-secondary);
+	--launch-label: var(--ui-label-tertiary);
+	--launch-hover: var(--ui-control-hover);
 	--launch-hover-solid: #f1f5f9;
-	--launch-selected: rgba(37, 99, 235, 0.14);
+	--launch-selected: var(--ui-control-selected);
 	--launch-selected-solid: #e8effd;
 	--launch-accent: #2563eb;
 	--launch-accent-soft: #f1f5f9;
@@ -37,17 +50,21 @@
 .dark .launch-theme,
 .launch-theme.dark {
 	/* Dark mode */
-	--launch-surface: rgba(22, 22, 30, 0.6);
+	--ui-material-panel: rgba(26, 26, 34, 0.72);
+	--ui-material-elevated: #1a1a22;
+	--ui-material-floating: rgba(22, 22, 30, 0.6);
+	--ui-material-opaque: #1a1a22;
+	--ui-label-primary: #f3f6ff;
+	--ui-label-secondary: #aab3c7;
+	--ui-label-tertiary: #8f99b1;
+	--ui-separator: rgba(255, 255, 255, 0.1);
+	--ui-separator-strong: rgba(255, 255, 255, 0.16);
+	--ui-control-hover: rgba(255, 255, 255, 0.08);
+	--ui-control-pressed: rgba(255, 255, 255, 0.12);
+	--ui-control-selected: rgba(92, 153, 255, 0.24);
+	--ui-focus-ring: #3d8bff;
 	--launch-surface-solid: #1a1a22;
-	--launch-panel: rgba(26, 26, 34, 0.72);
-	--launch-border: rgba(255, 255, 255, 0.1);
-	--launch-border-strong: rgba(255, 255, 255, 0.16);
-	--launch-text: #f3f6ff;
-	--launch-text-muted: #aab3c7;
-	--launch-label: #8f99b1;
-	--launch-hover: rgba(255, 255, 255, 0.08);
 	--launch-hover-solid: #20202a;
-	--launch-selected: rgba(92, 153, 255, 0.24);
 	--launch-selected-solid: #202a3d;
 	--launch-accent: #3d8bff;
 	--launch-accent-soft: #dbeafe;
@@ -71,17 +88,21 @@
  */
 .hud-overlay-window .launch-theme,
 .launch-theme.launch-hud-theme {
-	--launch-surface: rgba(28, 28, 32, 0.88);
+	--ui-material-panel: rgba(34, 34, 40, 0.9);
+	--ui-material-elevated: #1c1c20;
+	--ui-material-floating: rgba(28, 28, 32, 0.88);
+	--ui-material-opaque: #1c1c20;
+	--ui-label-primary: #f5f5f7;
+	--ui-label-secondary: rgba(245, 245, 247, 0.78);
+	--ui-label-tertiary: rgba(245, 245, 247, 0.58);
+	--ui-separator: rgba(255, 255, 255, 0.12);
+	--ui-separator-strong: rgba(255, 255, 255, 0.24);
+	--ui-control-hover: rgba(255, 255, 255, 0.1);
+	--ui-control-pressed: rgba(255, 255, 255, 0.14);
+	--ui-control-selected: rgba(255, 255, 255, 0.18);
+	--ui-focus-ring: #ffffff;
 	--launch-surface-solid: #1c1c20;
-	--launch-panel: rgba(34, 34, 40, 0.9);
-	--launch-border: rgba(255, 255, 255, 0.12);
-	--launch-border-strong: rgba(255, 255, 255, 0.24);
-	--launch-text: #f5f5f7;
-	--launch-text-muted: rgba(245, 245, 247, 0.78);
-	--launch-label: rgba(245, 245, 247, 0.58);
-	--launch-hover: rgba(255, 255, 255, 0.1);
 	--launch-hover-solid: #2a2a30;
-	--launch-selected: rgba(255, 255, 255, 0.18);
 	--launch-selected-solid: #2c2c32;
 	--launch-accent: #ffffff;
 	--launch-accent-soft: #f5f5f7;

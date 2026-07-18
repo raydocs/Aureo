@@ -212,7 +212,11 @@ interface Window {
 		hudOverlayClose: () => void;
 		hudOverlayRendererReady: () => void;
 		hudOverlaySetWebcamPreviewVisible: (visible: boolean) => void;
-		onHudOverlayOpenPopover: (callback: (popoverId: "webcam" | "more") => void) => () => void;
+		onHudOverlayOpenPopover: (
+			callback: (
+				popoverId: import("../src/lib/launchPopoverIds").NativeOpenableLaunchPopoverId,
+			) => void,
+		) => () => void;
 		getHudOverlayCaptureProtection: () => Promise<{ success: boolean; enabled: boolean }>;
 		getHudOverlayMousePassthroughSupported: () => Promise<{
 			success: boolean;

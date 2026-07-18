@@ -16,6 +16,7 @@ import {
 	systemPreferences,
 	Tray,
 } from "electron";
+import type { NativeOpenableLaunchPopoverId } from "../src/lib/launchPopoverIds";
 import { RECORDINGS_DIR } from "./appPaths";
 import { showCursor } from "./cursorHider";
 import { registerExtensionIpcHandlers } from "./extensions/extensionIpc";
@@ -281,7 +282,7 @@ function showHudOverlayFromTray() {
 	return true;
 }
 
-function openHudOverlayPopover(popoverId: "webcam" | "more") {
+function openHudOverlayPopover(popoverId: NativeOpenableLaunchPopoverId) {
 	if (!showHudOverlayFromTray()) {
 		focusOrCreateMainWindow();
 	}

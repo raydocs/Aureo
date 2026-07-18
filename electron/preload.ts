@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { NativeOpenableLaunchPopoverId } from "../src/lib/launchPopoverIds";
 import type { RecordingSessionData, RecordingWebcamAppearance } from "./ipc/types";
 
 type NativeVideoExportWriteResult = { success: boolean; error?: string };
@@ -185,8 +186,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	hudOverlaySetWebcamPreviewVisible: (visible: boolean) => {
 		ipcRenderer.send("hud-overlay-set-webcam-preview-visible", visible);
 	},
-	onHudOverlayOpenPopover: (callback: (popoverId: "webcam" | "more") => void) => {
-		const listener = (_event: Electron.IpcRendererEvent, popoverId: "webcam" | "more") => {
+	onHudOverlayOpenPopover: (callback: (popoverId: NativeOpenableLaunchPopoverId) => void) => {
+		const listener = (
+			_event: Electron.IpcRendererEvent,
+			popoverId: NativeOpenableLaunchPopoverId,
+		) => {
 			callback(popoverId);
 		};
 		ipcRenderer.on("hud-overlay-open-popover", listener);

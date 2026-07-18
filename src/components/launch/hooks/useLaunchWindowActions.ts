@@ -4,12 +4,14 @@ import type { DesktopSource } from "../popovers/launchPopoverTypes";
 
 export function useLaunchWindowActions() {
 	const [selectedSource, setSelectedSource] = useState("Screen");
+	const [selectedSourceType, setSelectedSourceType] = useState<"screen" | "window">("screen");
 	const [hasSelectedSource, setHasSelectedSource] = useState(false);
 	const [projectLibraryEntries, setProjectLibraryEntries] = useState<ProjectLibraryEntry[]>([]);
 
 	const handleSourceSelect = useCallback(async (source: DesktopSource) => {
 		await window.electronAPI.selectSource(source);
 		setSelectedSource(source.name);
+		setSelectedSourceType(source.sourceType === "window" ? "window" : "screen");
 		setHasSelectedSource(true);
 		window.electronAPI.showSourceHighlight?.({
 			...source,
@@ -52,18 +54,28 @@ export function useLaunchWindowActions() {
 		}
 	}, []);
 
-	const syncSelectedSource = useCallback((source: { name?: string } | null | undefined) => {
-		if (source?.name) {
-			setSelectedSource(source.name);
-			setHasSelectedSource(true);
-			return;
-		}
-		setSelectedSource("Screen");
-		setHasSelectedSource(false);
-	}, []);
+	const syncSelectedSource = useCallback(
+		(source: Pick<DesktopSource, "id" | "name" | "sourceType"> | null | undefined) => {
+			if (source?.name) {
+				setSelectedSource(source.name);
+				setSelectedSourceType(
+					source.sourceType === "window" || source.id.startsWith("window:")
+						? "window"
+						: "screen",
+				);
+				setHasSelectedSource(true);
+				return;
+			}
+			setSelectedSource("Screen");
+			setSelectedSourceType("screen");
+			setHasSelectedSource(false);
+		},
+		[],
+	);
 
 	return {
 		selectedSource,
+		selectedSourceType,
 		hasSelectedSource,
 		projectLibraryEntries,
 		handleSourceSelect,

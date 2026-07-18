@@ -96,6 +96,99 @@
 	}
 }
 
+.source-selector-mode-tabs {
+	display: flex;
+	gap: 4px;
+	padding: 8px 8px 0;
+}
+
+.source-selector-mode-tab {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	height: 32px;
+	padding: 0 8px;
+	border-radius: 8px;
+	border: 1px solid transparent;
+	background: transparent;
+	color: var(--launch-text-muted);
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition:
+		color 0.12s ease,
+		background-color 0.12s ease,
+		border-color 0.12s ease;
+}
+
+.source-selector-mode-tab:hover {
+	background: var(--launch-hover);
+	color: var(--launch-text);
+}
+
+.source-selector-mode-tab:focus-visible {
+	outline: 2px solid var(--launch-accent);
+	outline-offset: -2px;
+}
+
+.source-selector-mode-tab-active {
+	background: var(--launch-selected);
+	color: var(--launch-accent);
+	border-color: var(--launch-border-strong);
+}
+
+.source-selector-mode-tab-active:hover {
+	background: var(--launch-selected);
+	color: var(--launch-accent);
+}
+
+.source-selector-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 18px;
+	height: 18px;
+	padding: 0 5px;
+	border-radius: 999px;
+	background: var(--launch-hover);
+	color: var(--launch-text-muted);
+	font-size: 10px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.source-selector-mode-tab-active .source-selector-count {
+	background: rgba(255, 255, 255, 0.1);
+	color: var(--launch-accent);
+}
+
+@media (forced-colors: active) {
+	.source-selector-mode-tab-active {
+		border-color: ButtonText !important;
+		background: ButtonFace !important;
+		color: ButtonText !important;
+	}
+
+	.source-selector-mode-tab-active .source-selector-count {
+		background: transparent !important;
+		color: ButtonText !important;
+	}
+}
+
+[data-reduce-motion="true"] .source-selector-mode-tab,
+[data-reduce-motion="true"] .source-selector-mode-tab .source-selector-count {
+	transition-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.source-selector-mode-tab,
+	.source-selector-mode-tab .source-selector-count {
+		transition-duration: 0.01ms !important;
+	}
+}
+
 /* Popover header */
 .source-selector-header {
 	display: flex;

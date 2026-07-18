@@ -180,6 +180,36 @@
 	color: var(--launch-text);
 }
 
+.toolbarControlEnabled {
+	border-color: rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.06);
+}
+
+.toolbarControlEnabled:hover {
+	border-color: rgba(255, 255, 255, 0.16);
+	background: rgba(255, 255, 255, 0.1);
+}
+
+.toolbarControlOpen {
+	background: var(--launch-selected);
+	color: var(--launch-text);
+	border-color: rgba(255, 255, 255, 0.14);
+}
+
+.toolbarControlOpen:hover {
+	background: var(--launch-selected);
+	color: var(--launch-text);
+}
+
+@media (forced-colors: active) {
+	.toolbarControlEnabled,
+	.toolbarControlOpen {
+		border-color: ButtonText !important;
+		background: ButtonFace !important;
+		color: ButtonText !important;
+	}
+}
+
 .sourceControl {
 	width: 190px;
 	max-width: 190px;

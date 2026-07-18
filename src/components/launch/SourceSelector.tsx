@@ -22,6 +22,8 @@ interface SourceSelectorProps {
 	windowSources?: DesktopSource[];
 	/** Currently selected source name */
 	selectedSource?: string;
+	/** Currently selected source type */
+	selectedSourceType?: "screen" | "window";
 	/** Loading state */
 	loading?: boolean;
 	/** Callback when a source is selected */
@@ -79,19 +81,32 @@ export const SourceSelectorContent = ({
 	screenSources = [],
 	windowSources = [],
 	selectedSource = "Screen",
+	selectedSourceType = "screen",
 	loading = false,
 	open = false,
 	onSourceSelect = () => undefined,
 }: Pick<
 	SourceSelectorProps,
-	"screenSources" | "windowSources" | "selectedSource" | "loading" | "onSourceSelect"
+	| "screenSources"
+	| "windowSources"
+	| "selectedSource"
+	| "selectedSourceType"
+	| "loading"
+	| "onSourceSelect"
 > & { open?: boolean }) => {
 	const t = useScopedT("launch");
 	const listRef = useRef<HTMLDivElement>(null);
+	const tabsRef = useRef<HTMLDivElement>(null);
 	const [failedThumbnails, setFailedThumbnails] = useState<Set<string>>(new Set());
+	const [mode, setMode] = useState<"screen" | "window">(selectedSourceType);
+
+	useEffect(() => {
+		setMode(selectedSourceType);
+	}, [selectedSourceType]);
+
 	const orderedSources = useMemo(
-		() => [...screenSources, ...windowSources],
-		[screenSources, windowSources],
+		() => (mode === "screen" ? screenSources : windowSources),
+		[mode, screenSources, windowSources],
 	);
 	const hasSelectedSource = orderedSources.some((source) => source.name === selectedSource);
 
@@ -101,7 +116,10 @@ export const SourceSelectorContent = ({
 			const selected = listRef.current?.querySelector<HTMLElement>('[data-selected="true"]');
 			if (selected) {
 				selected.focus();
+				return;
 			}
+			const firstOption = listRef.current?.querySelector<HTMLElement>('[role="option"]');
+			firstOption?.focus();
 		}, 0);
 		return () => clearTimeout(timeoutId);
 	}, [open]);
@@ -143,11 +161,80 @@ export const SourceSelectorContent = ({
 		options?.[nextIndex]?.focus();
 	};
 
+	const handleTabKeyDown = (
+		event: React.KeyboardEvent<HTMLButtonElement>,
+		tabMode: "screen" | "window",
+	) => {
+		if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+		event.preventDefault();
+		const nextMode = tabMode === "screen" ? "window" : "screen";
+		setMode(nextMode);
+		const nextTab = tabsRef.current?.querySelector<HTMLButtonElement>(
+			`[data-mode="${nextMode}"]`,
+		);
+		queueMicrotask(() => nextTab?.focus());
+	};
+
+	const renderModeTabs = () => {
+		return (
+			<div
+				ref={tabsRef}
+				role="radiogroup"
+				aria-label={t("recording.source", "Recording source")}
+				className="source-selector-mode-tabs"
+			>
+				<button
+					type="button"
+					role="radio"
+					data-mode="screen"
+					aria-checked={mode === "screen"}
+					tabIndex={mode === "screen" ? 0 : -1}
+					onClick={() => setMode("screen")}
+					onKeyDown={(event) => handleTabKeyDown(event, "screen")}
+					className={cn(
+						"source-selector-mode-tab",
+						mode === "screen" && "source-selector-mode-tab-active",
+					)}
+				>
+					<MonitorIcon className="w-3.5 h-3.5" />
+					{t("sourceSelector.screens")}
+					<span
+						className="source-selector-count"
+						aria-label={`${screenSources.length} ${t("sourceSelector.screens")}`}
+					>
+						{screenSources.length}
+					</span>
+				</button>
+				<button
+					type="button"
+					role="radio"
+					data-mode="window"
+					aria-checked={mode === "window"}
+					tabIndex={mode === "window" ? 0 : -1}
+					onClick={() => setMode("window")}
+					onKeyDown={(event) => handleTabKeyDown(event, "window")}
+					className={cn(
+						"source-selector-mode-tab",
+						mode === "window" && "source-selector-mode-tab-active",
+					)}
+				>
+					<AppWindowIcon className="w-3.5 h-3.5" />
+					{t("sourceSelector.windows")}
+					<span
+						className="source-selector-count"
+						aria-label={`${windowSources.length} ${t("sourceSelector.windows")}`}
+					>
+						{windowSources.length}
+					</span>
+				</button>
+			</div>
+		);
+	};
+
 	const renderSourceItem = (source: DesktopSource, index: number) => {
 		const isSelected = selectedSource === source.name;
 		const label = source.windowTitle || source.name;
-		const typeLabel =
-			source.sourceType === "screen" ? t("recording.screen") : t("recording.window");
+		const typeLabel = mode === "screen" ? t("recording.screen") : t("recording.window");
 		const thumbnailFailed = failedThumbnails.has(source.id);
 		const orderedIndex = orderedSources.findIndex((candidate) => candidate.id === source.id);
 		const isTabStop = isSelected || (!hasSelectedSource && orderedIndex === 0);
@@ -198,14 +285,18 @@ export const SourceSelectorContent = ({
 		);
 	};
 
-	const renderGroup = (
-		sources: DesktopSource[],
-		groupKey: string,
-		label: string,
-		icon: React.ReactNode,
-	) => {
+	const renderGroup = () => {
+		const sources = orderedSources;
+		const label = mode === "screen" ? t("sourceSelector.screens") : t("sourceSelector.windows");
+		const icon =
+			mode === "screen" ? (
+				<MonitorIcon className="w-3.5 h-3.5" />
+			) : (
+				<AppWindowIcon className="w-3.5 h-3.5" />
+			);
+		const groupKey = mode === "screen" ? "screens" : "windows";
 		return (
-			<div key={groupKey} className="space-y-1" role="group" aria-label={label}>
+			<div key={mode} className="space-y-1" role="group" aria-label={label}>
 				<div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] source-selector-label">
 					{icon}
 					{label}
@@ -230,17 +321,18 @@ export const SourceSelectorContent = ({
 		);
 	};
 
-	const hasAnySources = screenSources.length > 0 || windowSources.length > 0;
-
-	if (loading && !hasAnySources) {
+	if (loading && orderedSources.length === 0) {
 		return (
-			<div className="flex items-center justify-center py-8">
-				<div
-					className="animate-spin rounded-full h-5 w-5 border-b-2 source-selector-accent-border"
-					aria-labelledby="source-selector-header-title"
-					role="status"
-				/>
-			</div>
+			<>
+				{renderModeTabs()}
+				<div className="flex items-center justify-center py-8">
+					<div
+						className="animate-spin rounded-full h-5 w-5 border-b-2 source-selector-accent-border"
+						aria-labelledby="source-selector-header-title"
+						role="status"
+					/>
+				</div>
+			</>
 		);
 	}
 
@@ -249,34 +341,14 @@ export const SourceSelectorContent = ({
 			ref={listRef}
 			className="max-h-[320px] overflow-y-auto overflow-x-hidden p-2 source-selector-scroll"
 		>
-			{hasAnySources || loading ? (
-				<div
-					className="space-y-3"
-					role="listbox"
-					aria-label={t("recording.source", "Recording source")}
-				>
-					{renderGroup(
-						screenSources,
-						"screens",
-						t("sourceSelector.screens"),
-						<MonitorIcon className="w-3.5 h-3.5" />,
-					)}
-					{renderGroup(
-						windowSources,
-						"windows",
-						t("sourceSelector.windows"),
-						<AppWindowIcon className="w-3.5 h-3.5" />,
-					)}
-				</div>
-			) : (
-				<div className="source-selector-empty">
-					<AppWindowIcon size={24} className="source-selector-muted" />
-					<div>
-						{t("recording.noSourcesFound")}
-						<small>{t("sourceSelector.windowsNote")}</small>
-					</div>
-				</div>
-			)}
+			{renderModeTabs()}
+			<div
+				className="space-y-3"
+				role="listbox"
+				aria-label={t("recording.source", "Recording source")}
+			>
+				{renderGroup()}
+			</div>
 		</div>
 	);
 };
@@ -289,6 +361,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 	screenSources: propsScreenSources,
 	windowSources: propsWindowSources,
 	selectedSource: propsSelectedSource,
+	selectedSourceType: propsSelectedSourceType,
 	loading: propsLoading,
 	onSourceSelect: propsOnSourceSelect,
 	onFetchSources: propsOnFetchSources,
@@ -302,6 +375,9 @@ export const SourceSelector = React.memo(function SourceSelector({
 	const [internalSources, setInternalSources] = useState<DesktopSource[]>([]);
 	const [internalLoading, setInternalLoading] = useState(false);
 	const [internalSelectedSource, setInternalSelectedSource] = useState("Screen");
+	const [internalSelectedSourceType, setInternalSelectedSourceType] = useState<
+		"screen" | "window"
+	>("screen");
 
 	// Determine if we should use internal or external state/logic
 	const isAutonomous = propsOpen === undefined;
@@ -309,6 +385,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 	const onOpenChange = propsOnOpenChange ?? setInternalOpen;
 	const loading = propsLoading ?? internalLoading;
 	const selectedSource = propsSelectedSource ?? internalSelectedSource;
+	const selectedSourceType = propsSelectedSourceType ?? internalSelectedSourceType;
 
 	// Default fetching logic
 	const defaultFetchSources = useCallback(async () => {
@@ -342,6 +419,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 				const result = await window.electronAPI.selectSource(source);
 				if (result) {
 					setInternalSelectedSource(source.name);
+					setInternalSelectedSourceType(isWindowSource(source) ? "window" : "screen");
 				}
 			} catch (error) {
 				console.error("Failed to select source:", error);
@@ -432,8 +510,17 @@ export const SourceSelector = React.memo(function SourceSelector({
 			aria-haspopup="listbox"
 			aria-expanded={open}
 		>
-			<MonitorIcon size={16} className="shrink-0" />
-			<div className="flex-1 min-w-0">
+			{selectedSourceType === "window" ? (
+				<AppWindowIcon size={16} className="shrink-0" />
+			) : (
+				<MonitorIcon size={16} className="shrink-0" />
+			)}
+			<div className="flex-1 min-w-0 flex flex-col items-start leading-[1.15]">
+				<span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#90909c]">
+					{selectedSourceType === "window"
+						? t("recording.window")
+						: t("recording.screen")}
+				</span>
 				<MarqueeText text={selectedSource} />
 			</div>
 			<CaretUpIcon
@@ -453,7 +540,6 @@ export const SourceSelector = React.memo(function SourceSelector({
 			<span id="source-selector-header-title" className="source-selector-header-title">
 				{selectedSource}
 			</span>
-			<span className="source-selector-header-note">{t("sourceSelector.windowsNote")}</span>
 		</div>
 	);
 
@@ -479,6 +565,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 					screenSources={screenSources}
 					windowSources={windowSources}
 					selectedSource={selectedSource}
+					selectedSourceType={selectedSourceType}
 					loading={loading}
 					open={open}
 					onSourceSelect={onSourceSelect}

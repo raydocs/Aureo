@@ -1,4 +1,5 @@
 import {
+	AppWindowIcon,
 	ArrowClockwiseIcon,
 	CaretUpIcon,
 	GearSixIcon,
@@ -21,6 +22,7 @@ import { useMicrophoneDevices } from "../../hooks/useMicrophoneDevices";
 import { useScreenRecorder } from "../../hooks/useScreenRecorder";
 import { useVideoDevices } from "../../hooks/useVideoDevices";
 import { Button } from "../ui/button";
+import { cn } from "@/lib/utils";
 import { formatLaunchHudTitle } from "./a11y/launchA11yUtils";
 import { HudInteractionContext } from "./contexts/HudInteractionContext";
 import { canToggleFloatingWebcamPreview } from "./floatingWebcamPreview";
@@ -55,6 +57,19 @@ import { computeResizeCornerInset, WEBCAM_RESIZE_HANDLE_SIZE } from "./webcamPre
 import { getWebcamPreviewShapeStyle } from "./webcamPreviewShape";
 
 const SHOW_DEV_UPDATE_PREVIEW = import.meta.env.DEV;
+
+function PillLabel({ domain, value }: { domain: string; value: string }) {
+	return (
+		<div className="flex flex-col items-start justify-center min-w-0 w-full leading-[1.15]">
+			<span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--launch-label)] truncate w-full">
+				{domain}
+			</span>
+			<div className="w-full text-[12px] font-medium">
+				<MarqueeText text={value} />
+			</div>
+		</div>
+	);
+}
 
 export function LaunchWindow() {
 	return (
@@ -110,6 +125,7 @@ function LaunchWindowContent() {
 
 	const {
 		selectedSource,
+		selectedSourceType,
 		hasSelectedSource,
 		projectLibraryEntries,
 		handleSourceSelect,
@@ -391,21 +407,28 @@ function LaunchWindowContent() {
 						disabled={recording}
 						title={micPillLabel}
 						aria-pressed={microphoneEnabled}
-						className={`${styles.electronNoDrag} ${styles.toolbarControl} ${styles.deviceControl} ${microphoneEnabled || openId === "mic" ? styles.toolbarControlActive : ""}`}
+						className={cn(
+							styles.electronNoDrag,
+							styles.toolbarControl,
+							styles.deviceControl,
+							microphoneEnabled && styles.toolbarControlEnabled,
+							openId === "mic" && styles.toolbarControlOpen,
+						)}
 					>
 						{microphoneEnabled ? (
 							<MicrophoneIcon size={20} className="shrink-0" />
 						) : (
 							<MicrophoneSlashIcon size={20} className="shrink-0" />
 						)}
-						<div className={`${styles.controlText} flex-1`}>
-							<MarqueeText text={micPillLabel} />
+						<div className={cn(styles.controlText, "flex-1")}>
+							<PillLabel domain={t("recording.microphone")} value={micPillLabel} />
 						</div>
 						<CaretUpIcon
 							size={11}
-							className={`ml-auto shrink-0 opacity-60 transition-transform duration-200 ${
-								openId === "mic" ? "" : "rotate-180"
-							}`}
+							className={cn(
+								"ml-auto shrink-0 opacity-60 transition-transform duration-200",
+								openId === "mic" ? "" : "rotate-180",
+							)}
 						/>
 						{microphoneEnabled && (
 							<div className="absolute inset-x-3 bottom-[4px] h-0.5 overflow-hidden rounded-full bg-white/15">
@@ -452,21 +475,28 @@ function LaunchWindowContent() {
 						disabled={recording}
 						title={webcamPillLabel}
 						aria-pressed={webcamEnabled}
-						className={`${styles.electronNoDrag} ${styles.toolbarControl} ${styles.deviceControl} ${webcamEnabled || openId === "webcam" ? styles.toolbarControlActive : ""}`}
+						className={cn(
+							styles.electronNoDrag,
+							styles.toolbarControl,
+							styles.deviceControl,
+							webcamEnabled && styles.toolbarControlEnabled,
+							openId === "webcam" && styles.toolbarControlOpen,
+						)}
 					>
 						{webcamEnabled ? (
 							<VideoCameraIcon size={20} className="shrink-0" />
 						) : (
 							<VideoCameraSlashIcon size={20} className="shrink-0" />
 						)}
-						<div className={`${styles.controlText} flex-1`}>
-							<MarqueeText text={webcamPillLabel} />
+						<div className={cn(styles.controlText, "flex-1")}>
+							<PillLabel domain={t("recording.webcam")} value={webcamPillLabel} />
 						</div>
 						<CaretUpIcon
 							size={11}
-							className={`ml-auto shrink-0 opacity-60 transition-transform duration-200 ${
-								openId === "webcam" ? "" : "rotate-180"
-							}`}
+							className={cn(
+								"ml-auto shrink-0 opacity-60 transition-transform duration-200",
+								openId === "webcam" ? "" : "rotate-180",
+							)}
 						/>
 					</Button>
 				}
@@ -478,25 +508,44 @@ function LaunchWindowContent() {
 		<div className={styles.barGroup} role="group" aria-label={selectedSource}>
 			<SourcePopover
 				selectedSource={selectedSource}
+				selectedSourceType={selectedSourceType}
 				onSourceSelect={handleSourceSelect}
 				onOpen={beginInteractiveHudAction}
 				trigger={
 					<Button
 						variant="ghost"
-						className={`${styles.electronNoDrag} ${styles.toolbarControl} ${styles.sourceControl} ${openId === "sources" ? styles.toolbarControlActive : ""}`}
+						className={cn(
+							styles.electronNoDrag,
+							styles.toolbarControl,
+							styles.sourceControl,
+							hasSelectedSource && styles.toolbarControlEnabled,
+							openId === "sources" && styles.toolbarControlOpen,
+						)}
 						title={selectedSource}
 						aria-haspopup="listbox"
 						aria-expanded={openId === "sources"}
 					>
-						<MonitorIcon size={22} className="shrink-0" />
-						<div className={`${styles.controlText} flex-1`}>
-							<MarqueeText text={selectedSource} />
+						{selectedSourceType === "window" ? (
+							<AppWindowIcon size={22} className="shrink-0" />
+						) : (
+							<MonitorIcon size={22} className="shrink-0" />
+						)}
+						<div className={cn(styles.controlText, "flex-1")}>
+							<PillLabel
+								domain={t(
+									selectedSourceType === "window"
+										? "recording.window"
+										: "recording.screen",
+								)}
+								value={selectedSource}
+							/>
 						</div>
 						<CaretUpIcon
 							size={11}
-							className={`ml-auto shrink-0 opacity-60 transition-transform duration-200 ${
-								openId === "sources" ? "" : "rotate-180"
-							}`}
+							className={cn(
+								"ml-auto shrink-0 opacity-60 transition-transform duration-200",
+								openId === "sources" ? "" : "rotate-180",
+							)}
 						/>
 					</Button>
 				}
@@ -520,7 +569,11 @@ function LaunchWindowContent() {
 					: t("recording.enableSystemAudio")
 			}
 			aria-pressed={systemAudioEnabled}
-			className={`${styles.toolbarControl} ${styles.systemAudioControl} ${systemAudioEnabled ? styles.toolbarControlActive : ""}`}
+			className={cn(
+				styles.toolbarControl,
+				styles.systemAudioControl,
+				systemAudioEnabled && styles.toolbarControlEnabled,
+			)}
 		>
 			{systemAudioEnabled ? <SpeakerHighIcon size={20} /> : <SpeakerXIcon size={20} />}
 			<span className={styles.systemAudioLabel}>

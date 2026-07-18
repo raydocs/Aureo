@@ -1,0 +1,71 @@
+.area-selector-root {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	cursor: crosshair;
+	user-select: none;
+	background: transparent;
+	touch-action: none;
+}
+
+.area-selector-scrim {
+	position: absolute;
+	inset: 0;
+	background: rgba(8, 10, 18, 0.38);
+	pointer-events: none;
+}
+
+.area-selector-rect {
+	position: absolute;
+	box-sizing: border-box;
+	border: 2px solid rgba(123, 120, 255, 0.95);
+	background: rgba(99, 96, 245, 0.08);
+	box-shadow:
+		0 0 0 9999px rgba(8, 10, 18, 0.45),
+		0 0 0 1px rgba(255, 255, 255, 0.35) inset,
+		0 0 24px rgba(99, 96, 245, 0.35);
+	pointer-events: none;
+}
+
+.area-selector-size {
+	position: absolute;
+	left: 50%;
+	top: 8px;
+	transform: translateX(-50%);
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: rgba(18, 18, 28, 0.82);
+	color: #f4f4ff;
+	font:
+		600 12px / 1.4 ui-sans-serif,
+		system-ui,
+		-apple-system,
+		sans-serif;
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+.area-selector-hint {
+	position: fixed;
+	left: 50%;
+	bottom: 28px;
+	transform: translateX(-50%);
+	padding: 8px 14px;
+	border-radius: 999px;
+	background: rgba(18, 18, 28, 0.86);
+	color: rgba(244, 244, 255, 0.92);
+	font:
+		500 13px / 1.4 ui-sans-serif,
+		system-ui,
+		-apple-system,
+		sans-serif;
+	letter-spacing: 0.01em;
+	pointer-events: none;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+	max-width: min(90vw, 520px);
+	text-align: center;
+}

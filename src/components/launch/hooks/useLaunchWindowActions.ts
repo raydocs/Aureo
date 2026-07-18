@@ -1,23 +1,27 @@
 import { useCallback, useState } from "react";
 import type { ProjectLibraryEntry } from "@/components/video-editor/ProjectBrowserDialog";
-import type { DesktopSource } from "../popovers/launchPopoverTypes";
+import type { CaptureSourceType, DesktopSource } from "../popovers/launchPopoverTypes";
 
 export function useLaunchWindowActions() {
 	const [selectedSource, setSelectedSource] = useState("Screen");
-	const [selectedSourceType, setSelectedSourceType] = useState<"screen" | "window">("screen");
+	const [selectedSourceType, setSelectedSourceType] = useState<CaptureSourceType>("screen");
 	const [hasSelectedSource, setHasSelectedSource] = useState(false);
 	const [projectLibraryEntries, setProjectLibraryEntries] = useState<ProjectLibraryEntry[]>([]);
 
 	const handleSourceSelect = useCallback(async (source: DesktopSource) => {
 		await window.electronAPI.selectSource(source);
 		setSelectedSource(source.name);
-		setSelectedSourceType(source.sourceType === "window" ? "window" : "screen");
+		setSelectedSourceType(
+			source.sourceType ?? (source.id.startsWith("window:") ? "window" : "screen"),
+		);
 		setHasSelectedSource(true);
-		window.electronAPI.showSourceHighlight?.({
-			...source,
-			name: source.appName ? `${source.appName} — ${source.name}` : source.name,
-			appName: source.appName,
-		});
+		if (source.sourceType === "screen" || source.sourceType === "window") {
+			window.electronAPI.showSourceHighlight?.({
+				...source,
+				name: source.appName ? `${source.appName} — ${source.name}` : source.name,
+				appName: source.appName,
+			});
+		}
 	}, []);
 
 	const openVideoFile = useCallback(async () => {
@@ -59,9 +63,7 @@ export function useLaunchWindowActions() {
 			if (source?.name) {
 				setSelectedSource(source.name);
 				setSelectedSourceType(
-					source.sourceType === "window" || source.id.startsWith("window:")
-						? "window"
-						: "screen",
+					source.sourceType ?? (source.id.startsWith("window:") ? "window" : "screen"),
 				);
 				setHasSelectedSource(true);
 				return;

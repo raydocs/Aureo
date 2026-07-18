@@ -37,6 +37,7 @@ let hudOverlayRecordingActive = false;
 let hudOverlayWebcamPreviewVisible = false;
 let countdownWindow: BrowserWindow | null = null;
 let updateToastWindow: BrowserWindow | null = null;
+let areaSelectorWindow: BrowserWindow | null = null;
 
 const HUD_OVERLAY_SETTINGS_FILE = path.join(USER_DATA_PATH, "hud-overlay-settings.json");
 const HUD_EDGE_MARGIN_DIP = 16;
@@ -1042,4 +1043,97 @@ export function closeCountdownWindow(): void {
 		countdownWindow.close();
 		countdownWindow = null;
 	}
+}
+
+/**
+ * Full virtual-desktop area selection overlay.
+ * Spans the union of all displays so drags can cross monitors and use negative DIP coords.
+ */
+export function createAreaSelectorWindow(bounds: {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}): BrowserWindow {
+	if (areaSelectorWindow && !areaSelectorWindow.isDestroyed()) {
+		areaSelectorWindow.focus();
+		return areaSelectorWindow;
+	}
+
+	const win = new BrowserWindow({
+		x: Math.round(bounds.x),
+		y: Math.round(bounds.y),
+		width: Math.round(bounds.width),
+		height: Math.round(bounds.height),
+		frame: false,
+		transparent: true,
+		backgroundColor: "#00000000",
+		resizable: false,
+		movable: false,
+		minimizable: false,
+		maximizable: false,
+		fullscreenable: false,
+		alwaysOnTop: true,
+		skipTaskbar: true,
+		hasShadow: false,
+		focusable: true,
+		show: false,
+		enableLargerThanScreen: true,
+		webPreferences: {
+			preload: path.join(electronWindowsDir, "preload.mjs"),
+			nodeIntegration: false,
+			contextIsolation: true,
+		},
+	});
+
+	areaSelectorWindow = win;
+
+	win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+	if (process.platform === "darwin") {
+		win.setAlwaysOnTop(true, "screen-saver");
+	}
+
+	// Prevent the overlay from being captured into the recording when possible.
+	if (process.platform !== "linux") {
+		try {
+			win.setContentProtection(true);
+		} catch {
+			// Optional API; ignore platforms/versions that reject it.
+		}
+	}
+
+	win.webContents.on("did-finish-load", () => {
+		if (!win.isDestroyed()) {
+			win.show();
+			win.focus();
+			win.moveTop();
+		}
+	});
+
+	win.on("closed", () => {
+		if (areaSelectorWindow === win) {
+			areaSelectorWindow = null;
+		}
+	});
+
+	if (VITE_DEV_SERVER_URL) {
+		win.loadURL(`${VITE_DEV_SERVER_URL}?windowType=area-selector`);
+	} else {
+		win.loadFile(path.join(RENDERER_DIST, "index.html"), {
+			query: { windowType: "area-selector" },
+		});
+	}
+
+	return win;
+}
+
+export function getAreaSelectorWindow(): BrowserWindow | null {
+	return areaSelectorWindow && !areaSelectorWindow.isDestroyed() ? areaSelectorWindow : null;
+}
+
+export function closeAreaSelectorWindow(): void {
+	if (areaSelectorWindow && !areaSelectorWindow.isDestroyed()) {
+		areaSelectorWindow.close();
+	}
+	areaSelectorWindow = null;
 }

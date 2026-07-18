@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { AreaSelectorOverlay } from "./components/area-selector/AreaSelectorOverlay";
+import "./components/area-selector/AreaSelectorOverlay.css";
 import { CountdownOverlay } from "./components/countdown/CountdownOverlay";
 import { LaunchWindow } from "./components/launch/LaunchWindow";
 import { SourceSelector } from "./components/launch/SourceSelector";
@@ -27,6 +29,7 @@ export default function App() {
 			type === "hud-overlay" ||
 			type === "source-selector" ||
 			type === "countdown" ||
+			type === "area-selector" ||
 			(type === "update-toast" && isMacOS)
 		) {
 			document.body.style.background = "transparent";
@@ -65,6 +68,8 @@ export default function App() {
 			);
 		case "source-selector":
 			return <SourceSelector />;
+		case "area-selector":
+			return <AreaSelectorOverlay />;
 		case "countdown":
 			return <CountdownOverlay />;
 		case "update-toast":

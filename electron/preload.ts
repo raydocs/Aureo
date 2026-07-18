@@ -493,6 +493,28 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	openSourceSelector: () => {
 		return ipcRenderer.invoke("open-source-selector");
 	},
+	/**
+	 * Opens a transparent full-virtual-desktop area selection overlay.
+	 * Resolves with a persisted area SelectedSource, or canceled.
+	 */
+	openAreaSelector: () => {
+		return ipcRenderer.invoke("open-area-selector") as Promise<
+			{ canceled: false; source: ProcessedDesktopSource } | { canceled: true; source: null }
+		>;
+	},
+	cancelAreaSelection: () => {
+		return ipcRenderer.invoke("cancel-area-selection") as Promise<{
+			canceled: true;
+			source: null;
+		}>;
+	},
+	completeAreaSelection: (localRect: { x: number; y: number; width: number; height: number }) => {
+		return ipcRenderer.invoke("complete-area-selection", { localRect }) as Promise<
+			| { canceled: false; source: ProcessedDesktopSource }
+			| { canceled: false; source: null; error?: string }
+			| { canceled: true; source: null; error?: string }
+		>;
+	},
 	selectSource: (source: ProcessedDesktopSource) => {
 		return ipcRenderer.invoke("select-source", source);
 	},
@@ -515,6 +537,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		options?: {
 			capturesSystemAudio?: boolean;
 			capturesMicrophone?: boolean;
+			fps?: number;
+			maxWidth?: number;
+			maxHeight?: number;
 			microphoneDeviceId?: string;
 			microphoneLabel?: string;
 			voiceEnhancementMode?: "off" | "standard" | "strong";
@@ -643,6 +668,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	},
 	getScreenRecordingPermissionStatus: () => {
 		return ipcRenderer.invoke("get-screen-recording-permission-status");
+	},
+	getRecordingHealthStatus: () => {
+		return ipcRenderer.invoke("get-recording-health-status");
 	},
 	openScreenRecordingPreferences: () => {
 		return ipcRenderer.invoke("open-screen-recording-preferences");

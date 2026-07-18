@@ -1,16 +1,36 @@
+import type { AreaCaptureLayout } from "./recording/areaGeometry";
+
+export type CaptureSourceType = "screen" | "window" | "area" | "device";
+
 export type SelectedSource = {
 	id?: string;
 	name: string;
 	display_id?: string;
-	sourceType?: "screen" | "window";
+	sourceType?: CaptureSourceType;
+	deviceId?: string;
 	appName?: string;
 	windowTitle?: string;
+	/** Scale-aware multi-display layout for area sources. */
+	geometry?: AreaCaptureLayout;
 	[key: string]: unknown;
 };
+
+export type AreaSelectionResult =
+	| {
+			canceled: false;
+			source: SelectedSource;
+	  }
+	| {
+			canceled: true;
+			source: null;
+	  };
 
 export type NativeMacRecordingOptions = {
 	capturesSystemAudio?: boolean;
 	capturesMicrophone?: boolean;
+	fps?: number;
+	maxWidth?: number;
+	maxHeight?: number;
 	microphoneDeviceId?: string;
 	microphoneLabel?: string;
 	voiceEnhancementMode?: "off" | "standard" | "strong";

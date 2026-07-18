@@ -13,7 +13,6 @@ import {
 	systemPreferences,
 } from "electron";
 import { showCursor } from "../../cursorHider";
-import { getMonitorHandles } from "../monitorResolver";
 import { ALLOW_AUREO_WINDOW_CAPTURE } from "../constants";
 import { startWindowBoundsCapture, stopWindowBoundsCapture } from "../cursor/bounds";
 import { startInteractionCapture, stopInteractionCapture } from "../cursor/interaction";
@@ -31,6 +30,7 @@ import {
 	writeCursorTelemetry,
 } from "../cursor/telemetry";
 import { getFfmpegBinaryPath } from "../ffmpeg/binary";
+import { getMonitorHandles } from "../monitorResolver";
 import {
 	ensureNativeCaptureHelperBinary,
 	ensureSwiftHelperBinary,
@@ -55,6 +55,7 @@ import {
 	validateRecordedVideo,
 	writeRecordingDiagnosticsSnapshot,
 } from "../recording/diagnostics";
+import { emitRecordingInterrupted } from "../recording/events";
 import {
 	buildFfmpegCaptureArgs,
 	waitForFfmpegCaptureStart,
@@ -68,8 +69,12 @@ import {
 	waitForNativeCaptureStart,
 	waitForNativeCaptureStop,
 } from "../recording/mac";
-import { normalizeVoiceEnhancementMode } from "../recording/voiceEnhancement";
+import {
+	composeNativeAreaSegments,
+	constrainAreaCompositionLayout,
+} from "../recording/macAreaComposition";
 import { resolveRecordedVideoStoragePath } from "../recording/storagePath";
+import { normalizeVoiceEnhancementMode } from "../recording/voiceEnhancement";
 import {
 	attachWindowsCaptureLifecycle,
 	isNativeWindowsCaptureAvailable,
@@ -91,10 +96,14 @@ import {
 	ffmpegCaptureTargetPath,
 	ffmpegScreenRecordingActive,
 	lastNativeCaptureDiagnostics,
+	type NativeAreaHelperEntry,
+	type NativeAreaRecordingSession,
+	nativeAreaRecordingSession,
 	nativeCaptureMicrophonePath,
 	nativeCaptureOutputBuffer,
 	nativeCapturePaused,
 	nativeCaptureProcess,
+	nativeCaptureStopRequested,
 	nativeCaptureSystemAudioPath,
 	nativeCaptureTargetPath,
 	nativeCaptureVoiceEnhancementMode,
@@ -111,6 +120,7 @@ import {
 	setIsCursorCaptureActive,
 	setLastLeftClick,
 	setLinuxCursorScreenPoint,
+	setNativeAreaRecordingSession,
 	setNativeCaptureMicrophonePath,
 	setNativeCaptureOutputBuffer,
 	setNativeCapturePaused,
@@ -178,6 +188,229 @@ async function writeWindowsRecordingDiagnostics(
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
+
+function getNativeAreaSessionCombinedOutput(session: NativeAreaRecordingSession | null) {
+	if (!session) {
+		return "";
+	}
+	return session.helpers
+		.map((helper, index) => {
+			const text = helper.outputBuffer.trim();
+			return text ? `[segment ${index}] ${text}` : "";
+		})
+		.filter(Boolean)
+		.join("\n");
+}
+
+function appendNativeAreaHelperOutput(helper: NativeAreaHelperEntry, chunk: Buffer) {
+	helper.outputBuffer += chunk.toString();
+	// Keep the singleton buffer in sync for diagnostics that still read it.
+	setNativeCaptureOutputBuffer(nativeCaptureOutputBuffer + chunk.toString());
+}
+
+function killNativeAreaHelpers(session: NativeAreaRecordingSession | null) {
+	if (!session) {
+		return;
+	}
+	for (const helper of session.helpers) {
+		try {
+			helper.process.kill();
+		} catch {
+			// ignore cleanup failures
+		}
+	}
+}
+
+async function removeNativeAreaTempFiles(paths: readonly string[]) {
+	await Promise.allSettled(
+		paths.map((tempPath) => fs.rm(tempPath, { force: true }).catch(() => undefined)),
+	);
+}
+
+function clearNativeMacCaptureState() {
+	setNativeScreenRecordingActive(false);
+	setNativeCaptureProcess(null);
+	setNativeCaptureTargetPath(null);
+	setNativeCaptureSystemAudioPath(null);
+	setNativeCaptureMicrophonePath(null);
+	setNativeCaptureStopRequested(false);
+	setNativeCapturePaused(false);
+	setNativeAreaRecordingSession(null);
+}
+
+function attachNativeAreaCaptureLifecycle(session: NativeAreaRecordingSession) {
+	let interruptionEmitted = false;
+
+	for (const helper of session.helpers) {
+		helper.process.once("close", () => {
+			const activeSession = nativeAreaRecordingSession;
+			if (!activeSession || activeSession !== session) {
+				return;
+			}
+			if (!nativeScreenRecordingActive || nativeCaptureStopRequested) {
+				return;
+			}
+			if (interruptionEmitted) {
+				return;
+			}
+			interruptionEmitted = true;
+
+			// One helper dying ends the whole multi-display Area session.
+			setNativeScreenRecordingActive(false);
+			setNativeCaptureStopRequested(true);
+			killNativeAreaHelpers(activeSession);
+			void removeNativeAreaTempFiles(
+				activeSession.helpers.map((helper) => helper.tempOutputPath),
+			);
+			setNativeAreaRecordingSession(null);
+			setNativeCaptureProcess(null);
+			setNativeCaptureTargetPath(null);
+			setNativeCaptureSystemAudioPath(null);
+			setNativeCaptureMicrophonePath(null);
+			setNativeCapturePaused(false);
+			setNativeCaptureStopRequested(false);
+
+			const sourceName = selectedSource?.name ?? "Screen";
+			BrowserWindow.getAllWindows().forEach((window) => {
+				if (!window.isDestroyed()) {
+					window.webContents.send("recording-state-changed", {
+						recording: false,
+						sourceName,
+					});
+				}
+			});
+
+			const combinedOutput = getNativeAreaSessionCombinedOutput(activeSession);
+			const reason = combinedOutput.includes("WINDOW_UNAVAILABLE")
+				? "window-unavailable"
+				: "capture-stopped";
+			const message =
+				reason === "window-unavailable"
+					? "The selected window is no longer capturable. Please reselect a window."
+					: "Recording stopped unexpectedly.";
+			emitRecordingInterrupted(reason, message);
+		});
+	}
+}
+
+async function stopNativeAreaRecordingSession(session: NativeAreaRecordingSession) {
+	const preferredVideoPath = session.finalOutputPath;
+	const preferredSystemAudioPath = nativeCaptureSystemAudioPath;
+	const preferredMicrophonePath = nativeCaptureMicrophonePath;
+	const preferredVoiceEnhancementMode = nativeCaptureVoiceEnhancementMode;
+	const tempSegmentPaths = session.helpers.map((helper) => helper.tempOutputPath);
+
+	setNativeCaptureStopRequested(true);
+	const stopErrors: string[] = [];
+	const stoppedPaths: string[] = [];
+
+	for (const helper of session.helpers) {
+		try {
+			helper.process.stdin.write("stop\n");
+		} catch (error) {
+			stopErrors.push(String(error));
+		}
+	}
+
+	const stopResults = await Promise.allSettled(
+		session.helpers.map((helper) =>
+			waitForNativeCaptureStop(helper.process, undefined, undefined, undefined, {
+				getOutputBuffer: () => helper.outputBuffer,
+				getTargetPath: () => helper.tempOutputPath,
+			}),
+		),
+	);
+
+	for (const result of stopResults) {
+		if (result.status === "fulfilled") {
+			stoppedPaths.push(result.value);
+		} else {
+			stopErrors.push(
+				result.reason instanceof Error ? result.reason.message : String(result.reason),
+			);
+		}
+	}
+
+	const combinedOutput = getNativeAreaSessionCombinedOutput(session);
+	setNativeCaptureOutputBuffer(combinedOutput);
+	setNativeAreaRecordingSession(null);
+	setNativeCaptureProcess(null);
+	setNativeScreenRecordingActive(false);
+	setNativeCaptureTargetPath(null);
+	setNativeCaptureSystemAudioPath(null);
+	setNativeCaptureMicrophonePath(null);
+	setNativeCaptureStopRequested(false);
+	setNativeCapturePaused(false);
+
+	if (stopResults.some((result) => result.status === "rejected") || stopErrors.length > 0) {
+		recordNativeCaptureDiagnostics({
+			backend: "mac-screencapturekit",
+			phase: "stop",
+			sourceId: lastNativeCaptureDiagnostics?.sourceId ?? null,
+			sourceType: lastNativeCaptureDiagnostics?.sourceType ?? "area",
+			helperPath: lastNativeCaptureDiagnostics?.helperPath ?? null,
+			outputPath: preferredVideoPath,
+			systemAudioPath: preferredSystemAudioPath,
+			microphonePath: preferredMicrophonePath,
+			processOutput: combinedOutput.trim() || undefined,
+			error: stopErrors.join("; ") || "One or more area segment helpers failed to stop",
+		});
+		throw new Error(
+			stopErrors.join("; ") || "One or more area segment helpers failed to stop",
+		);
+	}
+
+	const inputPaths = session.helpers.map((helper, index) => {
+		const reported = stoppedPaths[index];
+		return reported && reported.length > 0 ? reported : helper.tempOutputPath;
+	});
+
+	try {
+		const ffmpegPath = getFfmpegBinaryPath();
+		await composeNativeAreaSegments({
+			ffmpegPath,
+			inputPaths,
+			layout: session.layout,
+			outputPath: preferredVideoPath,
+			frameRate: session.frameRate,
+		});
+	} catch (error) {
+		recordNativeCaptureDiagnostics({
+			backend: "mac-screencapturekit",
+			phase: "mux",
+			sourceId: lastNativeCaptureDiagnostics?.sourceId ?? null,
+			sourceType: "area",
+			helperPath: lastNativeCaptureDiagnostics?.helperPath ?? null,
+			outputPath: preferredVideoPath,
+			systemAudioPath: preferredSystemAudioPath,
+			microphonePath: preferredMicrophonePath,
+			processOutput: combinedOutput.trim() || undefined,
+			error: error instanceof Error ? error.message : String(error),
+		});
+		throw error;
+	}
+
+	await removeNativeAreaTempFiles(tempSegmentPaths);
+
+	if (preferredSystemAudioPath || preferredMicrophonePath) {
+		try {
+			await muxNativeMacRecordingWithAudio(
+				preferredVideoPath,
+				preferredSystemAudioPath,
+				preferredMicrophonePath,
+				preferredVoiceEnhancementMode,
+			);
+		} catch (error) {
+			console.warn(
+				"[stop-native-area] Audio companion handling failed (composed video retained):",
+				error,
+			);
+		}
+	}
+
+	return await finalizeStoredVideo(preferredVideoPath);
+}
+
 
 function pickPrimitiveRecord(value: unknown) {
 	if (!isRecord(value)) {
@@ -661,11 +894,22 @@ export function registerRecordingHandlers(
 				setNativeCaptureStopRequested(false);
 			}
 
-			if (nativeCaptureProcess) {
+			if (nativeAreaRecordingSession && !nativeScreenRecordingActive) {
+				killNativeAreaHelpers(nativeAreaRecordingSession);
+				await removeNativeAreaTempFiles(
+					nativeAreaRecordingSession.helpers.map((helper) => helper.tempOutputPath),
+				);
+				setNativeAreaRecordingSession(null);
+				setNativeCaptureTargetPath(null);
+				setNativeCaptureStopRequested(false);
+			}
+
+			if (nativeCaptureProcess || nativeAreaRecordingSession) {
 				return { success: false, message: "A native screen recording is already active." };
 			}
 
 			let captProc: ChildProcessWithoutNullStreams | null = null;
+			let multiAreaSession: NativeAreaRecordingSession | null = null;
 			try {
 				const recordingsDir = await getRecordingsDir();
 
@@ -716,8 +960,153 @@ export function registerRecordingHandlers(
 				const microphoneOutputPath = capturesMicrophone
 					? path.join(recordingsDir, `recording-${timestamp}.mic.m4a`)
 					: null;
+				const frameRate = options?.fps ?? 60;
+				const multiAreaGeometry =
+					source?.sourceType === "area" &&
+					source.geometry &&
+					source.geometry.segments.length > 1
+						? source.geometry
+						: null;
+
+				if (multiAreaGeometry) {
+					const constrainedLayout = constrainAreaCompositionLayout(
+						multiAreaGeometry,
+						options?.maxWidth,
+						options?.maxHeight,
+					);
+					const helpers: NativeAreaHelperEntry[] = [];
+
+					setNativeCaptureOutputBuffer("");
+					setNativeCaptureTargetPath(outputPath);
+					setNativeCaptureSystemAudioPath(systemAudioOutputPath);
+					setNativeCaptureMicrophonePath(microphoneOutputPath);
+					setNativeCaptureVoiceEnhancementMode(
+						normalizeVoiceEnhancementMode(options?.voiceEnhancementMode),
+					);
+					setNativeCaptureStopRequested(false);
+					setNativeCapturePaused(false);
+
+					for (let index = 0; index < constrainedLayout.segments.length; index += 1) {
+						const segment = constrainedLayout.segments[index];
+						const segmentTempPath = path.join(
+							app.getPath("temp"),
+							`aureo-area-${timestamp}-seg${index}.mp4`,
+						);
+						const segmentConfig: Record<string, unknown> = {
+							fps: frameRate,
+							outputPath: segmentTempPath,
+							displayId: Number(segment.displayId),
+							sourceRect: segment.sourceRect,
+							// Segment helpers record native-cropped display content only.
+							// Composition scales each segment into the constrained outputRect.
+							capturesSystemAudio: false,
+							capturesMicrophone: false,
+						};
+
+						if (index === 0) {
+							segmentConfig.capturesSystemAudio = capturesSystemAudio;
+							segmentConfig.capturesMicrophone = capturesMicrophone;
+							if (options?.microphoneDeviceId) {
+								segmentConfig.microphoneDeviceId = options.microphoneDeviceId;
+							}
+							if (options?.microphoneLabel) {
+								segmentConfig.microphoneLabel = options.microphoneLabel;
+							}
+							if (systemAudioOutputPath) {
+								segmentConfig.systemAudioOutputPath = systemAudioOutputPath;
+							}
+							if (microphoneOutputPath) {
+								segmentConfig.microphoneOutputPath = microphoneOutputPath;
+							}
+						}
+
+						const segmentProc = spawn(helperPath, [JSON.stringify(segmentConfig)], {
+							cwd: recordingsDir,
+							stdio: ["pipe", "pipe", "pipe"],
+						});
+						const helperEntry: NativeAreaHelperEntry = {
+							process: segmentProc,
+							tempOutputPath: segmentTempPath,
+							outputBuffer: "",
+						};
+						segmentProc.stdout.on("data", (chunk: Buffer) => {
+							appendNativeAreaHelperOutput(helperEntry, chunk);
+						});
+						segmentProc.stderr.on("data", (chunk: Buffer) => {
+							appendNativeAreaHelperOutput(helperEntry, chunk);
+						});
+						helpers.push(helperEntry);
+					}
+
+					multiAreaSession = {
+						finalOutputPath: outputPath,
+						layout: constrainedLayout,
+						frameRate,
+						helpers,
+					};
+					setNativeAreaRecordingSession(multiAreaSession);
+					// Keep a primary process handle for code paths that still check the singleton.
+					setNativeCaptureProcess(helpers[0]?.process ?? null);
+
+					try {
+						await Promise.all(
+							helpers.map((helper) =>
+								waitForNativeCaptureStart(helper.process, {
+									getOutputBuffer: () => helper.outputBuffer,
+									getTargetPath: () => helper.tempOutputPath,
+								}),
+							),
+						);
+					} catch (startError) {
+						killNativeAreaHelpers(multiAreaSession);
+						await removeNativeAreaTempFiles(
+							helpers.map((helper) => helper.tempOutputPath),
+						);
+						clearNativeMacCaptureState();
+						throw startError;
+					}
+
+					attachNativeAreaCaptureLifecycle(multiAreaSession);
+					const exitedHelper = helpers.find(
+						(helper) =>
+							helper.process.exitCode !== null || helper.process.signalCode !== null,
+					);
+					if (exitedHelper) {
+						throw new Error(
+							exitedHelper.outputBuffer.trim() ||
+								"An Area segment helper exited before the recording session became active",
+						);
+					}
+					setNativeScreenRecordingActive(true);
+
+					const combinedOutput = getNativeAreaSessionCombinedOutput(multiAreaSession);
+					setNativeCaptureOutputBuffer(combinedOutput);
+					const micUnavailableNatively = combinedOutput.includes(
+						"MICROPHONE_CAPTURE_UNAVAILABLE",
+					);
+					if (micUnavailableNatively) {
+						setNativeCaptureMicrophonePath(null);
+					}
+
+					recordNativeCaptureDiagnostics({
+						backend: "mac-screencapturekit",
+						phase: "start",
+						sourceId: source?.id ?? null,
+						sourceType: "area",
+						displayId: Number(constrainedLayout.segments[0]?.displayId) || null,
+						helperPath,
+						outputPath,
+						systemAudioPath: systemAudioOutputPath,
+						microphonePath: nativeCaptureMicrophonePath,
+						processOutput: combinedOutput.trim() || undefined,
+					});
+					return { success: true, microphoneFallbackRequired: micUnavailableNatively };
+				}
+
 				const config: Record<string, unknown> = {
-					fps: 60,
+					fps: frameRate,
+					maxWidth: options?.maxWidth,
+					maxHeight: options?.maxHeight,
 					outputPath,
 					capturesSystemAudio,
 					capturesMicrophone,
@@ -741,8 +1130,15 @@ export function registerRecordingHandlers(
 
 				const windowId = parseWindowId(source?.id);
 				const screenId = Number(source?.display_id);
+				const areaSegment =
+					source?.sourceType === "area" && source.geometry?.segments.length === 1
+						? source.geometry.segments[0]
+						: null;
 
-				if (Number.isFinite(windowId) && windowId && source?.id?.startsWith("window:")) {
+				if (areaSegment) {
+					config.displayId = Number(areaSegment.displayId);
+					config.sourceRect = areaSegment.sourceRect;
+				} else if (Number.isFinite(windowId) && windowId && source?.id?.startsWith("window:")) {
 					config.windowId = windowId;
 				} else if (Number.isFinite(screenId) && screenId > 0) {
 					config.displayId = screenId;
@@ -827,13 +1223,13 @@ export function registerRecordingHandlers(
 					} catch {
 						/* ignore */
 					}
-					setNativeScreenRecordingActive(false);
-					setNativeCaptureProcess(null);
-					setNativeCaptureTargetPath(null);
-					setNativeCaptureSystemAudioPath(null);
-					setNativeCaptureMicrophonePath(null);
-					setNativeCaptureStopRequested(false);
-					setNativeCapturePaused(false);
+					if (multiAreaSession) {
+						killNativeAreaHelpers(multiAreaSession);
+						await removeNativeAreaTempFiles(
+							multiAreaSession.helpers.map((helper) => helper.tempOutputPath),
+						);
+					}
+					clearNativeMacCaptureState();
 					return {
 						success: false,
 						message:
@@ -860,13 +1256,13 @@ export function registerRecordingHandlers(
 					} catch {
 						/* ignore */
 					}
-					setNativeScreenRecordingActive(false);
-					setNativeCaptureProcess(null);
-					setNativeCaptureTargetPath(null);
-					setNativeCaptureSystemAudioPath(null);
-					setNativeCaptureMicrophonePath(null);
-					setNativeCaptureStopRequested(false);
-					setNativeCapturePaused(false);
+					if (multiAreaSession) {
+						killNativeAreaHelpers(multiAreaSession);
+						await removeNativeAreaTempFiles(
+							multiAreaSession.helpers.map((helper) => helper.tempOutputPath),
+						);
+					}
+					clearNativeMacCaptureState();
 					return {
 						success: false,
 						message:
@@ -884,7 +1280,10 @@ export function registerRecordingHandlers(
 					outputPath: nativeCaptureTargetPath,
 					systemAudioPath: nativeCaptureSystemAudioPath,
 					microphonePath: nativeCaptureMicrophonePath,
-					processOutput: nativeCaptureOutputBuffer.trim() || undefined,
+					processOutput:
+							getNativeAreaSessionCombinedOutput(multiAreaSession).trim() ||
+							nativeCaptureOutputBuffer.trim() ||
+							undefined,
 					fileSizeBytes: await getFileSizeIfPresent(nativeCaptureTargetPath),
 					error: String(error),
 				});
@@ -893,13 +1292,13 @@ export function registerRecordingHandlers(
 				} catch {
 					// ignore cleanup failures
 				}
-				setNativeScreenRecordingActive(false);
-				setNativeCaptureProcess(null);
-				setNativeCaptureTargetPath(null);
-				setNativeCaptureSystemAudioPath(null);
-				setNativeCaptureMicrophonePath(null);
-				setNativeCaptureStopRequested(false);
-				setNativeCapturePaused(false);
+				if (multiAreaSession) {
+					killNativeAreaHelpers(multiAreaSession);
+					await removeNativeAreaTempFiles(
+						multiAreaSession.helpers.map((helper) => helper.tempOutputPath),
+					);
+				}
+				clearNativeMacCaptureState();
 				return {
 					success: false,
 					message: "Failed to start native ScreenCaptureKit recording",
@@ -1139,6 +1538,45 @@ export function registerRecordingHandlers(
 			return { success: false, message: "No native screen recording is active." };
 		}
 
+		if (nativeAreaRecordingSession) {
+			const session = nativeAreaRecordingSession;
+			const fallbackSystemAudioPath = nativeCaptureSystemAudioPath;
+			const fallbackMicrophonePath = nativeCaptureMicrophonePath;
+			try {
+				return await stopNativeAreaRecordingSession(session);
+			} catch (error) {
+				console.error("Failed to stop multi-display Area recording:", error);
+				const fallbackPath = session.finalOutputPath;
+				const combinedOutput =
+					getNativeAreaSessionCombinedOutput(session).trim() ||
+					nativeCaptureOutputBuffer.trim() ||
+					undefined;
+				killNativeAreaHelpers(session);
+				await removeNativeAreaTempFiles(
+					session.helpers.map((helper) => helper.tempOutputPath),
+				);
+				clearNativeMacCaptureState();
+				recordNativeCaptureDiagnostics({
+					backend: "mac-screencapturekit",
+					phase: "stop",
+					sourceId: lastNativeCaptureDiagnostics?.sourceId ?? null,
+					sourceType: "area",
+					helperPath: lastNativeCaptureDiagnostics?.helperPath ?? null,
+					outputPath: fallbackPath,
+					systemAudioPath: fallbackSystemAudioPath,
+					microphonePath: fallbackMicrophonePath,
+					processOutput: combinedOutput,
+					fileSizeBytes: await getFileSizeIfPresent(fallbackPath),
+					error: String(error),
+				});
+				return {
+					success: false,
+					message: "Failed to stop multi-display Area recording",
+					error: String(error),
+				};
+			}
+		}
+
 		try {
 			if (!nativeCaptureProcess) {
 				throw new Error("Native capture helper process is not running");
@@ -1327,7 +1765,7 @@ export function registerRecordingHandlers(
 			};
 		}
 
-		if (!nativeScreenRecordingActive || !nativeCaptureProcess) {
+		if (!nativeScreenRecordingActive || (!nativeCaptureProcess && !nativeAreaRecordingSession)) {
 			return { success: false, message: "No native screen recording is active." };
 		}
 
@@ -1336,7 +1774,21 @@ export function registerRecordingHandlers(
 		}
 
 		try {
-			nativeCaptureProcess.stdin.write("pause\n");
+			if (nativeAreaRecordingSession) {
+				const pauseErrors: string[] = [];
+				for (const helper of nativeAreaRecordingSession.helpers) {
+					try {
+						helper.process.stdin.write("pause\n");
+					} catch (error) {
+						pauseErrors.push(String(error));
+					}
+				}
+				if (pauseErrors.length > 0) {
+					throw new Error(pauseErrors.join("; "));
+				}
+			} else if (nativeCaptureProcess) {
+				nativeCaptureProcess.stdin.write("pause\n");
+			}
 			setNativeCapturePaused(true);
 			return { success: true };
 		} catch (error) {
@@ -1378,7 +1830,7 @@ export function registerRecordingHandlers(
 			};
 		}
 
-		if (!nativeScreenRecordingActive || !nativeCaptureProcess) {
+		if (!nativeScreenRecordingActive || (!nativeCaptureProcess && !nativeAreaRecordingSession)) {
 			return { success: false, message: "No native screen recording is active." };
 		}
 
@@ -1387,7 +1839,21 @@ export function registerRecordingHandlers(
 		}
 
 		try {
-			nativeCaptureProcess.stdin.write("resume\n");
+			if (nativeAreaRecordingSession) {
+				const resumeErrors: string[] = [];
+				for (const helper of nativeAreaRecordingSession.helpers) {
+					try {
+						helper.process.stdin.write("resume\n");
+					} catch (error) {
+						resumeErrors.push(String(error));
+					}
+				}
+				if (resumeErrors.length > 0) {
+					throw new Error(resumeErrors.join("; "));
+				}
+			} else if (nativeCaptureProcess) {
+				nativeCaptureProcess.stdin.write("resume\n");
+			}
 			setNativeCapturePaused(false);
 			return { success: true };
 		} catch (error) {

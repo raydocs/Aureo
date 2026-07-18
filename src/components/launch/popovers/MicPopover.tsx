@@ -19,6 +19,7 @@ export function MicPopover({
 	trigger,
 	disabled,
 	systemAudioEnabled,
+	systemAudioDisabled = false,
 	onToggleSystemAudio,
 	microphoneEnabled,
 	voiceEnhancementMode,
@@ -33,6 +34,7 @@ export function MicPopover({
 	trigger: ReactElement;
 	disabled?: boolean;
 	systemAudioEnabled: boolean;
+	systemAudioDisabled?: boolean;
 	onToggleSystemAudio: () => void;
 	microphoneEnabled: boolean;
 	voiceEnhancementMode: VoiceEnhancementMode;
@@ -91,12 +93,18 @@ export function MicPopover({
 				icon={
 					systemAudioEnabled ? <SpeakerHighIcon size={16} /> : <SpeakerXIcon size={16} />
 				}
-				selected={systemAudioEnabled}
+				selected={!systemAudioDisabled && systemAudioEnabled}
+				disabled={systemAudioDisabled}
 				onClick={onToggleSystemAudio}
 			>
-				{systemAudioEnabled
-					? t("recording.disableSystemAudio")
-					: t("recording.enableSystemAudio")}
+				{systemAudioDisabled
+					? t(
+							"recording.systemAudioUnavailableForDevice",
+							"Unavailable for device capture",
+						)
+					: systemAudioEnabled
+						? t("recording.disableSystemAudio")
+						: t("recording.enableSystemAudio")}
 			</DropdownItem>
 			{microphoneEnabled && (
 				<DropdownItem

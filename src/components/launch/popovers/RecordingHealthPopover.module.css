@@ -1,0 +1,111 @@
+.recordingHealthRows {
+	display: flex;
+	flex-direction: column;
+	padding: 4px 6px;
+	gap: 2px;
+}
+
+.recordingHealthRow {
+	cursor: default;
+	transition: none;
+}
+
+.recordingHealthRow:hover {
+	background: transparent;
+	color: var(--launch-text-muted);
+}
+
+.recordingHealthRow:active {
+	transform: none;
+}
+
+.recordingHealthTrailing {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+	flex-shrink: 0;
+}
+
+.recordingHealthValue {
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--launch-text-muted);
+	white-space: nowrap;
+}
+
+.recordingHealthFooter {
+	padding: 8px 10px 6px;
+	font-size: 9px;
+	font-weight: 500;
+	color: var(--launch-label);
+	text-align: center;
+	border-top: 1px solid var(--launch-border);
+	margin-top: 2px;
+}
+
+.recordingHealthIconSuccess {
+	color: #22c55e;
+}
+
+.recordingHealthIconWarning {
+	color: #f59e0b;
+}
+
+.recordingHealthIconError {
+	color: #ef4444;
+}
+
+.recordingHealthIconNeutral {
+	color: var(--launch-text-muted);
+}
+
+.recordingHealthIconUnknown {
+	color: var(--launch-label);
+}
+
+.recordingHealthStatusSuccess {
+	color: #22c55e;
+}
+
+.recordingHealthStatusWarning {
+	color: #f59e0b;
+}
+
+.recordingHealthStatusError {
+	color: #ef4444;
+}
+
+.recordingHealthStatusUnknown {
+	color: var(--launch-label);
+}
+
+.dark .recordingHealthIconSuccess,
+.launch-theme.dark .recordingHealthIconSuccess {
+	color: #4ade80;
+}
+
+.dark .recordingHealthIconWarning,
+.launch-theme.dark .recordingHealthIconWarning {
+	color: #fbbf24;
+}
+
+.dark .recordingHealthIconError,
+.launch-theme.dark .recordingHealthIconError {
+	color: #f87171;
+}
+
+.dark .recordingHealthStatusSuccess,
+.launch-theme.dark .recordingHealthStatusSuccess {
+	color: #4ade80;
+}
+
+.dark .recordingHealthStatusWarning,
+.launch-theme.dark .recordingHealthStatusWarning {
+	color: #fbbf24;
+}
+
+.dark .recordingHealthStatusError,
+.launch-theme.dark .recordingHealthStatusError {
+	color: #f87171;
+}

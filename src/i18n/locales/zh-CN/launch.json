@@ -62,6 +62,8 @@
 		"stop": "停止",
 		"cancel": "取消",
 		"more": "更多",
+		"quality": "质量",
+		"qualityPreset": "录制质量",
 		"update": {
 			"update": "更新",
 			"updated": "已是最新",

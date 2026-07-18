@@ -2,6 +2,7 @@ import {
 	AppWindowIcon,
 	ArrowClockwiseIcon,
 	CaretUpIcon,
+	FrameCornersIcon,
 	GearSixIcon,
 	MicrophoneIcon,
 	MicrophoneSlashIcon,
@@ -12,17 +13,19 @@ import {
 	TimerIcon,
 	VideoCameraIcon,
 	VideoCameraSlashIcon,
+	WaveformIcon,
 	XIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef } from "react";
 import { RxDragHandleDots2 } from "react-icons/rx";
+import { cn } from "@/lib/utils";
 import { useScopedT } from "../../contexts/I18nContext";
+import { getRecordingQualityPreset } from "../../hooks/recordingQuality";
 import { useMicrophoneDevices } from "../../hooks/useMicrophoneDevices";
 import { useScreenRecorder } from "../../hooks/useScreenRecorder";
 import { useVideoDevices } from "../../hooks/useVideoDevices";
 import { Button } from "../ui/button";
-import { cn } from "@/lib/utils";
 import { formatLaunchHudTitle } from "./a11y/launchA11yUtils";
 import { HudInteractionContext } from "./contexts/HudInteractionContext";
 import { canToggleFloatingWebcamPreview } from "./floatingWebcamPreview";
@@ -32,7 +35,9 @@ import { useLaunchMediaA11y } from "./hooks/useLaunchMediaA11y";
 import { useLaunchWindowActions } from "./hooks/useLaunchWindowActions";
 import { useLaunchWindowSystemState } from "./hooks/useLaunchWindowSystemState";
 import { useMicrophoneLevel } from "./hooks/useMicrophoneLevel";
+import { useRecordingHealth } from "./hooks/useRecordingHealth";
 import { useRecordingTimer } from "./hooks/useRecordingTimer";
+import { useVideoInputAvailability } from "./hooks/useVideoInputAvailability";
 import { useWebcamPreviewOverlay } from "./hooks/useWebcamPreviewOverlay";
 import { resolveMicPillLabel, resolveWebcamPillLabel } from "./hudDevicePillLabels";
 import styles from "./LaunchWindow.module.css";
@@ -44,7 +49,9 @@ import {
 import { MicPopover } from "./popovers/MicPopover";
 import { MorePopover } from "./popovers/MorePopover";
 import { ProjectPopover } from "./popovers/ProjectPopover";
+import { QualityPresetPopover } from "./popovers/QualityPresetPopover";
 import { RecordConfirmPopover } from "./popovers/RecordConfirmPopover";
+import { RecordingHealthPopover } from "./popovers/RecordingHealthPopover";
 import { SourcePopover } from "./popovers/SourcePopover";
 import { WebcamPopover } from "./popovers/WebcamPopover";
 import { RecordingControls } from "./RecordingControls";
@@ -114,12 +121,15 @@ function LaunchWindowContent() {
 		setWebcamEnabled,
 		webcamDeviceId,
 		setWebcamDeviceId,
+		recordingQualityPresetId,
+		setRecordingQualityPresetId,
 		countdownDelay,
 		setCountdownDelay,
 		preparePermissions,
 	} = useScreenRecorder({ certificationMode });
 
 	const { elapsed, formatTime } = useRecordingTimer(recording, paused);
+	const recordingQualityPreset = getRecordingQualityPreset(recordingQualityPresetId);
 	const hudContentRef = useRef<HTMLDivElement>(null);
 	const hudBarRef = useRef<HTMLDivElement>(null);
 
@@ -134,6 +144,11 @@ function LaunchWindowContent() {
 		syncSelectedSource,
 		refreshProjectLibrary,
 	} = useLaunchWindowActions();
+	const preflightHealthEnabled = !certificationMode && !recording && !finalizing;
+	const { health: recordingHealth, loading: recordingHealthLoading } =
+		useRecordingHealth(preflightHealthEnabled);
+	const { deviceCount: cameraDeviceCount, loading: cameraDevicesLoading } =
+		useVideoInputAvailability(preflightHealthEnabled);
 
 	const showWebcamControls = webcamEnabled && !recording;
 	const { devices, selectedDeviceId, setSelectedDeviceId } = useMicrophoneDevices(
@@ -150,7 +165,7 @@ function LaunchWindowContent() {
 	);
 	const meterDeviceId =
 		microphoneDeviceId ?? (selectedDeviceId === "default" ? undefined : selectedDeviceId);
-	const { attachMeter } = useMicrophoneLevel({
+	const { attachMeter, inputStatus: microphoneInputStatus } = useMicrophoneLevel({
 		enabled: !certificationMode && microphoneEnabled && !recording && !finalizing,
 		deviceId: meterDeviceId,
 	});
@@ -387,6 +402,7 @@ function LaunchWindowContent() {
 			<MicPopover
 				disabled={recording}
 				systemAudioEnabled={systemAudioEnabled}
+				systemAudioDisabled={selectedSourceType === "device"}
 				onToggleSystemAudio={() => setSystemAudioEnabled(!systemAudioEnabled)}
 				microphoneEnabled={microphoneEnabled}
 				voiceEnhancementMode={voiceEnhancementMode}
@@ -527,16 +543,24 @@ function LaunchWindowContent() {
 					>
 						{selectedSourceType === "window" ? (
 							<AppWindowIcon size={22} className="shrink-0" />
+						) : selectedSourceType === "area" ? (
+							<FrameCornersIcon size={22} className="shrink-0" />
+						) : selectedSourceType === "device" ? (
+							<VideoCameraIcon size={22} className="shrink-0" />
 						) : (
 							<MonitorIcon size={22} className="shrink-0" />
 						)}
 						<div className={cn(styles.controlText, "flex-1")}>
 							<PillLabel
-								domain={t(
+								domain={
 									selectedSourceType === "window"
-										? "recording.window"
-										: "recording.screen",
-								)}
+										? t("recording.window")
+										: selectedSourceType === "area"
+											? t("recording.area", "Area")
+											: selectedSourceType === "device"
+												? t("recording.device", "Device")
+												: t("recording.screen")
+								}
 								value={selectedSource}
 							/>
 						</div>
@@ -553,33 +577,115 @@ function LaunchWindowContent() {
 		</div>
 	);
 
+	const systemAudioUnavailableForSource = selectedSourceType === "device";
+	const systemAudioUnavailableLabel = t(
+		"recording.systemAudioUnavailableForDevice",
+		"System audio is unavailable for device capture",
+	);
 	const systemAudioControl = (
 		<Button
 			variant="ghost"
 			onClick={() => setSystemAudioEnabled(!systemAudioEnabled)}
-			disabled={recording}
+			disabled={recording || systemAudioUnavailableForSource}
 			title={
-				systemAudioEnabled
-					? t("recording.disableSystemAudio")
-					: t("recording.enableSystemAudio")
+				systemAudioUnavailableForSource
+					? systemAudioUnavailableLabel
+					: systemAudioEnabled
+						? t("recording.disableSystemAudio")
+						: t("recording.enableSystemAudio")
 			}
 			aria-label={
-				systemAudioEnabled
-					? t("recording.disableSystemAudio")
-					: t("recording.enableSystemAudio")
+				systemAudioUnavailableForSource
+					? systemAudioUnavailableLabel
+					: systemAudioEnabled
+						? t("recording.disableSystemAudio")
+						: t("recording.enableSystemAudio")
 			}
-			aria-pressed={systemAudioEnabled}
+			aria-pressed={!systemAudioUnavailableForSource && systemAudioEnabled}
 			className={cn(
 				styles.toolbarControl,
 				styles.systemAudioControl,
-				systemAudioEnabled && styles.toolbarControlEnabled,
+				!systemAudioUnavailableForSource &&
+					systemAudioEnabled &&
+					styles.toolbarControlEnabled,
 			)}
 		>
-			{systemAudioEnabled ? <SpeakerHighIcon size={20} /> : <SpeakerXIcon size={20} />}
+			{!systemAudioUnavailableForSource && systemAudioEnabled ? (
+				<SpeakerHighIcon size={20} />
+			) : (
+				<SpeakerXIcon size={20} />
+			)}
 			<span className={styles.systemAudioLabel}>
-				{t("recording.systemAudio", "System audio")}
+				{systemAudioUnavailableForSource
+					? t("recording.unavailable", "Unavailable")
+					: t("recording.systemAudio", "System audio")}
 			</span>
 		</Button>
+	);
+
+	const presetSummary = `${recordingQualityPreset.label} ${recordingQualityPreset.resolutionLabel} / ${recordingQualityPreset.frameRate} FPS`;
+	const recordingHealthLabel = t("health.recordingHealth", "Recording health");
+	const recordingHealthControl = (
+		<RecordingHealthPopover
+			disabled={countdownActive || certificationMode}
+			health={recordingHealth}
+			loading={recordingHealthLoading}
+			microphoneEnabled={microphoneEnabled}
+			microphoneInputStatus={microphoneInputStatus}
+			systemAudioEnabled={systemAudioEnabled}
+			selectedSourceType={selectedSourceType}
+			cameraDeviceCount={cameraDeviceCount}
+			cameraDevicesLoading={cameraDevicesLoading}
+			trigger={
+				<Button
+					variant="ghost"
+					size="icon"
+					iconSize="lg"
+					disabled={countdownActive || certificationMode}
+					title={recordingHealthLabel}
+					aria-label={recordingHealthLabel}
+					className={cn(styles.ib, openId === "recording-health" && styles.ibActive)}
+				>
+					<WaveformIcon size={18} />
+				</Button>
+			}
+		/>
+	);
+
+	const qualityPresetControls = (
+		<div className={styles.barGroup} role="group" aria-label={t("recording.quality")}>
+			<QualityPresetPopover
+				presetId={recordingQualityPresetId}
+				onSelectPreset={setRecordingQualityPresetId}
+				disabled={countdownActive}
+				trigger={
+					<Button
+						variant="ghost"
+						disabled={countdownActive}
+						title={presetSummary}
+						aria-label={t("recording.qualityPreset")}
+						className={cn(
+							styles.electronNoDrag,
+							styles.toolbarControl,
+							styles.qualityControl,
+							openId === "quality" && styles.toolbarControlOpen,
+						)}
+					>
+						<FrameCornersIcon size={20} className="shrink-0" />
+						<div className={cn(styles.controlText, "flex-1")}>
+							<PillLabel domain={t("recording.quality")} value={presetSummary} />
+						</div>
+						<CaretUpIcon
+							size={11}
+							className={cn(
+								"ml-auto shrink-0 opacity-60 transition-transform duration-200",
+								openId === "quality" ? "" : "rotate-180",
+							)}
+						/>
+					</Button>
+				}
+			/>
+		</div>
 	);
 
 	const captureControls = (
@@ -621,6 +727,8 @@ function LaunchWindowContent() {
 
 	const actionControls = (
 		<div className={styles.barGroup} role="group" aria-label={t("recording.record")}>
+			{recordingHealthControl}
+			{qualityPresetControls}
 			{captureControls}
 			<MorePopover
 				supportsHudCaptureProtection={supportsHudCaptureProtection}

@@ -62,6 +62,8 @@
 		"stop": "Стоп",
 		"cancel": "Отмена",
 		"more": "Ещё",
+		"quality": "Качество",
+		"qualityPreset": "Качество записи",
 		"update": {
 			"update": "Обновить",
 			"updated": "Обновлено",

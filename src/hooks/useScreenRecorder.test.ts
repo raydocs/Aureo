@@ -5,6 +5,8 @@ import {
 	createProcessedMicrophoneConstraints,
 	normalizeBrowserMicrophoneProfile,
 	resolveBrowserCaptureCursorPolicy,
+	resolveCaptureDeviceId,
+	shouldUseNativeMacScreenCaptureForSource,
 	shouldUseNativeWindowsCaptureForSource,
 } from "./useScreenRecorder";
 
@@ -159,6 +161,28 @@ describe("resolveBrowserCaptureCursorPolicy", () => {
 	});
 });
 
+describe("resolveCaptureDeviceId", () => {
+	it("uses the explicit device identifier", () => {
+		expect(
+			resolveCaptureDeviceId({
+				id: "device:fallback",
+				sourceType: "device",
+				deviceId: "camera-1",
+			}),
+		).toBe("camera-1");
+	});
+
+	it("falls back to the device source id suffix", () => {
+		expect(resolveCaptureDeviceId({ id: "device:capture-card", sourceType: "device" })).toBe(
+			"capture-card",
+		);
+	});
+
+	it("rejects desktop sources", () => {
+		expect(resolveCaptureDeviceId({ id: "screen:1:0", sourceType: "screen" })).toBeNull();
+	});
+});
+
 describe("shouldUseNativeWindowsCaptureForSource", () => {
 	it("keeps native Windows capture on screen sources", () => {
 		expect(shouldUseNativeWindowsCaptureForSource({ id: "screen:101:0" })).toBe(true);
@@ -170,6 +194,93 @@ describe("shouldUseNativeWindowsCaptureForSource", () => {
 
 	it("keeps browser capture for non-desktop sources", () => {
 		expect(shouldUseNativeWindowsCaptureForSource({ id: "browser-tab:abc" })).toBe(false);
+	});
+});
+
+describe("shouldUseNativeMacScreenCaptureForSource", () => {
+	it("keeps native mac capture on screen sources", () => {
+		expect(shouldUseNativeMacScreenCaptureForSource({ id: "screen:1:0" })).toBe(true);
+	});
+
+	it("keeps native mac capture on window sources", () => {
+		expect(shouldUseNativeMacScreenCaptureForSource({ id: "window:42:0" })).toBe(true);
+	});
+
+	it("uses native mac capture for single-display Area geometry", () => {
+		expect(
+			shouldUseNativeMacScreenCaptureForSource({
+				id: "area:selection",
+				sourceType: "area",
+				geometry: {
+					selection: { x: 0, y: 0, width: 100, height: 100 },
+					outputScaleFactor: 2,
+					outputSize: { width: 200, height: 200 },
+					segments: [
+						{
+							displayId: "1",
+							displayScaleFactor: 2,
+							sourceRect: { x: 0, y: 0, width: 100, height: 100 },
+							outputRect: { x: 0, y: 0, width: 200, height: 200 },
+							captureSize: { width: 200, height: 200 },
+						},
+					],
+				},
+			}),
+		).toBe(true);
+	});
+
+	it("uses native mac capture for multi-display Area geometry", () => {
+		expect(
+			shouldUseNativeMacScreenCaptureForSource({
+				id: "area:multi",
+				sourceType: "area",
+				geometry: {
+					selection: { x: 0, y: 0, width: 400, height: 100 },
+					outputScaleFactor: 1,
+					outputSize: { width: 400, height: 100 },
+					segments: [
+						{
+							displayId: "1",
+							displayScaleFactor: 1,
+							sourceRect: { x: 0, y: 0, width: 200, height: 100 },
+							outputRect: { x: 0, y: 0, width: 200, height: 100 },
+							captureSize: { width: 200, height: 100 },
+						},
+						{
+							displayId: "2",
+							displayScaleFactor: 1,
+							sourceRect: { x: 0, y: 0, width: 200, height: 100 },
+							outputRect: { x: 200, y: 0, width: 200, height: 100 },
+							captureSize: { width: 200, height: 100 },
+						},
+					],
+				},
+			}),
+		).toBe(true);
+	});
+
+	it("rejects Area sources without geometry segments", () => {
+		expect(
+			shouldUseNativeMacScreenCaptureForSource({
+				id: "area:empty",
+				sourceType: "area",
+				geometry: {
+					selection: { x: 0, y: 0, width: 10, height: 10 },
+					outputScaleFactor: 1,
+					outputSize: { width: 10, height: 10 },
+					segments: [],
+				},
+			}),
+		).toBe(false);
+	});
+
+	it("keeps browser capture for non-desktop sources", () => {
+		expect(
+			shouldUseNativeMacScreenCaptureForSource({
+				id: "device:cam",
+				sourceType: "device",
+			}),
+		).toBe(false);
 	});
 });
 

@@ -8,11 +8,11 @@ import {
 import {
 	lastNativeCaptureDiagnostics,
 	nativeCaptureMicrophonePath,
-	nativeCaptureVoiceEnhancementMode,
 	nativeCaptureOutputBuffer,
 	nativeCaptureStopRequested,
 	nativeCaptureSystemAudioPath,
 	nativeCaptureTargetPath,
+	nativeCaptureVoiceEnhancementMode,
 	nativeScreenRecordingActive,
 	selectedSource,
 	setCurrentProjectPath,
@@ -35,7 +35,24 @@ import { getFinalMacCompanionAudioPath } from "./macCompanionAudio";
 import { pruneAutoRecordings } from "./prune";
 import { enhanceMicrophoneRecording, type VoiceEnhancementMode } from "./voiceEnhancement";
 
-export function waitForNativeCaptureStart(process: ChildProcessWithoutNullStreams) {
+export type NativeCaptureBufferProviders = {
+	/** Prefer per-process buffers for multi-helper Area sessions. */
+	getOutputBuffer?: () => string;
+	getTargetPath?: () => string | null;
+};
+
+function readNativeCaptureOutputBuffer(providers?: NativeCaptureBufferProviders) {
+	return providers?.getOutputBuffer?.() ?? nativeCaptureOutputBuffer;
+}
+
+function readNativeCaptureTargetPath(providers?: NativeCaptureBufferProviders) {
+	return providers?.getTargetPath?.() ?? nativeCaptureTargetPath;
+}
+
+export function waitForNativeCaptureStart(
+	process: ChildProcessWithoutNullStreams,
+	providers?: NativeCaptureBufferProviders,
+) {
 	return new Promise<void>((resolve, reject) => {
 		const timer = setTimeout(() => {
 			cleanup();
@@ -60,7 +77,7 @@ export function waitForNativeCaptureStart(process: ChildProcessWithoutNullStream
 			cleanup();
 			reject(
 				new Error(
-					nativeCaptureOutputBuffer.trim() ||
+					readNativeCaptureOutputBuffer(providers).trim() ||
 						`Native capture helper exited before recording started (code ${code ?? "unknown"})`,
 				),
 			);
@@ -87,6 +104,7 @@ export function waitForNativeCaptureStop(
 	timeoutMs = NATIVE_CAPTURE_STOP_TIMEOUT_MS,
 	killGraceMs = NATIVE_CAPTURE_STOP_KILL_GRACE_MS,
 	forceKillWaitMs = NATIVE_CAPTURE_STOP_KILL_GRACE_MS,
+	providers?: NativeCaptureBufferProviders,
 ) {
 	return new Promise<string>((resolve, reject) => {
 		let settled = false;
@@ -133,18 +151,20 @@ export function waitForNativeCaptureStop(
 			}
 
 			finish(() => {
-				const match = nativeCaptureOutputBuffer.match(/Recording stopped\. Output path: (.+)/);
+				const outputBuffer = readNativeCaptureOutputBuffer(providers);
+				const targetPath = readNativeCaptureTargetPath(providers);
+				const match = outputBuffer.match(/Recording stopped\. Output path: (.+)/);
 				if (match?.[1]) {
 					resolve(match[1].trim());
 					return;
 				}
-				if (code === 0 && nativeCaptureTargetPath) {
-					resolve(nativeCaptureTargetPath);
+				if (code === 0 && targetPath) {
+					resolve(targetPath);
 					return;
 				}
 				reject(
 					new Error(
-						nativeCaptureOutputBuffer.trim() ||
+						outputBuffer.trim() ||
 							`Native capture helper exited with code ${code ?? "unknown"}`,
 					),
 				);

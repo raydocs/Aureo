@@ -1,4 +1,5 @@
 import { ipcMain, shell, systemPreferences } from "electron";
+import { getRecordingHealthStatus } from "../recording/health";
 import { getMacPrivacySettingsUrl } from "../utils";
 
 export function registerPermissionHandlers() {
@@ -55,6 +56,11 @@ export function registerPermissionHandlers() {
       console.error('Failed to get screen recording permission status:', error)
       return { success: false, status: 'unknown', error: String(error) }
     }
+  })
+
+  // Read-only aggregate for the launch HUD. Never prompts for permissions.
+  ipcMain.handle('get-recording-health-status', async () => {
+    return getRecordingHealthStatus()
   })
 
   ipcMain.handle('open-screen-recording-preferences', async () => {

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -35,30 +36,44 @@ function toVttTimestamp(totalMs: number): string {
 	return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
 }
 
+function normalizeCaptionText(text: string): string {
+	return text
+		.replace(/\r\n?/g, "\n")
+		.replace(/-->/g, "→")
+		.replace(/\n[\t ]*\n+/g, "\n")
+		.trim();
+}
+
 function normalizeCaptionSidecarCues(cues: unknown): CaptionSidecarCue[] {
 	if (!Array.isArray(cues)) {
 		return [];
 	}
 
 	return cues
-		.filter((cue): cue is CaptionSidecarCue => {
-			return (
-				typeof cue === "object" &&
-				cue !== null &&
-				typeof cue.startMs === "number" &&
-				typeof cue.endMs === "number" &&
-				typeof cue.text === "string" &&
-				Number.isFinite(cue.startMs) &&
-				Number.isFinite(cue.endMs) &&
-				cue.endMs > cue.startMs &&
-				cue.text.trim().length > 0
-			);
+		.flatMap((cue, index) => {
+			if (
+				typeof cue !== "object" ||
+				cue === null ||
+				typeof cue.startMs !== "number" ||
+				typeof cue.endMs !== "number" ||
+				typeof cue.text !== "string" ||
+				!Number.isFinite(cue.startMs) ||
+				!Number.isFinite(cue.endMs)
+			) {
+				return [];
+			}
+
+			const startMs = Math.max(0, Math.round(cue.startMs));
+			const endMs = Math.max(0, Math.round(cue.endMs));
+			const text = normalizeCaptionText(cue.text);
+			if (endMs <= startMs || text.length === 0) {
+				return [];
+			}
+
+			return [{ startMs, endMs, text, index }];
 		})
-		.map((cue) => ({
-			startMs: cue.startMs,
-			endMs: cue.endMs,
-			text: cue.text.replace(/\r\n/g, "\n").trim(),
-		}));
+		.sort((a, b) => a.startMs - b.startMs || a.index - b.index)
+		.map(({ startMs, endMs, text }) => ({ startMs, endMs, text }));
 }
 
 export function parseCaptionSidecarPayload(payload: unknown): CaptionSidecarPayload | null {
@@ -104,6 +119,19 @@ export function serializeVtt(cues: CaptionSidecarCue[]): string {
 	return `WEBVTT\n\n${body}`;
 }
 
+async function writeTextFileAtomically(filePath: string, contents: string) {
+	const parsed = path.parse(filePath);
+	const tempPath = path.join(parsed.dir, `.${parsed.base}.${process.pid}.${randomUUID()}.tmp`);
+
+	try {
+		await fs.writeFile(tempPath, contents, "utf8");
+		await fs.rename(tempPath, filePath);
+	} catch (error) {
+		await fs.rm(tempPath, { force: true }).catch(() => undefined);
+		throw error;
+	}
+}
+
 export async function writeCaptionSidecars(
 	videoPath: string,
 	payload: CaptionSidecarPayload | null,
@@ -116,11 +144,11 @@ export async function writeCaptionSidecars(
 	const basePath = path.join(parsed.dir, parsed.name);
 
 	if (payload.format === "srt" || payload.format === "both") {
-		await fs.writeFile(`${basePath}.srt`, serializeSrt(payload.cues), "utf8");
+		await writeTextFileAtomically(`${basePath}.srt`, serializeSrt(payload.cues));
 	}
 
 	if (payload.format === "vtt" || payload.format === "both") {
-		await fs.writeFile(`${basePath}.vtt`, serializeVtt(payload.cues), "utf8");
+		await writeTextFileAtomically(`${basePath}.vtt`, serializeVtt(payload.cues));
 	}
 }
 

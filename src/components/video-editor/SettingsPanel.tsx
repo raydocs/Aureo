@@ -3486,6 +3486,18 @@ export function SettingsPanel({
 								>
 									{tSettings("zoom.modeManual", "Manual")}
 								</button>
+								<button
+									type="button"
+									onClick={() => onZoomModeChange?.("instant")}
+									className={cn(
+										"flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all",
+										selectedZoomMode === "instant"
+											? "bg-primary text-primary-foreground shadow-sm"
+											: "text-muted-foreground hover:text-foreground",
+									)}
+								>
+									{tSettings("zoom.modeInstant", "Instant")}
+								</button>
 							</div>
 							<p className="mt-1.5 text-[10px] text-muted-foreground/70">
 								{selectedZoomMode === "manual"
@@ -3493,10 +3505,15 @@ export function SettingsPanel({
 											"zoom.modeManualDescription",
 											"Set a fixed focus point for this zoom",
 										)
-									: tSettings(
-											"zoom.modeAutoDescription",
-											"Camera recenters when the cursor nears the edge of the zoomed view",
-										)}
+									: selectedZoomMode === "instant"
+										? tSettings(
+												"zoom.modeInstantDescription",
+												"Zoom snaps on and off instantly with no camera movement",
+											)
+										: tSettings(
+												"zoom.modeAutoDescription",
+												"Camera recenters when the cursor nears the edge of the zoomed view",
+											)}
 							</p>
 						</div>
 						<div className="grid grid-cols-6 gap-1.5">

@@ -279,6 +279,10 @@ function normalizeEditorPreset(candidate: unknown): EditorPreset | null {
 	};
 }
 
+export function normalizeEditorPresetInput(candidate: unknown): EditorPreset | null {
+	return normalizeEditorPreset(candidate);
+}
+
 function normalizeEditorPresets(candidates: unknown): EditorPreset[] {
 	if (!Array.isArray(candidates)) {
 		return [];

@@ -174,5 +174,49 @@
 		"disable": "停用",
 		"disableHint": "保留時間軸片段，但不套用遮罩效果。",
 		"remove": "移除遮罩"
+	},
+	"presets": {
+		"open": "Open presets",
+		"label": "Presets",
+		"saveCurrentAs": "Save current preset as",
+		"namePlaceholder": "Preset name",
+		"savedList": "Saved presets",
+		"empty": "No presets yet.",
+		"deleteAriaLabel": "Delete preset {{name}}",
+		"import": {
+			"title": "Import preset",
+			"label": "Import",
+			"errors": {
+				"invalid": "Could not import that preset.",
+				"tooLarge": "Preset file is too large. Choose a file smaller than 5 MB.",
+				"invalidJson": "Preset file is not valid JSON.",
+				"unexpected": "Could not import that preset. Please check the file and try again.",
+				"reason": {
+					"unknown": "The file format is unsupported.",
+					"emptyName": "Preset name is missing or empty.",
+					"invalidSnapshot": "Preset contents are invalid or incomplete.",
+					"malformed": "The file is not a valid preset.",
+					"rawArray": "Preset files must contain a single preset, not an array."
+				}
+			}
+		},
+		"export": {
+			"title": "Export selected preset",
+			"noPreset": "No preset selected to export",
+			"label": "Export"
+		},
+		"toasts": {
+			"applied": "Applied preset \"{{name}}\"",
+			"saved": "Saved preset \"{{name}}\"",
+			"deleted": "Deleted preset \"{{name}}\"",
+			"imported": "Imported preset \"{{name}}\"",
+			"exported": "Exported preset \"{{name}}\""
+		},
+		"errors": {
+			"nameRequired": "Enter a preset name.",
+			"duplicateName": "A preset with that name already exists.",
+			"saveFailed": "Could not save that preset. Check your browser storage settings and try again.",
+			"deleteFailed": "Could not delete that preset. Check your browser storage settings and try again."
+		}
 	}
 }

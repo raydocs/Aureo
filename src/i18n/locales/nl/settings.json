@@ -6,7 +6,9 @@
 		"modeAuto": "Auto",
 		"modeManual": "Handmatig",
 		"modeManualDescription": "Stel een vast focuspunt in voor deze zoom",
-		"modeAutoDescription": "Camera centreert opnieuw wanneer de cursor de rand van de ingezoomde weergave nadert"
+		"modeAutoDescription": "Camera centreert opnieuw wanneer de cursor de rand van de ingezoomde weergave nadert",
+		"modeInstant": "Direct",
+		"modeInstantDescription": "Zoom gaat direct in en uit zonder camerabeweging"
 	},
 	"trim": {
 		"deleteRegion": "Trimgebied verwijderen"

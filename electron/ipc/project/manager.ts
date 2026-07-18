@@ -29,6 +29,7 @@ import {
 	normalizeVideoSourcePath,
 	parseJsonWithByteOrderMark,
 } from "../utils";
+import { getProjectBackupPath, restoreProjectFileFromBackupContents } from "./atomicSave";
 
 export { normalizePath, normalizeVideoSourcePath };
 
@@ -426,26 +427,86 @@ function isLoadableProjectData(projectData: unknown) {
 	);
 }
 
+type ProjectPrimaryLoadFailure = {
+	success: false;
+	canceled: false;
+	message: string;
+};
+
+/**
+ * Attempt recovery from the adjacent `.bak` using the same shape and media
+ * validation as a normal primary load. Restores only after the backup is fully
+ * valid, and retains the backup file after promotion.
+ */
+async function tryRecoverProjectFromBackup(
+	projectPath: string,
+): Promise<{ success: true; project: unknown } | { success: false }> {
+	const backupPath = getProjectBackupPath(projectPath);
+
+	let backupContent: string;
+	try {
+		backupContent = await fs.readFile(backupPath, "utf-8");
+	} catch {
+		return { success: false };
+	}
+
+	let project: unknown;
+	try {
+		project = parseJsonWithByteOrderMark(backupContent);
+	} catch {
+		return { success: false };
+	}
+
+	if (!isLoadableProjectData(project)) {
+		return { success: false };
+	}
+
+	const mediaSources = await resolveProjectMediaSources(project);
+	if (!mediaSources.success) {
+		return { success: false };
+	}
+
+	try {
+		await restoreProjectFileFromBackupContents(projectPath, backupContent);
+	} catch {
+		return { success: false };
+	}
+
+	return { success: true, project };
+}
+
 export async function loadProjectFromPath(projectPath: string) {
 	const normalizedPath = normalizePath(projectPath);
 	let project: unknown;
+	let primaryFailure: ProjectPrimaryLoadFailure | null = null;
+
 	try {
 		const content = await fs.readFile(normalizedPath, "utf-8");
 		project = parseJsonWithByteOrderMark(content);
 	} catch (error) {
-		return {
+		primaryFailure = {
 			success: false,
 			canceled: false,
 			message: `Failed to read project file: ${error instanceof Error ? error.message : String(error)}`,
 		};
 	}
-	if (!isLoadableProjectData(project)) {
-		return {
+
+	if (!primaryFailure && !isLoadableProjectData(project)) {
+		primaryFailure = {
 			success: false,
 			canceled: false,
 			message: "Invalid project file format",
 		};
 	}
+
+	if (primaryFailure) {
+		const recovered = await tryRecoverProjectFromBackup(normalizedPath);
+		if (!recovered.success) {
+			return primaryFailure;
+		}
+		project = recovered.project;
+	}
+
 	const mediaSources = await resolveProjectMediaSources(project);
 
 	if (!mediaSources.success) {

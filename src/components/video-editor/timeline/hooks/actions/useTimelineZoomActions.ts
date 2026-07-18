@@ -113,7 +113,9 @@ export function useTimelineZoomActions({
 		}
 
 		if (disableSuggestedZooms) {
-			timelineNotifications.info("Suggested zooms are unavailable while cursor looping is enabled.");
+			timelineNotifications.info(
+				"Suggested zooms are unavailable while cursor looping is enabled.",
+			);
 			return;
 		}
 
@@ -122,10 +124,10 @@ export function useTimelineZoomActions({
 			return;
 		}
 
-		if (cursorTelemetry.length < 2) {
+		if (cursorTelemetry.length === 0) {
 			timelineNotifications.info(
 				"No cursor telemetry available",
-				"Record a screencast first to generate cursor-based suggestions.",
+				"Record a screencast first to generate click-based zoom suggestions.",
 			);
 			return;
 		}
@@ -142,20 +144,24 @@ export function useTimelineZoomActions({
 			reservedSpans: zoomRegions
 				.map((region) => ({ start: region.startMs, end: region.endMs }))
 				.sort((a, b) => a.start - b.start),
+			clips: clipRegions.map((clip) => ({
+				startMs: clip.startMs,
+				endMs: clip.endMs,
+			})),
 		});
 
 		if (result.status === "no-telemetry") {
 			timelineNotifications.info(
 				"No usable cursor telemetry",
-				"The recording does not include enough cursor movement data.",
+				"The recording does not include enough click or interaction data.",
 			);
 			return;
 		}
 
 		if (result.status === "no-interactions") {
 			timelineNotifications.info(
-				"No clear interaction moments found",
-				"Try a recording with pauses or clicks around important actions.",
+				"No clear click interactions found",
+				"Try a recording with clicks around important actions.",
 			);
 			return;
 		}
@@ -163,7 +169,7 @@ export function useTimelineZoomActions({
 		if (result.status === "no-slots" || result.suggestions.length === 0) {
 			timelineNotifications.info(
 				"No auto-zoom slots available",
-				"Detected dwell points overlap existing zoom regions.",
+				"Detected click interactions overlap existing zoom regions, clip gaps, or do not fit safely.",
 			);
 			return;
 		}
@@ -183,6 +189,7 @@ export function useTimelineZoomActions({
 		cursorTelemetry,
 		defaultRegionDurationMs,
 		zoomRegions,
+		clipRegions,
 	]);
 
 	useEffect(() => {

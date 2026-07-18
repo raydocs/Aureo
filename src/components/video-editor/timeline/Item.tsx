@@ -17,6 +17,7 @@ import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatClipSpeedLabel } from "../clipSpeedChange";
+import type { ZoomMode } from "../types";
 import AudioWaveform from "./components/waveform/AudioWaveform";
 import type { AudioPeaksData } from "./core/timelineTypes";
 import glassStyles from "./ItemGlass.module.css";
@@ -31,7 +32,7 @@ interface ItemProps {
 	onSelect?: () => void;
 	onSelectId?: (id: string) => void;
 	zoomDepth?: number;
-	zoomMode?: "auto" | "manual";
+	zoomMode?: ZoomMode;
 	speedValue?: number;
 	waveformPeaks?: AudioPeaksData | null;
 	waveformSegmentSpan?: Span;
@@ -347,10 +348,14 @@ export default function Item({
 							>
 								<PhMouseLeftClick
 									className="w-2.5 h-2.5 shrink-0"
-									weight={zoomMode === "manual" ? "regular" : "fill"}
+									weight={zoomMode === "auto" ? "fill" : "regular"}
 								/>
 								<span className="text-[9px] font-medium tracking-tight whitespace-nowrap">
-									{zoomMode === "manual" ? "Manual" : "Auto"}
+									{zoomMode === "manual"
+										? "Manual"
+										: zoomMode === "instant"
+											? "Instant"
+											: "Auto"}
 								</span>
 							</div>
 						) : (

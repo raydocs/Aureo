@@ -6,7 +6,9 @@
 		"modeAuto": "Auto",
 		"modeManual": "Manuale",
 		"modeManualDescription": "Imposta un punto focale fisso per questo zoom",
-		"modeAutoDescription": "La camera si ricentra quando il cursore si avvicina al bordo della vista zoomata"
+		"modeAutoDescription": "La camera si ricentra quando il cursore si avvicina al bordo della vista zoomata",
+		"modeInstant": "Istantaneo",
+		"modeInstantDescription": "Lo zoom si attiva e disattiva istantaneamente senza movimento della camera"
 	},
 	"trim": {
 		"deleteRegion": "Elimina regione di taglio"

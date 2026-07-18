@@ -6,12 +6,6 @@ import type { Readable, Writable } from "node:stream";
 import type { SaveDialogOptions } from "electron";
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import {
-	parseCaptionSidecarPayload,
-	type CaptionSidecarPayload,
-	withCaptionSidecarMessage,
-	writeCaptionSidecarsBestEffort,
-} from "./exportCaptionSidecars";
-import {
 	closeExportStream,
 	isOwnedExportPath,
 	openExportStream,
@@ -48,17 +42,33 @@ import {
 	buildNativeVideoExportArgs,
 	getNativeVideoInputByteSize,
 	type NativeExportEncodingMode,
-	type NativeVideoExportFinishOptions,
 	type NativeVideoCodec,
+	type NativeVideoExportFinishOptions,
 } from "../nativeVideoExport";
 import { isAllowedLocalReadPath, resolveApprovedLocalMediaPath } from "../project/manager";
 import { approveUserPath } from "../utils";
+import {
+	type CaptionSidecarPayload,
+	parseCaptionSidecarPayload,
+	withCaptionSidecarMessage,
+	writeCaptionSidecarsBestEffort,
+} from "./exportCaptionSidecars";
 
 function getPartialExportDestinationPath(destinationPath: string) {
 	const parsed = path.parse(destinationPath);
 	const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 	return path.join(parsed.dir, `.aureo-partial-${parsed.name}-${suffix}${parsed.ext}`);
 }
+
+const unsupportedDirectorySyncErrors = new Set([
+	"EACCES",
+	"EINVAL",
+	"EISDIR",
+	"ENOSYS",
+	"ENOTSUP",
+	"EOPNOTSUPP",
+	"EPERM",
+]);
 
 const MAX_IN_MEMORY_EXPORT_BYTES = 0x7fffffff;
 
@@ -68,6 +78,98 @@ function getInMemoryExportTooLargeMessage(byteLength: number) {
 	}
 
 	return "Export is too large for the legacy in-memory save path. Please retry with temp-file streaming enabled.";
+}
+
+async function syncExistingFile(filePath: string): Promise<void> {
+	const handle = await fs.open(filePath, "r+");
+	try {
+		await handle.sync();
+	} finally {
+		await handle.close();
+	}
+}
+
+async function syncParentDirectory(parentDir: string): Promise<void> {
+	if (process.platform === "win32") {
+		return;
+	}
+
+	try {
+		const handle = await fs.open(parentDir, "r");
+		try {
+			await handle.sync();
+		} finally {
+			await handle.close();
+		}
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		if (!code || !unsupportedDirectorySyncErrors.has(code)) {
+			throw error;
+		}
+	}
+}
+
+type PartialExportPromotion = {
+	backupDestinationPath: string | null;
+};
+
+async function promotePartialExportFile(
+	partialDestinationPath: string,
+	destinationPath: string,
+): Promise<PartialExportPromotion> {
+	const backupDestinationPath = getPartialExportDestinationPath(destinationPath);
+	let movedExistingDestination = false;
+	try {
+		await fs.rename(destinationPath, backupDestinationPath);
+		movedExistingDestination = true;
+	} catch (backupError) {
+		if ((backupError as NodeJS.ErrnoException).code !== "ENOENT") {
+			throw backupError;
+		}
+	}
+
+	try {
+		await fs.rename(partialDestinationPath, destinationPath);
+	} catch (promotionError) {
+		if (movedExistingDestination) {
+			await fs.rename(backupDestinationPath, destinationPath);
+		}
+		throw promotionError;
+	}
+
+	return {
+		backupDestinationPath: movedExistingDestination ? backupDestinationPath : null,
+	};
+}
+
+async function rollbackPartialExportPromotion(
+	destinationPath: string,
+	promotion: PartialExportPromotion,
+): Promise<void> {
+	await fs.rm(destinationPath, { force: true });
+	if (promotion.backupDestinationPath) {
+		await fs.rename(promotion.backupDestinationPath, destinationPath);
+	}
+	await syncParentDirectory(path.dirname(destinationPath));
+}
+
+async function removePreviousExportBackup(
+	destinationPath: string,
+	promotion: PartialExportPromotion,
+): Promise<void> {
+	if (!promotion.backupDestinationPath) {
+		return;
+	}
+
+	try {
+		await fs.rm(promotion.backupDestinationPath, { force: true });
+		await syncParentDirectory(path.dirname(destinationPath));
+	} catch (cleanupError) {
+		console.warn(
+			`[export] Failed to remove backup file after replace (${promotion.backupDestinationPath}):`,
+			cleanupError,
+		);
+	}
 }
 
 export async function moveExportedTempFile(tempPath: string, destinationPath: string) {
@@ -86,44 +188,30 @@ export async function moveExportedTempFile(tempPath: string, destinationPath: st
 
 	const partialDestinationPath = getPartialExportDestinationPath(destinationPath);
 	try {
+		// Copy to a hidden sibling first. Never replace the destination until the
+		// partial copy has been size-validated and durable-synced.
 		await fs.copyFile(tempPath, partialDestinationPath);
-		try {
-			await fs.rename(partialDestinationPath, destinationPath);
-		} catch (renameError) {
-			const code = (renameError as NodeJS.ErrnoException).code;
-			if (code !== "EEXIST" && code !== "EPERM") {
-				throw renameError;
-			}
 
-			const backupDestinationPath = getPartialExportDestinationPath(destinationPath);
-			let movedExistingDestination = false;
-			try {
-				await fs.rename(destinationPath, backupDestinationPath);
-				movedExistingDestination = true;
-			} catch (backupError) {
-				if ((backupError as NodeJS.ErrnoException).code !== "ENOENT") {
-					throw backupError;
-				}
-			}
-
-			try {
-				await fs.rename(partialDestinationPath, destinationPath);
-			} catch (replaceError) {
-				if (movedExistingDestination) {
-					await fs.rename(backupDestinationPath, destinationPath).catch(() => undefined);
-				}
-				throw replaceError;
-			}
-
-			if (movedExistingDestination) {
-				await fs.rm(backupDestinationPath, { force: true }).catch((cleanupError) => {
-					console.warn(
-						`[export] Failed to remove backup file after replace (${backupDestinationPath}):`,
-						cleanupError,
-					);
-				});
-			}
+		const [sourceStat, partialStat] = await Promise.all([
+			fs.stat(tempPath),
+			fs.stat(partialDestinationPath),
+		]);
+		if (partialStat.size !== sourceStat.size) {
+			throw new Error(
+				`Cross-volume export copy size mismatch: expected ${sourceStat.size} bytes but copied ${partialStat.size}`,
+			);
 		}
+
+		await syncExistingFile(partialDestinationPath);
+		const promotion = await promotePartialExportFile(partialDestinationPath, destinationPath);
+		try {
+			await syncParentDirectory(path.dirname(destinationPath));
+		} catch (syncError) {
+			await rollbackPartialExportPromotion(destinationPath, promotion);
+			throw syncError;
+		}
+		await removePreviousExportBackup(destinationPath, promotion);
+
 		try {
 			await fs.rm(tempPath, { force: true });
 		} catch (unlinkError) {

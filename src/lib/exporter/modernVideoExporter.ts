@@ -36,7 +36,10 @@ import {
 	stepSpringValue,
 } from "@/components/video-editor/videoPlayback/motionSmoothing";
 import { getCursorStyleSizeMultiplier } from "@/components/video-editor/videoPlayback/uploadedCursorAssets";
-import { findDominantRegion } from "@/components/video-editor/videoPlayback/zoomRegionUtils";
+import {
+	findDominantRegion,
+	shouldSnapInstantZoomTransform,
+} from "@/components/video-editor/videoPlayback/zoomRegionUtils";
 import { computeZoomTransform } from "@/components/video-editor/videoPlayback/zoomTransform";
 import {
 	getWebcamOverlayPosition,
@@ -2167,12 +2170,15 @@ export class ModernVideoExporter {
 		let appliedScale = 1;
 		let appliedX = 0;
 		let appliedY = 0;
+		let previousZoomWasInstant = false;
 
 		for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
 			const timeMs = frameIndex * frameDurationMs;
 			const { region, strength, blendedScale } = findDominantRegion(zoomRegions, timeMs, {
 				connectZooms: this.config.connectZooms,
 			});
+			const snapInstantZoom = shouldSnapInstantZoomTransform(region, previousZoomWasInstant);
+			previousZoomWasInstant = region?.mode === "instant";
 
 			let targetScale = 1;
 			let targetFocus = DEFAULT_FOCUS;
@@ -2184,6 +2190,7 @@ export class ModernVideoExporter {
 				if (
 					!this.config.zoomClassicMode &&
 					region.mode !== "manual" &&
+					region.mode !== "instant" &&
 					(cursorTelemetry?.length ?? 0) > 0
 				) {
 					regionFocus = computeCursorFollowFocus(
@@ -2214,7 +2221,7 @@ export class ModernVideoExporter {
 				lastContentTimeMs !== null ? timeMs - lastContentTimeMs : frameDurationMs;
 			lastContentTimeMs = timeMs;
 
-			if (this.config.zoomClassicMode) {
+			if (this.config.zoomClassicMode || snapInstantZoom) {
 				appliedScale = projectedTransform.scale;
 				appliedX = projectedTransform.x;
 				appliedY = projectedTransform.y;

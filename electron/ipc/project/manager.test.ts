@@ -229,4 +229,112 @@ describe("local media path policy", () => {
 		expect(result.success).toBe(true);
 		await expect(resolveApprovedLocalMediaPath(audioPath)).resolves.toBe(resolvedAudioPath);
 	});
+
+	it("recovers from a valid adjacent backup when the primary is unparseable", async () => {
+		const videoPath = path.join(tempPath, "recording.mp4");
+		const projectPath = path.join(tempPath, "recording.aureo");
+		const backupPath = `${projectPath}.bak`;
+		const backupProject = {
+			version: 1,
+			videoPath,
+			editor: { zoom: 1 },
+		};
+		const corruptPrimary = "{not-json";
+		await fs.writeFile(videoPath, "test-video");
+		await fs.writeFile(projectPath, corruptPrimary, "utf-8");
+		await fs.writeFile(backupPath, JSON.stringify(backupProject), "utf-8");
+
+		const { loadProjectFromPath } = await import("./manager");
+
+		const result = await loadProjectFromPath(projectPath);
+		expect(result.success).toBe(true);
+		expect(result.path).toBe(projectPath);
+		expect(result.project).toMatchObject(backupProject);
+		await expect(fs.readFile(projectPath, "utf-8")).resolves.toBe(
+			JSON.stringify(backupProject),
+		);
+		await expect(fs.readFile(backupPath, "utf-8")).resolves.toBe(JSON.stringify(backupProject));
+	});
+
+	it("recovers from a valid adjacent backup when the primary is structurally invalid", async () => {
+		const videoPath = path.join(tempPath, "recording.mp4");
+		const projectPath = path.join(tempPath, "recording.aureo");
+		const backupPath = `${projectPath}.bak`;
+		const backupProject = {
+			version: 1,
+			projectId: "restored",
+			videoPath,
+			editor: {},
+		};
+		const invalidPrimary = JSON.stringify({
+			videoPath,
+			editor: {},
+		});
+		await fs.writeFile(videoPath, "test-video");
+		await fs.writeFile(projectPath, invalidPrimary, "utf-8");
+		await fs.writeFile(backupPath, JSON.stringify(backupProject), "utf-8");
+
+		const { loadProjectFromPath } = await import("./manager");
+
+		const result = await loadProjectFromPath(projectPath);
+		expect(result.success).toBe(true);
+		expect(result.path).toBe(projectPath);
+		expect(result.project).toMatchObject(backupProject);
+		await expect(fs.readFile(projectPath, "utf-8")).resolves.toBe(
+			JSON.stringify(backupProject),
+		);
+		await expect(fs.readFile(backupPath, "utf-8")).resolves.toBe(JSON.stringify(backupProject));
+	});
+
+	it("preserves primary failure when the adjacent backup is also corrupt", async () => {
+		const projectPath = path.join(tempPath, "recording.aureo");
+		const backupPath = `${projectPath}.bak`;
+		const corruptPrimary = "{not-json";
+		await fs.writeFile(projectPath, corruptPrimary, "utf-8");
+		await fs.writeFile(backupPath, "{also-not-json", "utf-8");
+
+		const { loadProjectFromPath } = await import("./manager");
+
+		const result = await loadProjectFromPath(projectPath);
+		expect(result.success).toBe(false);
+		expect(result.message).toMatch(/^Failed to read project file:/);
+		await expect(fs.readFile(projectPath, "utf-8")).resolves.toBe(corruptPrimary);
+		await expect(fs.readFile(backupPath, "utf-8")).resolves.toBe("{also-not-json");
+	});
+
+	it("preserves primary failure when the backup references unavailable media", async () => {
+		const missingVideoPath = path.join(tempPath, "missing-recording.mp4");
+		const projectPath = path.join(tempPath, "recording.aureo");
+		const backupPath = `${projectPath}.bak`;
+		const corruptPrimary = "{not-json";
+		const backupProject = {
+			version: 1,
+			videoPath: missingVideoPath,
+			editor: {},
+		};
+		await fs.writeFile(projectPath, corruptPrimary, "utf-8");
+		await fs.writeFile(backupPath, JSON.stringify(backupProject), "utf-8");
+
+		const { loadProjectFromPath } = await import("./manager");
+
+		const result = await loadProjectFromPath(projectPath);
+		expect(result.success).toBe(false);
+		expect(result.message).toMatch(/^Failed to read project file:/);
+		await expect(fs.readFile(projectPath, "utf-8")).resolves.toBe(corruptPrimary);
+		await expect(fs.readFile(backupPath, "utf-8")).resolves.toBe(JSON.stringify(backupProject));
+	});
+
+	it("preserves primary failure when the adjacent backup is missing", async () => {
+		const projectPath = path.join(tempPath, "recording.aureo");
+		const corruptPrimary = "{not-json";
+		await fs.writeFile(projectPath, corruptPrimary, "utf-8");
+
+		const { loadProjectFromPath } = await import("./manager");
+
+		const result = await loadProjectFromPath(projectPath);
+		expect(result.success).toBe(false);
+		expect(result.message).toMatch(/^Failed to read project file:/);
+		await expect(fs.readFile(projectPath, "utf-8")).resolves.toBe(corruptPrimary);
+		await expect(fs.access(`${projectPath}.bak`)).rejects.toMatchObject({ code: "ENOENT" });
+	});
 });

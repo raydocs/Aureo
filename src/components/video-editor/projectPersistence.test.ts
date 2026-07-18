@@ -112,6 +112,39 @@ describe("normalizeProjectEditor", () => {
 		});
 	});
 
+	it("round-trips instant zoom region mode", () => {
+		const editor = normalizeProjectEditor({
+			zoomRegions: [
+				{
+					id: "instant-zoom",
+					startMs: 1000,
+					endMs: 3000,
+					depth: 3,
+					focus: { cx: 0.4, cy: 0.5 },
+					mode: "instant",
+				},
+			],
+		});
+		expect(editor.zoomRegions).toHaveLength(1);
+		expect(editor.zoomRegions[0].mode).toBe("instant");
+	});
+
+	it("normalizes unknown zoom region modes to undefined", () => {
+		const editor = normalizeProjectEditor({
+			zoomRegions: [
+				{
+					id: "bad-mode",
+					startMs: 0,
+					endMs: 1000,
+					depth: 2,
+					focus: { cx: 0.5, cy: 0.5 },
+					mode: "teleport",
+				} as never,
+			],
+		});
+		expect(editor.zoomRegions[0].mode).toBeUndefined();
+	});
+
 	it("defaults backgroundEnabled to true and preserves explicit false", () => {
 		expect(normalizeProjectEditor({}).backgroundEnabled).toBe(true);
 		expect(normalizeProjectEditor({ backgroundEnabled: true }).backgroundEnabled).toBe(true);

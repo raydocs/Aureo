@@ -356,6 +356,105 @@ function buildClickClusters(
 	return clusters;
 }
 
+export interface ZoomSuggestionClipRegion {
+	startMs: number;
+	endMs: number;
+}
+
+function resolveSuggestionClips(
+	clips: ZoomSuggestionClipRegion[] | undefined,
+	totalMs: number,
+): ZoomSuggestionClipRegion[] {
+	if (!clips || clips.length === 0) {
+		return [{ startMs: 0, endMs: totalMs }];
+	}
+
+	return [...clips]
+		.filter(
+			(clip) =>
+				Number.isFinite(clip.startMs) &&
+				Number.isFinite(clip.endMs) &&
+				clip.endMs > clip.startMs,
+		)
+		.sort((a, b) => a.startMs - b.startMs);
+}
+
+function findClipContainingCluster(
+	cluster: { firstMs: number; lastMs: number },
+	clips: ZoomSuggestionClipRegion[],
+): ZoomSuggestionClipRegion | null {
+	for (const clip of clips) {
+		if (cluster.firstMs >= clip.startMs && cluster.lastMs <= clip.endMs) {
+			return clip;
+		}
+	}
+	return null;
+}
+
+/**
+ * Builds a duration-aware window for a click cluster, then shifts it to fit
+ * inside the given clip/media bounds. Returns null when the required duration
+ * cannot fit safely inside the clip.
+ */
+function placeClusterWindow(params: {
+	cluster: { firstMs: number; lastMs: number };
+	padMs: number;
+	defaultDurationMs: number;
+	clip: ZoomSuggestionClipRegion;
+	totalMs: number;
+}): { start: number; end: number } | null {
+	const { cluster, padMs, defaultDurationMs, clip, totalMs } = params;
+
+	const interactionStart = cluster.firstMs - padMs;
+	const interactionEnd = cluster.lastMs + padMs;
+	const interactionDuration = Math.max(0, interactionEnd - interactionStart);
+	const desiredDuration = Math.max(interactionDuration, defaultDurationMs, 0);
+	if (desiredDuration <= 0) {
+		return null;
+	}
+
+	const centerMs = (cluster.firstMs + cluster.lastMs) / 2;
+	let start = centerMs - desiredDuration / 2;
+	let end = start + desiredDuration;
+
+	const boundStart = Math.max(0, clip.startMs);
+	const boundEnd = Math.min(totalMs, clip.endMs);
+	const available = boundEnd - boundStart;
+	if (available < desiredDuration) {
+		return null;
+	}
+
+	if (start < boundStart) {
+		end += boundStart - start;
+		start = boundStart;
+	}
+	if (end > boundEnd) {
+		start -= end - boundEnd;
+		end = boundEnd;
+	}
+
+	start = Math.max(boundStart, start);
+	end = Math.min(boundEnd, end);
+
+	if (end - start < desiredDuration - 0.5) {
+		return null;
+	}
+
+	return {
+		start: Math.round(start),
+		end: Math.round(end),
+	};
+}
+
+function spansOverlapWithSpacing(
+	start: number,
+	end: number,
+	span: { start: number; end: number },
+	spacingMs: number,
+): boolean {
+	return end + spacingMs > span.start && start - spacingMs < span.end;
+}
+
 export function buildInteractionZoomSuggestions(params: {
 	cursorTelemetry: CursorTelemetryPoint[];
 	totalMs: number;
@@ -364,18 +463,28 @@ export function buildInteractionZoomSuggestions(params: {
 	spacingMs?: number;
 	mergeGapMs?: number;
 	padMs?: number;
+	/** Retained clip regions in timeline coordinates. Empty/omitted = full media. */
+	clips?: ZoomSuggestionClipRegion[];
 }): InteractionZoomSuggestionResult {
 	const {
 		cursorTelemetry,
 		totalMs,
+		defaultDurationMs,
 		reservedSpans = [],
+		spacingMs = 0,
 		mergeGapMs = CLICK_CLUSTER_MERGE_GAP_MS,
 		padMs = CLICK_CLUSTER_PAD_MS,
+		clips,
 	} = params;
 
 	if (totalMs <= 0) {
 		return { status: "no-slots", suggestions: [] };
 	}
+
+	const safeDefaultDurationMs =
+		Number.isFinite(defaultDurationMs) && defaultDurationMs > 0 ? defaultDurationMs : 0;
+	const safeSpacingMs = Number.isFinite(spacingMs) && spacingMs > 0 ? spacingMs : 0;
+	const activeClips = resolveSuggestionClips(clips, totalMs);
 
 	const normalizedSamples = normalizeCursorTelemetry(cursorTelemetry, totalMs);
 	if (normalizedSamples.length === 0) {
@@ -401,29 +510,44 @@ export function buildInteractionZoomSuggestions(params: {
 	// Group nearby clicks into clusters, then derive zoom windows from those clusters
 	const clusters = buildClickClusters(clickCandidates, mergeGapMs);
 
-	const reserved = [...reservedSpans].sort((a, b) => a.start - b.start);
+	const reserved = [...reservedSpans]
+		.filter(
+			(span) =>
+				Number.isFinite(span.start) && Number.isFinite(span.end) && span.end > span.start,
+		)
+		.sort((a, b) => a.start - b.start);
 	const suggestions: SuggestedZoomRegion[] = [];
 
 	for (const cluster of clusters) {
-		const regionStart = Math.max(0, cluster.firstMs - padMs);
-		const regionEnd = Math.min(totalMs, cluster.lastMs + padMs);
-
-		if (regionEnd <= regionStart) {
+		const clip = findClipContainingCluster(cluster, activeClips);
+		if (!clip) {
+			// Cluster sits in a removed gap or bridges multiple retained clips.
 			continue;
 		}
 
-		const hasOverlap = reserved.some(
-			(span) => regionEnd > span.start && regionStart < span.end,
-		);
+		const placed = placeClusterWindow({
+			cluster,
+			padMs,
+			defaultDurationMs: safeDefaultDurationMs,
+			clip,
+			totalMs,
+		});
+		if (!placed || placed.end <= placed.start) {
+			continue;
+		}
 
+		const hasOverlap = reserved.some((span) =>
+			spansOverlapWithSpacing(placed.start, placed.end, span, safeSpacingMs),
+		);
 		if (hasOverlap) {
 			continue;
 		}
 
-		reserved.push({ start: regionStart, end: regionEnd });
+		reserved.push({ start: placed.start, end: placed.end });
+		reserved.sort((a, b) => a.start - b.start);
 		suggestions.push({
-			start: regionStart,
-			end: regionEnd,
+			start: placed.start,
+			end: placed.end,
 			focus: cluster.focus,
 		});
 	}

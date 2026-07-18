@@ -6,7 +6,9 @@
 		"modeAuto": "Auto",
 		"modeManual": "Manual",
 		"modeManualDescription": "Defina um ponto de foco fixo para este zoom",
-		"modeAutoDescription": "A câmera recentraliza quando o cursor se aproxima da borda da visualização ampliada"
+		"modeAutoDescription": "A câmera recentraliza quando o cursor se aproxima da borda da visualização ampliada",
+		"modeInstant": "Instantâneo",
+		"modeInstantDescription": "O zoom liga e desliga instantaneamente sem movimento de câmera"
 	},
 	"trim": {
 		"deleteRegion": "Excluir região de corte"

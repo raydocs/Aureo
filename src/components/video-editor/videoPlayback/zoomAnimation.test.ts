@@ -11,7 +11,11 @@ import {
 	type SpringState,
 	stepSpringValue,
 } from "./motionSmoothing";
-import { computeRegionStrength, findDominantRegion } from "./zoomRegionUtils";
+import {
+	computeRegionStrength,
+	findDominantRegion,
+	shouldSnapInstantZoomTransform,
+} from "./zoomRegionUtils";
 
 // ---------------------------------------------------------------------------
 // motionSmoothing — spring state helpers
@@ -411,6 +415,74 @@ describe("findDominantRegion", () => {
 		expect(result.strength).toBe(1);
 	});
 
+	it("snaps an instant zoom region to full strength at its boundaries", () => {
+		const region: ZoomRegion = {
+			id: "instant",
+			startMs: 2000,
+			endMs: 5000,
+			depth: 3,
+			focus: { cx: 0.4, cy: 0.4 },
+			mode: "instant",
+		};
+
+		expect(computeRegionStrength(region, 1999)).toBe(0);
+		expect(computeRegionStrength(region, 2000)).toBe(1);
+		expect(computeRegionStrength(region, 3500)).toBe(1);
+		expect(computeRegionStrength(region, 4999)).toBe(1);
+		expect(computeRegionStrength(region, 5000)).toBe(0);
+	});
+
+	it("bypasses spring motion while instant zoom is active and on its first exit frame", () => {
+		const instantRegion: ZoomRegion = {
+			id: "instant",
+			startMs: 2000,
+			endMs: 5000,
+			depth: 3,
+			focus: { cx: 0.4, cy: 0.4 },
+			mode: "instant",
+		};
+		const autoRegion: ZoomRegion = { ...instantRegion, id: "auto", mode: "auto" };
+
+		expect(shouldSnapInstantZoomTransform(instantRegion, false)).toBe(true);
+		expect(shouldSnapInstantZoomTransform(null, true)).toBe(true);
+		expect(shouldSnapInstantZoomTransform(autoRegion, false)).toBe(false);
+		expect(shouldSnapInstantZoomTransform(null, false)).toBe(false);
+	});
+
+	it("does not apply connected transitions to or from instant regions", () => {
+		const regions: ZoomRegion[] = [
+			{
+				id: "a",
+				startMs: 1000,
+				endMs: 3000,
+				depth: 2,
+				focus: { cx: 0.2, cy: 0.2 },
+				mode: "instant",
+			},
+			{ id: "b", startMs: 3500, endMs: 6000, depth: 3, focus: { cx: 0.8, cy: 0.8 } },
+		];
+
+		// Within the instant region, before the next region would normally lead in,
+		// the instant region is active at full strength.
+		const during = findDominantRegion(regions, 2900, { connectZooms: true });
+		expect(during.region?.id).toBe("a");
+		expect(during.strength).toBe(1);
+		expect(during.transition).toBeNull();
+
+		// After the instant region ends, no connected pan holds; the next region starts
+		// its own natural lead-in, not a transition from the instant region.
+		const gap = findDominantRegion(regions, 3200, { connectZooms: true });
+		expect(gap.region?.id).toBe("b");
+		expect(gap.strength).toBeGreaterThan(0);
+		expect(gap.strength).toBeLessThan(1);
+		expect(gap.transition).toBeNull();
+
+		const after = findDominantRegion(regions, 4600, { connectZooms: true });
+		expect(after.region?.id).toBe("b");
+		expect(after.strength).toBeCloseTo(1, 3);
+		expect(after.transition).toBeNull();
+	});
+
 	it("does NOT connect zooms with a large gap", () => {
 		const regions: ZoomRegion[] = [
 			{ id: "a", startMs: 1000, endMs: 3000, depth: 2, focus: { cx: 0.2, cy: 0.2 } },
@@ -463,6 +535,18 @@ describe("ZoomRegion mode field", () => {
 			mode: "auto",
 		};
 		expect(r.mode).toBe("auto");
+	});
+
+	it("accepts instant mode", () => {
+		const r: ZoomRegion = {
+			id: "i1",
+			startMs: 0,
+			endMs: 1000,
+			depth: 2,
+			focus: { cx: 0.5, cy: 0.5 },
+			mode: "instant",
+		};
+		expect(r.mode).toBe("instant");
 	});
 
 	it("mode is optional", () => {

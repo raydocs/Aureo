@@ -6,7 +6,9 @@
 		"modeAuto": "자동",
 		"modeManual": "수동",
 		"modeManualDescription": "이 확대에 고정 초점을 설정합니다",
-		"modeAutoDescription": "카메라가 커서를 자동으로 따라갑니다"
+		"modeAutoDescription": "카메라가 커서를 자동으로 따라갑니다",
+		"modeInstant": "즉시",
+		"modeInstantDescription": "카메라 이동 없이 즉시 줌이 켜지고 꺼집니다"
 	},
 	"trim": {
 		"deleteRegion": "트림 구간 삭제"

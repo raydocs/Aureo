@@ -6,7 +6,9 @@
 		"modeAuto": "Auto",
 		"modeManual": "Manual",
 		"modeManualDescription": "Set a fixed focus point for this zoom",
-		"modeAutoDescription": "Camera recenters when the cursor nears the edge of the zoomed view"
+		"modeAutoDescription": "Camera recenters when the cursor nears the edge of the zoomed view",
+		"modeInstant": "Instant",
+		"modeInstantDescription": "Zoom snaps on and off instantly with no camera movement"
 	},
 	"trim": {
 		"deleteRegion": "Delete Trim Region"

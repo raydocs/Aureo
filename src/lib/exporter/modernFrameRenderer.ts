@@ -57,7 +57,10 @@ import {
 	stepSpringValue,
 } from "@/components/video-editor/videoPlayback/motionSmoothing";
 import { getWebcamMediaTargetTimeSeconds } from "@/components/video-editor/videoPlayback/webcamSync";
-import { findDominantRegion } from "@/components/video-editor/videoPlayback/zoomRegionUtils";
+import {
+	findDominantRegion,
+	shouldSnapInstantZoomTransform,
+} from "@/components/video-editor/videoPlayback/zoomRegionUtils";
 import {
 	applyZoomTransform,
 	computeZoomTransform,
@@ -473,6 +476,8 @@ export class FrameRenderer {
 	private springX: SpringState;
 	private springY: SpringState;
 	private cursorFollowCamera: CursorFollowCameraState;
+	private previousZoomWasInstant = false;
+	private snapInstantZoomTransform = false;
 	private lastContentTimeMs: number | null = null;
 	private layoutCache: LayoutCache | null = null;
 	private currentVideoTime = 0;
@@ -3093,7 +3098,10 @@ export class FrameRenderer {
 			focusX: this.animationState.focusX,
 			focusY: this.animationState.focusY,
 			isPlaying: true,
-			motionBlurAmount: useVelocityMotionBlur ? (this.config.zoomMotionBlur ?? 0) : 0,
+			motionBlurAmount:
+				useVelocityMotionBlur && !this.snapInstantZoomTransform
+					? (this.config.zoomMotionBlur ?? 0)
+					: 0,
 			motionBlurTuning: this.config.zoomMotionBlurTuning,
 			transformOverride: {
 				scale: this.animationState.appliedScale,
@@ -3359,7 +3367,7 @@ export class FrameRenderer {
 			focusX: this.animationState.focusX,
 			focusY: this.animationState.focusY,
 			isPlaying: true,
-			motionBlurAmount: this.config.zoomMotionBlur ?? 0,
+			motionBlurAmount: this.snapInstantZoomTransform ? 0 : (this.config.zoomMotionBlur ?? 0),
 			motionBlurTuning: this.config.zoomMotionBlurTuning,
 			transformOverride: {
 				scale: this.animationState.appliedScale,
@@ -3814,6 +3822,10 @@ export class FrameRenderer {
 			},
 		);
 
+		const snapInstantZoom = shouldSnapInstantZoomTransform(region, this.previousZoomWasInstant);
+		this.previousZoomWasInstant = region?.mode === "instant";
+		this.snapInstantZoomTransform = snapInstantZoom;
+
 		let targetScaleFactor = 1;
 		let targetFocus = { ...DEFAULT_FOCUS };
 		let targetProgress = 0;
@@ -3826,6 +3838,7 @@ export class FrameRenderer {
 			if (
 				!this.config.zoomClassicMode &&
 				region.mode !== "manual" &&
+				region.mode !== "instant" &&
 				this.config.cursorTelemetry &&
 				this.config.cursorTelemetry.length > 0
 			) {
@@ -3876,7 +3889,7 @@ export class FrameRenderer {
 			massMultiplier: this.config.cameraSpringMassMultiplier,
 		});
 
-		if (this.config.zoomClassicMode) {
+		if (this.config.zoomClassicMode || snapInstantZoom) {
 			state.appliedScale = projectedTransform.scale;
 			state.x = projectedTransform.x;
 			state.y = projectedTransform.y;

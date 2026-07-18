@@ -28,6 +28,28 @@ const BASE_ANNOTATION = {
 };
 
 describe("timeline model", () => {
+	it("maps instant zoom regions to items with instant mode", () => {
+		const items = buildTimelineItems({
+			zoomRegions: [
+				{ id: "z1", startMs: 0, endMs: 1000, depth: 2, focus: { cx: 0.5, cy: 0.5 } },
+				{
+					id: "z2",
+					startMs: 2000,
+					endMs: 3000,
+					depth: 3,
+					focus: { cx: 0.4, cy: 0.4 },
+					mode: "instant",
+				},
+			],
+			clipRegions: [],
+			annotationRegions: [],
+			audioRegions: [],
+		});
+
+		expect(items.find((i) => i.id === "z1")?.zoomMode).toBe("auto");
+		expect(items.find((i) => i.id === "z2")?.zoomMode).toBe("instant");
+	});
+
 	it("maps regions to timeline items and labels", () => {
 		const items = buildTimelineItems({
 			zoomRegions: [

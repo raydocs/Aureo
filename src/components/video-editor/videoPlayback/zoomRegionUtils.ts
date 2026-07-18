@@ -34,11 +34,22 @@ type ConnectedPanTransition = {
 	endScale: number;
 };
 
+export function shouldSnapInstantZoomTransform(
+	region: ZoomRegion | null,
+	previousZoomWasInstant: boolean,
+): boolean {
+	return previousZoomWasInstant || region?.mode === "instant";
+}
+
 export function computeRegionStrength(
 	region: ZoomRegion,
 	timeMs: number,
 	options: Pick<DominantRegionOptions, "zoomInDurationMs" | "zoomOutDurationMs"> = {},
 ) {
+	if (region.mode === "instant") {
+		return timeMs >= region.startMs && timeMs < region.endMs ? 1 : 0;
+	}
+
 	const zoomInDurationMs = Math.max(1, options.zoomInDurationMs ?? ZOOM_IN_TRANSITION_WINDOW_MS);
 	const zoomOutDurationMs = Math.max(1, options.zoomOutDurationMs ?? TRANSITION_WINDOW_MS);
 	const adjustedTimeMs = timeMs - ZOOM_ANIMATION_LEAD_MS;
@@ -85,6 +96,10 @@ function getConnectedRegionPairs(regions: ZoomRegion[]) {
 		const gapMs = nextRegion.startMs - currentRegion.endMs;
 
 		if (gapMs > CHAINED_ZOOM_PAN_GAP_MS) {
+			continue;
+		}
+
+		if (currentRegion.mode === "instant" || nextRegion.mode === "instant") {
 			continue;
 		}
 

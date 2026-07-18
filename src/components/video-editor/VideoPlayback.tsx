@@ -179,7 +179,10 @@ import { layoutVideoContent as layoutVideoContentUtil } from "./videoPlayback/la
 import { updateOverlayIndicator } from "./videoPlayback/overlayUtils";
 import { createVideoEventHandlers } from "./videoPlayback/videoEventHandlers";
 import { getWebcamMediaTargetTimeSeconds, shouldSeekWebcamMedia } from "./videoPlayback/webcamSync";
-import { findDominantRegion } from "./videoPlayback/zoomRegionUtils";
+import {
+	findDominantRegion,
+	shouldSnapInstantZoomTransform,
+} from "./videoPlayback/zoomRegionUtils";
 import {
 	applyZoomTransform,
 	computeZoomTransform,
@@ -643,6 +646,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const springScaleRef = useRef<SpringState>(createSpringState(1));
 		const springXRef = useRef<SpringState>(createSpringState(0));
 		const springYRef = useRef<SpringState>(createSpringState(0));
+		const previousZoomWasInstantRef = useRef(false);
 		const lastTickTimeRef = useRef<number | null>(null);
 		const zoomSmoothnessRef = useRef(zoomSmoothness);
 		const zoomClassicModeRef = useRef(zoomClassicMode);
@@ -1563,7 +1567,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			const regionId = selectedZoomIdRef.current;
 			if (!regionId) return;
 			const region = zoomRegionsRef.current.find((r) => r.id === regionId);
-			if (!region || region.mode !== "manual") return;
+			if (!region || (region.mode !== "manual" && region.mode !== "instant")) return;
 			onSelectZoom(region.id);
 			event.preventDefault();
 			isDraggingFocusRef.current = true;
@@ -2161,7 +2165,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		useEffect(() => {
 			const overlayEl = overlayRef.current;
 			if (!overlayEl) return;
-			if (!selectedZoom || selectedZoom.mode !== "manual") {
+			if (
+				!selectedZoom ||
+				(selectedZoom.mode !== "manual" && selectedZoom.mode !== "instant")
+			) {
 				overlayEl.style.cursor = "default";
 				overlayEl.style.pointerEvents = "none";
 				return;
@@ -2420,6 +2427,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			const applyTransform = (
 				transform: { scale: number; x: number; y: number },
 				focus: ZoomFocus,
+				disableMotionBlur = false,
 			) => {
 				const cameraContainer = cameraContainerRef.current;
 				if (!cameraContainer) return;
@@ -2437,7 +2445,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					focusX: focus.cx,
 					focusY: focus.cy,
 					isPlaying: isPlayingRef.current,
-					motionBlurAmount: zoomMotionBlurRef.current,
+					motionBlurAmount: disableMotionBlur ? 0 : zoomMotionBlurRef.current,
 					motionBlurTuning: zoomMotionBlurTuningRef.current,
 					transformOverride: transform,
 					motionBlurState: motionBlurStateRef.current,
@@ -2479,6 +2487,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					},
 				);
 
+				const snapInstantZoom = shouldSnapInstantZoomTransform(
+					region,
+					previousZoomWasInstantRef.current,
+				);
+				previousZoomWasInstantRef.current = region?.mode === "instant";
+
 				const defaultFocus = DEFAULT_FOCUS;
 				let targetScaleFactor = 1;
 				let targetFocus = defaultFocus;
@@ -2498,6 +2512,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					if (
 						!zoomClassicModeRef.current &&
 						region.mode !== "manual" &&
+						region.mode !== "instant" &&
 						cursorTelemetryRef.current.length > 0
 					) {
 						regionFocus = computeCursorFollowFocus(
@@ -2552,7 +2567,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					massMultiplier: cameraSpringMassMultiplierRef.current,
 				});
 				const useSpring =
-					isPlayingRef.current && !isSeekingRef.current && !zoomClassicModeRef.current;
+					isPlayingRef.current &&
+					!isSeekingRef.current &&
+					!zoomClassicModeRef.current &&
+					!snapInstantZoom;
 
 				let appliedScale: number;
 				let appliedX: number;
@@ -2578,7 +2596,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 						zoomSpringConfig,
 					);
 				} else {
-					// Snap instantly when paused, seeking, or in classic mode
+					// Snap when smoothing is disabled or instant mode crosses a boundary.
 					appliedScale = projectedTransform.scale;
 					appliedX = projectedTransform.x;
 					appliedY = projectedTransform.y;
@@ -2587,7 +2605,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					resetSpringState(springYRef.current, appliedY);
 				}
 
-				applyTransform({ scale: appliedScale, x: appliedX, y: appliedY }, targetFocus);
+				applyTransform(
+					{ scale: appliedScale, x: appliedX, y: appliedY },
+					targetFocus,
+					snapInstantZoom,
+				);
 
 				applyWebcamBubbleLayout(animationStateRef.current.appliedScale || 1);
 

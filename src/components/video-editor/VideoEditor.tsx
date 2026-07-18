@@ -18,6 +18,7 @@ import {
 	SidebarSimple,
 	Sparkle,
 	ArrowCounterClockwise as Undo2,
+	ArrowLineUp as Upload,
 	MagicWand as WandSparkles,
 	X,
 	MagnifyingGlassPlus as ZoomIn,
@@ -158,6 +159,15 @@ import {
 	saveEditorPresets,
 	serializeEditorPresetSnapshot,
 } from "./editorPreferences";
+import {
+	createEditorPresetTransferEnvelope,
+	EDITOR_PRESET_TRANSFER_EXPORT_MIME_TYPE,
+	EDITOR_PRESET_TRANSFER_FILE_EXTENSION,
+	EDITOR_PRESET_TRANSFER_MAX_FILE_BYTES,
+	parseEditorPresetTransferPayload,
+	resolveImportConflicts,
+	sanitizePresetFileName,
+} from "./editorPresetTransfer";
 import ProjectBrowserDialog, { type ProjectLibraryEntry } from "./ProjectBrowserDialog";
 import { hasUnsavedProjectChanges } from "./projectDirtyState";
 import {
@@ -726,6 +736,7 @@ export default function VideoEditor() {
 	const projectBrowserFallbackTriggerRef = useRef<HTMLButtonElement | null>(null);
 	const projectNameInputRef = useRef<HTMLInputElement | null>(null);
 	const projectSaveDialogInputRef = useRef<HTMLInputElement | null>(null);
+	const presetImportInputRef = useRef<HTMLInputElement | null>(null);
 	const nextZoomIdRef = useRef(1);
 	const nextClipIdRef = useRef(1);
 	const nextAudioIdRef = useRef(1);
@@ -1147,6 +1158,174 @@ export default function VideoEditor() {
 			setPresetNameDraft("");
 		}
 	}, [handleSaveEditorPreset, presetNameDraft]);
+
+	const readPresetFileText = useCallback((file: File): Promise<string> => {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => {
+				const result = reader.result;
+				if (typeof result === "string") {
+					resolve(result);
+				} else {
+					reject(new Error("Failed to read preset file as text"));
+				}
+			};
+			reader.onerror = () => reject(reader.error ?? new Error("Failed to read preset file"));
+			reader.readAsText(file);
+		});
+	}, []);
+
+	const parseImportedEditorPreset = useCallback(
+		(envelope: unknown): EditorPreset | null => {
+			const result = parseEditorPresetTransferPayload(envelope);
+			if (result.success) {
+				return result.preset;
+			}
+
+			const reason =
+				result.reason === "empty-name"
+					? t(
+							"editor.presets.import.errors.reason.emptyName",
+							"Preset name is missing or empty.",
+						)
+					: result.reason === "invalid-snapshot"
+						? t(
+								"editor.presets.import.errors.reason.invalidSnapshot",
+								"Preset contents are invalid or incomplete.",
+							)
+						: result.reason === "unsupported-version"
+							? t(
+									"editor.presets.import.errors.reason.unknown",
+									"The file format is unsupported.",
+								)
+							: t(
+									"editor.presets.import.errors.reason.malformed",
+									"The file is not a valid preset.",
+								);
+			const errorMessage = `${t(
+				"editor.presets.import.errors.invalid",
+				"Could not import that preset.",
+			)} ${reason}`;
+			console.error("[preset-import] Rejected import:", result.reason);
+			toast.error(errorMessage);
+			return null;
+		},
+		[t],
+	);
+
+	const handleOpenPresetImportInput = useCallback(() => {
+		const input = presetImportInputRef.current;
+		if (!input) {
+			return;
+		}
+		input.value = "";
+		input.click();
+	}, []);
+
+	const handleImportEditorPresetFromFile = useCallback(
+		async (event: React.ChangeEvent<HTMLInputElement>) => {
+			const file = event.target.files?.[0];
+			if (!file) {
+				return;
+			}
+
+			if (file.size > EDITOR_PRESET_TRANSFER_MAX_FILE_BYTES) {
+				toast.error(
+					t(
+						"editor.presets.import.errors.tooLarge",
+						"Preset file is too large. Choose a file smaller than 5 MB.",
+					),
+				);
+				return;
+			}
+
+			try {
+				const text = await readPresetFileText(file);
+				let parsed: unknown;
+				try {
+					parsed = JSON.parse(text);
+				} catch {
+					toast.error(
+						t(
+							"editor.presets.import.errors.invalidJson",
+							"Preset file is not valid JSON.",
+						),
+					);
+					return;
+				}
+
+				const importedPreset = parseImportedEditorPreset(parsed);
+				if (!importedPreset) {
+					return;
+				}
+
+				const resolved = resolveImportConflicts(importedPreset, editorPresets);
+				const nextPresets = [resolved, ...editorPresets];
+				if (!saveEditorPresets(nextPresets)) {
+					toast.error(
+						t(
+							"editor.presets.errors.saveFailed",
+							"Could not save that preset. Check your browser storage settings and try again.",
+						),
+					);
+					return;
+				}
+
+				setEditorPresets(nextPresets);
+				setActiveEditorPresetId(resolved.id);
+				applyEditorPresetSnapshot(resolved.snapshot);
+				setPresetPopoverOpen(false);
+				toast.success(
+					t("editor.presets.toasts.imported", 'Imported preset "{{name}}"', {
+						name: resolved.name,
+					}),
+				);
+			} catch (error) {
+				console.error("[preset-import] Failed to import preset:", error);
+				toast.error(
+					t(
+						"editor.presets.import.errors.unexpected",
+						"Could not import that preset. Please check the file and try again.",
+					),
+				);
+			}
+		},
+		[
+			applyEditorPresetSnapshot,
+			editorPresets,
+			parseImportedEditorPreset,
+			readPresetFileText,
+			t,
+		],
+	);
+
+	const handleExportCurrentEditorPreset = useCallback(() => {
+		const preset = currentEditorPreset;
+		if (!preset) {
+			return;
+		}
+
+		const envelope = createEditorPresetTransferEnvelope(preset);
+		const blob = new Blob([JSON.stringify(envelope, null, 2)], {
+			type: EDITOR_PRESET_TRANSFER_EXPORT_MIME_TYPE,
+		});
+		const url = URL.createObjectURL(blob);
+		const fileName = `${sanitizePresetFileName(preset.name)}${EDITOR_PRESET_TRANSFER_FILE_EXTENSION}`;
+
+		const anchor = document.createElement("a");
+		anchor.href = url;
+		anchor.download = fileName;
+		document.body.appendChild(anchor);
+		anchor.click();
+		document.body.removeChild(anchor);
+		URL.revokeObjectURL(url);
+
+		toast.success(
+			t("editor.presets.toasts.exported", 'Exported preset "{{name}}"', {
+				name: preset.name,
+			}),
+		);
+	}, [currentEditorPreset, t]);
 
 	const clearPendingExportSave = useCallback(() => {
 		const pending = pendingExportSaveRef.current;
@@ -7139,6 +7318,67 @@ export default function VideoEditor() {
 												})
 											)}
 										</div>
+									</div>
+									<div className="grid grid-cols-2 gap-2">
+										<input
+											ref={presetImportInputRef}
+											type="file"
+											accept={EDITOR_PRESET_TRANSFER_FILE_EXTENSION}
+											className="sr-only"
+											aria-hidden="true"
+											onChange={handleImportEditorPresetFromFile}
+										/>
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											className="h-8 rounded-xl border-foreground/10 bg-foreground/[0.03] px-3 text-xs font-medium text-foreground hover:bg-foreground/[0.06]"
+											title={t(
+												"editor.presets.import.title",
+												"Import preset",
+											)}
+											aria-label={t(
+												"editor.presets.import.title",
+												"Import preset",
+											)}
+											onClick={handleOpenPresetImportInput}
+										>
+											<Upload className="mr-1.5 h-3.5 w-3.5" />
+											{t("editor.presets.import.label", "Import")}
+										</Button>
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											className="h-8 rounded-xl border-foreground/10 bg-foreground/[0.03] px-3 text-xs font-medium text-foreground hover:bg-foreground/[0.06]"
+											disabled={!currentEditorPreset}
+											title={
+												currentEditorPreset
+													? t(
+															"editor.presets.export.title",
+															"Export selected preset",
+														)
+													: t(
+															"editor.presets.export.noPreset",
+															"No preset selected to export",
+														)
+											}
+											aria-label={
+												currentEditorPreset
+													? t(
+															"editor.presets.export.title",
+															"Export selected preset",
+														)
+													: t(
+															"editor.presets.export.noPreset",
+															"No preset selected to export",
+														)
+											}
+											onClick={handleExportCurrentEditorPreset}
+										>
+											<Download className="mr-1.5 h-3.5 w-3.5" />
+											{t("editor.presets.export.label", "Export")}
+										</Button>
 									</div>
 								</div>
 							</PopoverContent>

@@ -690,7 +690,11 @@ interface Window {
 			error?: string;
 			canceled?: boolean;
 		}>;
-		openVideoFilePicker: (options?: { includeProjects?: boolean }) => Promise<{
+		openVideoFilePicker: (options?: {
+			includeProjects?: boolean;
+			activateSelection?: boolean;
+			deadlineMs?: number;
+		}) => Promise<{
 			success: boolean;
 			kind?: "media" | "project";
 			path?: string;
@@ -750,8 +754,14 @@ interface Window {
 			options?: {
 				preserveProjectPath?: boolean;
 				hideOverlayCursorByDefault?: boolean;
+				deadlineMs?: number;
 			},
-		) => Promise<{ success: boolean; webcamPath: string | null }>;
+		) => Promise<{
+			success: boolean;
+			webcamPath?: string | null;
+			mediaUrl?: string | null;
+			message?: string;
+		}>;
 		setCurrentRecordingSession: (
 			session: {
 				videoPath: string;
@@ -760,8 +770,8 @@ interface Window {
 				hideOverlayCursorByDefault?: boolean;
 				webcamAppearance?: RendererRecordingWebcamAppearance | null;
 			},
-			options?: { preserveProjectPath?: boolean },
-		) => Promise<{ success: boolean }>;
+			options?: { preserveProjectPath?: boolean; deadlineMs?: number },
+		) => Promise<{ success: boolean; mediaUrl?: string | null; message?: string }>;
 		getCurrentRecordingSession: () => Promise<{
 			success: boolean;
 			session?: {
@@ -812,13 +822,14 @@ interface Window {
 			canceled?: boolean;
 			error?: string;
 		}>;
-		loadCurrentProjectFile: () => Promise<{
+		loadCurrentProjectFile: (options?: { activate?: boolean; deadlineMs?: number }) => Promise<{
 			success: boolean;
 			path?: string;
 			project?: unknown;
 			message?: string;
 			canceled?: boolean;
 			error?: string;
+			mediaUrl?: string | null;
 		}>;
 		getProjectsDirectory: () => Promise<{
 			success: boolean;
@@ -838,13 +849,17 @@ interface Window {
 			}>;
 			error?: string;
 		}>;
-		openProjectFileAtPath: (filePath: string) => Promise<{
+		openProjectFileAtPath: (
+			filePath: string,
+			options?: { activate?: boolean; deadlineMs?: number },
+		) => Promise<{
 			success: boolean;
 			path?: string;
 			project?: unknown;
 			message?: string;
 			canceled?: boolean;
 			error?: string;
+			mediaUrl?: string | null;
 		}>;
 		openProjectsDirectory: () => Promise<{
 			success: boolean;

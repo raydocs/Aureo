@@ -17,6 +17,8 @@ const PROJECT_FILE_EXTENSIONS = [PROJECT_FILE_EXTENSION, ...LEGACY_PROJECT_FILE_
 
 type OpenVideoFilePickerOptions = {
 	includeProjects?: boolean;
+	activateSelection?: boolean;
+	deadlineMs?: number;
 };
 
 export function registerCaptionHandlers() {
@@ -55,14 +57,19 @@ export function registerCaptionHandlers() {
 			const selectedPath = result.filePaths[0];
 
 			if (includeProjects && hasProjectFileExtension(selectedPath)) {
-				const projectResult = await loadProjectFromPath(selectedPath);
+				const projectResult = await loadProjectFromPath(selectedPath, {
+					activate: options?.activateSelection !== false,
+					deadlineMs: options?.deadlineMs,
+				});
 				return projectResult.success
 					? { ...projectResult, kind: "project" }
 					: projectResult;
 			}
 
-			approveUserPath(selectedPath);
-			setCurrentProjectPath(null);
+			if (options?.activateSelection !== false) {
+				approveUserPath(selectedPath);
+				setCurrentProjectPath(null);
+			}
 			return {
 				success: true,
 				kind: "media",

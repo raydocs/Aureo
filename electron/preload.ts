@@ -729,7 +729,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			captionSidecar,
 		);
 	},
-	openVideoFilePicker: (options?: { includeProjects?: boolean }) => {
+	openVideoFilePicker: (options?: {
+		includeProjects?: boolean;
+		activateSelection?: boolean;
+		deadlineMs?: number;
+	}) => {
 		return ipcRenderer.invoke("open-video-file-picker", options);
 	},
 	openAudioFilePicker: () => {
@@ -783,6 +787,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		options?: {
 			preserveProjectPath?: boolean;
 			hideOverlayCursorByDefault?: boolean;
+			deadlineMs?: number;
 		},
 	) => {
 		return ipcRenderer.invoke("set-current-video-path", path, options);
@@ -795,7 +800,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			hideOverlayCursorByDefault?: boolean;
 			webcamAppearance?: RecordingWebcamAppearance | null;
 		},
-		options?: { preserveProjectPath?: boolean },
+		options?: { preserveProjectPath?: boolean; deadlineMs?: number },
 	) => {
 		return ipcRenderer.invoke("set-current-recording-session", session, options);
 	},
@@ -855,8 +860,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	loadProjectFile: () => {
 		return ipcRenderer.invoke("load-project-file");
 	},
-	loadCurrentProjectFile: () => {
-		return ipcRenderer.invoke("load-current-project-file");
+	loadCurrentProjectFile: (options?: { activate?: boolean; deadlineMs?: number }) => {
+		return ipcRenderer.invoke("load-current-project-file", options);
 	},
 	getProjectsDirectory: () => {
 		return ipcRenderer.invoke("get-projects-directory");
@@ -864,8 +869,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	listProjectFiles: () => {
 		return ipcRenderer.invoke("list-project-files");
 	},
-	openProjectFileAtPath: (filePath: string) => {
-		return ipcRenderer.invoke("open-project-file-at-path", filePath);
+	openProjectFileAtPath: (
+		filePath: string,
+		options?: { activate?: boolean; deadlineMs?: number },
+	) => {
+		return ipcRenderer.invoke("open-project-file-at-path", filePath, options);
 	},
 	openProjectsDirectory: () => {
 		return ipcRenderer.invoke("open-projects-directory");

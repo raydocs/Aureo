@@ -67,4 +67,36 @@ describe("LoadOperationCoordinator", () => {
 
 		expect(loading).toBe(false);
 	});
+
+	it("lets a queued retry start after a hung operation times out", async () => {
+		const coordinator = createLoadOperationCoordinator();
+		let hungOperationIsCurrent: (() => boolean) | null = null;
+		let timedOut = false;
+		void coordinator.run(
+			({ isCurrent }) => {
+				hungOperationIsCurrent = isCurrent;
+				return new Promise<void>(() => undefined);
+			},
+			{
+				timeoutMs: 5,
+				onCurrentTimeout: () => {
+					timedOut = true;
+				},
+			},
+		);
+		let retryStarted = false;
+		const retry = coordinator.run(async () => {
+			retryStarted = true;
+		});
+
+		const outcome = await Promise.race([
+			retry.then(() => "settled"),
+			new Promise<string>((resolve) => setTimeout(() => resolve("blocked"), 30)),
+		]);
+
+		expect(outcome).toBe("settled");
+		expect(retryStarted).toBe(true);
+		expect(timedOut).toBe(true);
+		expect(hungOperationIsCurrent?.()).toBe(false);
+	});
 });

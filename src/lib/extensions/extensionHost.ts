@@ -8,6 +8,8 @@
 import { createExtensionModuleUrl, resolveExtensionRelativeFileUrl } from "./fileUrls";
 import { resolveIconPath } from "./iconDraw";
 import type {
+	AureoExtensionAPI,
+	AureoExtensionModule,
 	ContributedCursorStyle,
 	ContributedFrame,
 	ContributedWallpaper,
@@ -19,14 +21,13 @@ import type {
 	ExtensionInfo,
 	ExtensionSettingsPanel,
 	FrameInstance,
-	AureoExtensionAPI,
-	AureoExtensionModule,
 	RenderHookContext,
 	RenderHookFn,
 	RenderHookPhase,
 } from "./types";
 
 const EXTENSION_SETTINGS_STORAGE_KEY = "aureo.extension-settings.v1";
+const NON_BUILTIN_EXTENSIONS_ENABLED = false;
 
 // ---------------------------------------------------------------------------
 // Security: Hide electronAPI from extension code
@@ -197,6 +198,9 @@ export class ExtensionHost {
 	 * Activate an extension given its info and resolved module URL.
 	 */
 	async activateExtension(info: ExtensionInfo, moduleUrl: string): Promise<void> {
+		if (!info.builtin && !NON_BUILTIN_EXTENSIONS_ENABLED) {
+			throw new Error("Aureo v1 non-builtin extensions are disabled");
+		}
 		if (this.activeExtensions.has(info.manifest.id)) {
 			// Deactivate stale instance first so reinstall/reload works
 			await this.deactivateExtension(info.manifest.id);

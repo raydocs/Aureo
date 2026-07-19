@@ -19,6 +19,9 @@ const EXTENSIONS_DIR_NAME = "extensions";
 const MANIFEST_FILE_NAME = "aureo-extension.json";
 const BUILTIN_EXTENSIONS_DIR = "builtin-extensions";
 const EXTENSION_STATE_FILE_NAME = "extension-state.json";
+export const NON_BUILTIN_EXTENSIONS_ENABLED = false;
+export const NON_BUILTIN_EXTENSIONS_DISABLED_MESSAGE =
+	"Aureo v1 non-builtin extensions are disabled";
 
 /** In-memory registry of loaded extensions */
 const extensionRegistry = new Map<string, ExtensionInfo>();
@@ -279,6 +282,9 @@ export async function discoverExtensions(): Promise<ExtensionInfo[]> {
 		if (ext.status === "error") {
 			return ext;
 		}
+		if (!ext.builtin && !NON_BUILTIN_EXTENSIONS_ENABLED) {
+			return { ...ext, status: "disabled" };
+		}
 
 		return {
 			...ext,
@@ -289,12 +295,14 @@ export async function discoverExtensions(): Promise<ExtensionInfo[]> {
 	const normalizedBuiltinExts = builtinExts.map(applyPersistedStatus);
 	const normalizedUserExts = userExts.map(applyPersistedStatus);
 
-	// User extensions override builtin ones with the same ID
+	// Builtins are authoritative. User files may never replace trusted code
+	// with the same extension ID.
 	extensionRegistry.clear();
 	for (const ext of normalizedBuiltinExts) {
 		extensionRegistry.set(ext.manifest.id, ext);
 	}
 	for (const ext of normalizedUserExts) {
+		if (extensionRegistry.has(ext.manifest.id)) continue;
 		extensionRegistry.set(ext.manifest.id, ext);
 	}
 
@@ -321,6 +329,9 @@ export function getExtension(id: string): ExtensionInfo | undefined {
 export async function setExtensionStatus(id: string, status: ExtensionStatus): Promise<boolean> {
 	const ext = extensionRegistry.get(id);
 	if (!ext) return false;
+	if (status === "active" && !ext.builtin && !NON_BUILTIN_EXTENSIONS_ENABLED) {
+		return false;
+	}
 	ext.status = status;
 
 	if (status === "active" || status === "disabled" || status === "installed") {
@@ -334,6 +345,9 @@ export async function setExtensionStatus(id: string, status: ExtensionStatus): P
  * Install an extension from a directory (copy to extensions dir).
  */
 export async function installExtensionFromPath(sourcePath: string): Promise<ExtensionInfo | null> {
+	if (!NON_BUILTIN_EXTENSIONS_ENABLED) {
+		return null;
+	}
 	const manifestPath = path.join(sourcePath, MANIFEST_FILE_NAME);
 	if (!existsSync(manifestPath)) {
 		return null;

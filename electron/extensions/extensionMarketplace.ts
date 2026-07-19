@@ -14,7 +14,12 @@ import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { app } from "electron";
 import { formatMarketplaceHttpError, getErrorMessage } from "./errorUtils";
-import { getRegisteredExtensions, installExtensionFromPath } from "./extensionLoader";
+import {
+	getRegisteredExtensions,
+	installExtensionFromPath,
+	NON_BUILTIN_EXTENSIONS_DISABLED_MESSAGE,
+	NON_BUILTIN_EXTENSIONS_ENABLED,
+} from "./extensionLoader";
 import type {
 	ExtensionReview,
 	MarketplaceExtension,
@@ -200,6 +205,9 @@ export async function downloadAndInstallExtension(
 	extensionId: string,
 	downloadUrl: string,
 ): Promise<{ success: boolean; error?: string }> {
+	if (!NON_BUILTIN_EXTENSIONS_ENABLED) {
+		return { success: false, error: NON_BUILTIN_EXTENSIONS_DISABLED_MESSAGE };
+	}
 	const marketplaceUrl = getMarketplaceUrl();
 	if (!marketplaceUrl) {
 		return { success: false, error: MARKETPLACE_UNAVAILABLE_MESSAGE };

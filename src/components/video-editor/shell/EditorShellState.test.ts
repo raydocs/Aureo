@@ -3,6 +3,49 @@ import { describe, expect, it } from "vitest";
 import { deriveEditorShellState } from "./EditorShellState";
 
 describe("deriveEditorShellState", () => {
+	it("gives initial loading precedence over an otherwise empty editor", () => {
+		const input = {
+			currentProjectPath: null,
+			currentSourcePath: null,
+			hasVideo: false,
+			hasUnsavedChanges: false,
+			saveOperation: { status: "idle" as const },
+			untitledName: "Untitled",
+			loading: true,
+			loadError: null,
+		};
+
+		expect(deriveEditorShellState(input)).toEqual({
+			status: "loading",
+			projectName: "Untitled",
+			canSave: false,
+			shouldConfirmClose: false,
+			canExport: false,
+		});
+	});
+
+	it("exposes an initial load failure as a recoverable shell state", () => {
+		const input = {
+			currentProjectPath: null,
+			currentSourcePath: null,
+			hasVideo: false,
+			hasUnsavedChanges: false,
+			saveOperation: { status: "idle" as const },
+			untitledName: "Untitled",
+			loading: false,
+			loadError: "The project file could not be read",
+		};
+
+		expect(deriveEditorShellState(input)).toEqual({
+			status: "load-error",
+			projectName: "Untitled",
+			canSave: false,
+			shouldConfirmClose: false,
+			canExport: false,
+			errorMessage: "The project file could not be read",
+		});
+	});
+
 	it.each([
 		{
 			name: "empty",

@@ -10,6 +10,8 @@ interface EditorShellStateInput {
 	hasUnsavedChanges: boolean;
 	saveOperation: ProjectSaveOperation;
 	untitledName: string;
+	loading?: boolean;
+	loadError?: string | null;
 }
 
 interface EditorShellStateBase {
@@ -20,6 +22,8 @@ interface EditorShellStateBase {
 }
 
 export type EditorShellState =
+	| (EditorShellStateBase & { status: "loading" })
+	| (EditorShellStateBase & { status: "load-error"; errorMessage: string })
 	| (EditorShellStateBase & { status: "empty" })
 	| (EditorShellStateBase & { status: "dirty" })
 	| (EditorShellStateBase & { status: "saving" })
@@ -45,6 +49,8 @@ export function deriveEditorShellState({
 	hasUnsavedChanges,
 	saveOperation,
 	untitledName,
+	loading = false,
+	loadError = null,
 }: EditorShellStateInput): EditorShellState {
 	const projectName = deriveProjectName(currentProjectPath, currentSourcePath, untitledName);
 	const hasSource = Boolean(currentSourcePath);
@@ -53,6 +59,20 @@ export function deriveEditorShellState({
 		shouldConfirmClose: hasUnsavedChanges,
 		canExport: hasVideo,
 	};
+	const unavailable = {
+		projectName,
+		canSave: false,
+		shouldConfirmClose: false,
+		canExport: false,
+	};
+
+	if (loading) {
+		return { status: "loading", ...unavailable };
+	}
+
+	if (loadError) {
+		return { status: "load-error", ...unavailable, errorMessage: loadError };
+	}
 
 	if (!hasSource) {
 		return { status: "empty", ...common, canSave: false, canExport: false };

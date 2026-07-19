@@ -185,6 +185,10 @@ import { SettingsPanel } from "./SettingsPanel";
 import { EditorHeaderLayout } from "./shell/EditorHeaderLayout";
 import { deriveEditorShellState, type ProjectSaveOperation } from "./shell/EditorShellState";
 import { EditorTransport } from "./shell/EditorTransport";
+import {
+	createLoadOperationCoordinator,
+	type LoadOperationCoordinator,
+} from "./shell/LoadOperationCoordinator";
 import { PreviewVolumeControl } from "./shell/PreviewVolumeControl";
 import {
 	createProjectSaveOperationTracker,
@@ -450,6 +454,11 @@ export default function VideoEditor() {
 	const [projectSaveOperation, setProjectSaveOperation] = useState<ProjectSaveOperation>({
 		status: "idle",
 	});
+	const loadOperationCoordinatorRef = useRef<LoadOperationCoordinator | null>(null);
+	if (loadOperationCoordinatorRef.current === null) {
+		loadOperationCoordinatorRef.current = createLoadOperationCoordinator();
+	}
+	const loadOperationCoordinator = loadOperationCoordinatorRef.current;
 	const projectSaveOperationTrackerRef = useRef<ProjectSaveOperationTracker | null>(null);
 	if (projectSaveOperationTrackerRef.current === null) {
 		projectSaveOperationTrackerRef.current = createProjectSaveOperationTracker();
@@ -466,6 +475,7 @@ export default function VideoEditor() {
 		useState("continue");
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [loadAttempt, setLoadAttempt] = useState(0);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [currentTime, setCurrentTime] = useState(0);
 	const [duration, setDuration] = useState(0);
@@ -756,7 +766,6 @@ export default function VideoEditor() {
 	const videoPlaybackRef = useRef<VideoPlaybackRef>(null);
 	const inspectorToggleRef = useRef<HTMLButtonElement | null>(null);
 	const projectBrowserTriggerRef = useRef<HTMLButtonElement | null>(null);
-	const projectBrowserFallbackTriggerRef = useRef<HTMLButtonElement | null>(null);
 	const projectNameInputRef = useRef<HTMLInputElement | null>(null);
 	const projectSaveDialogInputRef = useRef<HTMLInputElement | null>(null);
 	const presetImportInputRef = useRef<HTMLInputElement | null>(null);
@@ -2329,7 +2338,7 @@ export default function VideoEditor() {
 	}, [applyHistorySnapshot, buildHistorySnapshot, syncHistoryButtons]);
 
 	const applyLoadedProject = useCallback(
-		async (candidate: unknown, path?: string | null) => {
+		async (candidate: unknown, path?: string | null, isCurrent: () => boolean = () => true) => {
 			if (!validateProjectData(candidate)) {
 				return false;
 			}
@@ -2339,22 +2348,12 @@ export default function VideoEditor() {
 			const normalizedEditor = normalizeProjectEditor(
 				stripPersistedDevMotionBlurSettings(project.editor ?? {}),
 			);
-
-			try {
-				videoPlaybackRef.current?.pause();
-			} catch {
-				// no-op
+			const resolvedVideoUrl = await resolveVideoUrl(sourcePath);
+			if (!isCurrent()) {
+				return false;
 			}
-			setIsPlaying(false);
-			setCurrentTime(0);
-			setDuration(0);
 
-			setError(null);
-			setVideoSourcePath(sourcePath);
-			setVideoPath(await resolveVideoUrl(sourcePath));
-			setCurrentProjectPath(path ?? null);
-			resetProjectSaveOperation();
-			pendingFreshRecordingAutoZoomPathRef.current = null;
+			let sessionPresentation: Parameters<typeof applySessionPresentation>[0] = null;
 			if (normalizedEditor.webcam.sourcePath) {
 				await window.electronAPI.setCurrentRecordingSession?.(
 					{
@@ -2366,14 +2365,38 @@ export default function VideoEditor() {
 						preserveProjectPath: Boolean(path),
 					},
 				);
+				if (!isCurrent()) {
+					return false;
+				}
 				const sessionResult = await window.electronAPI.getCurrentRecordingSession?.();
-				applySessionPresentation(sessionResult?.success ? sessionResult.session : null);
+				if (!isCurrent()) {
+					return false;
+				}
+				sessionPresentation = sessionResult?.success ? sessionResult.session : null;
 			} else {
 				await window.electronAPI.setCurrentVideoPath(sourcePath, {
 					preserveProjectPath: Boolean(path),
 				});
-				applySessionPresentation(null);
+				if (!isCurrent()) {
+					return false;
+				}
 			}
+
+			try {
+				videoPlaybackRef.current?.pause();
+			} catch {
+				// no-op
+			}
+			setIsPlaying(false);
+			setCurrentTime(0);
+			setDuration(0);
+
+			setVideoSourcePath(sourcePath);
+			setVideoPath(resolvedVideoUrl);
+			setCurrentProjectPath(path ?? null);
+			resetProjectSaveOperation();
+			pendingFreshRecordingAutoZoomPathRef.current = null;
+			applySessionPresentation(sessionPresentation);
 
 			setWallpaper(normalizedEditor.wallpaper);
 			setShadowIntensity(normalizedEditor.shadowIntensity);
@@ -2501,6 +2524,10 @@ export default function VideoEditor() {
 				),
 			);
 			await refreshProjectLibrary();
+			if (!isCurrent()) {
+				return false;
+			}
+			setError(null);
 			return true;
 		},
 		[
@@ -2708,11 +2735,15 @@ export default function VideoEditor() {
 				hasUnsavedChanges,
 				saveOperation: projectSaveOperation,
 				untitledName: t("editor.project.untitled", "Untitled"),
+				loading,
+				loadError: error,
 			}),
 		[
 			currentProjectPath,
 			currentSourcePath,
+			error,
 			hasUnsavedChanges,
+			loading,
 			projectSaveOperation,
 			t,
 			videoPath,
@@ -2733,6 +2764,8 @@ export default function VideoEditor() {
 				});
 			case "not-saved":
 			case "empty":
+			case "loading":
+			case "load-error":
 				return t("editor.project.notSavedYet", "Not saved yet");
 		}
 	}, [editorShellState, t]);
@@ -2766,13 +2799,19 @@ export default function VideoEditor() {
 		resetProjectSaveOperation();
 	}, [currentSourcePath, resetProjectSaveOperation]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: initial loading runs only on mount or an explicit retry.
 	useEffect(() => {
-		async function loadInitialData() {
+		async function loadInitialData(isCurrent: () => boolean) {
+			setLoading(true);
+			setError(null);
 			try {
 				if (smokeExportConfig.enabled && smokeExportConfig.projectPath) {
 					const projectResult = await window.electronAPI.openProjectFileAtPath(
 						smokeExportConfig.projectPath,
 					);
+					if (!isCurrent()) {
+						return;
+					}
 					if (!projectResult.success || !projectResult.project) {
 						setError(
 							`Smoke export failed to load project ${smokeExportConfig.projectPath}: ${
@@ -2784,7 +2823,11 @@ export default function VideoEditor() {
 					const restored = await applyLoadedProject(
 						projectResult.project,
 						projectResult.path ?? smokeExportConfig.projectPath,
+						isCurrent,
 					);
+					if (!isCurrent()) {
+						return;
+					}
 					if (!restored) {
 						setError(
 							`Smoke export could not apply project ${smokeExportConfig.projectPath}`,
@@ -2798,6 +2841,9 @@ export default function VideoEditor() {
 				if (!smokeExportConfig.enabled && devOpenRecordingConfig.inputPath) {
 					const sourcePath = fromFileUrl(devOpenRecordingConfig.inputPath);
 					const sourceVideoUrl = await resolveVideoUrl(sourcePath);
+					if (!isCurrent()) {
+						return;
+					}
 					const webcamSourcePath = devOpenRecordingConfig.webcamInputPath
 						? fromFileUrl(devOpenRecordingConfig.webcamInputPath)
 						: null;
@@ -2827,6 +2873,9 @@ export default function VideoEditor() {
 
 					const sourcePath = fromFileUrl(smokeExportConfig.inputPath);
 					const sourceVideoUrl = await resolveVideoUrl(sourcePath);
+					if (!isCurrent()) {
+						return;
+					}
 					const smokeWebcamSourcePath = smokeExportConfig.webcamInputPath
 						? fromFileUrl(smokeExportConfig.webcamInputPath)
 						: null;
@@ -2863,11 +2912,18 @@ export default function VideoEditor() {
 				}
 
 				const currentProjectResult = await window.electronAPI.loadCurrentProjectFile();
+				if (!isCurrent()) {
+					return;
+				}
 				if (currentProjectResult.success && currentProjectResult.project) {
 					const restored = await applyLoadedProject(
 						currentProjectResult.project,
 						currentProjectResult.path ?? null,
+						isCurrent,
 					);
+					if (!isCurrent()) {
+						return;
+					}
 					if (restored) {
 						// Re-apply user preferences so stale project data does not
 						// overwrite the last-used padding, aspect ratio, export
@@ -2892,11 +2948,24 @@ export default function VideoEditor() {
 						return;
 					}
 				}
+				if (
+					!currentProjectResult.success &&
+					currentProjectResult.message !== "No active project"
+				) {
+					setError(currentProjectResult.message || "Failed to load the current project");
+					return;
+				}
 
 				const sessionResult = await window.electronAPI.getCurrentRecordingSession?.();
+				if (!isCurrent()) {
+					return;
+				}
 				if (sessionResult?.success && sessionResult.session?.videoPath) {
 					const sourcePath = fromFileUrl(sessionResult.session.videoPath);
 					const sourceVideoUrl = await resolveVideoUrl(sourcePath);
+					if (!isCurrent()) {
+						return;
+					}
 					setVideoSourcePath(sourcePath);
 					setVideoPath(sourceVideoUrl);
 					setCurrentProjectPath(null);
@@ -2931,9 +3000,15 @@ export default function VideoEditor() {
 				}
 
 				const result = await window.electronAPI.getCurrentVideoPath();
+				if (!isCurrent()) {
+					return;
+				}
 				if (result.success && result.path) {
 					const sourcePath = fromFileUrl(result.path);
 					const sourceVideoUrl = await resolveVideoUrl(sourcePath);
+					if (!isCurrent()) {
+						return;
+					}
 					setVideoSourcePath(sourcePath);
 					setVideoPath(sourceVideoUrl);
 					setCurrentProjectPath(null);
@@ -2947,32 +3022,25 @@ export default function VideoEditor() {
 						sourcePath: null,
 						timeOffsetMs: DEFAULT_WEBCAM_TIME_OFFSET_MS,
 					}));
-				} else {
-					setError("No video to load. Please record or select a video.");
 				}
 			} catch (err) {
-				setError("Error loading video: " + String(err));
-			} finally {
-				setLoading(false);
+				if (isCurrent()) {
+					setError("Error loading video: " + String(err));
+				}
 			}
 		}
 
-		loadInitialData();
-	}, [
-		applyLoadedProject,
-		applySessionPresentation,
-		autoApplyFreshRecordingAutoZooms,
-		devOpenRecordingConfig.inputPath,
-		devOpenRecordingConfig.webcamInputPath,
-		initialEditorPreferences,
-		resetSourceScopedEditorState,
-		smokeExportConfig.enabled,
-		smokeExportConfig.inputPath,
-		smokeExportConfig.projectPath,
-		smokeExportConfig.webcamInputPath,
-		smokeExportConfig.webcamShadow,
-		smokeExportConfig.webcamSize,
-	]);
+		void loadOperationCoordinator.run(({ isCurrent }) => loadInitialData(isCurrent), {
+			onCurrentSettled: () => setLoading(false),
+		});
+	}, [loadAttempt]);
+
+	useEffect(
+		() => () => {
+			loadOperationCoordinator.invalidate();
+		},
+		[loadOperationCoordinator],
+	);
 
 	useEffect(() => {
 		if (!window.electronAPI.onRecordingSessionChanged) {
@@ -3786,28 +3854,42 @@ export default function VideoEditor() {
 				return;
 			}
 
-			const result = await window.electronAPI.openProjectFileAtPath(projectPath);
+			await loadOperationCoordinator.run(
+				async ({ isCurrent }) => {
+					try {
+						const result = await window.electronAPI.openProjectFileAtPath(projectPath);
+						if (!isCurrent()) return;
 
-			if (result.canceled) {
-				return;
-			}
+						if (result.canceled) {
+							return;
+						}
 
-			if (!result.success) {
-				toast.error(result.message || "Failed to load project");
-				return;
-			}
+						if (!result.success) {
+							throw new Error(result.message || "Failed to load project");
+						}
 
-			const restored = await applyLoadedProject(result.project, result.path ?? null);
-			if (!restored) {
-				toast.error("Invalid project file format");
-				return;
-			}
+						const restored = await applyLoadedProject(
+							result.project,
+							result.path ?? null,
+							isCurrent,
+						);
+						if (!isCurrent()) return;
+						if (!restored) {
+							throw new Error("Invalid project file format");
+						}
 
-			setProjectBrowserOpen(false);
-			await refreshProjectLibrary();
-			toast.success(`Project loaded from ${result.path}`);
+						setProjectBrowserOpen(false);
+						toast.success(`Project loaded from ${result.path}`);
+					} catch (openError) {
+						if (!isCurrent()) return;
+						const message = getErrorMessage(openError);
+						toast.error(message);
+					}
+				},
+				{ onCurrentSettled: () => setLoading(false) },
+			);
 		},
-		[applyLoadedProject, confirmReplaceSourceWithUnsavedChanges, refreshProjectLibrary],
+		[applyLoadedProject, confirmReplaceSourceWithUnsavedChanges, loadOperationCoordinator],
 	);
 
 	const handleImportMediaOrProject = useCallback(async () => {
@@ -3815,70 +3897,95 @@ export default function VideoEditor() {
 			return;
 		}
 
-		const result = await window.electronAPI.openVideoFilePicker({ includeProjects: true });
+		await loadOperationCoordinator.run(
+			async ({ isCurrent }) => {
+				try {
+					const result = await window.electronAPI.openVideoFilePicker({
+						includeProjects: true,
+					});
+					if (!isCurrent()) return;
 
-		if (result.canceled) {
-			return;
-		}
+					if (result.canceled) {
+						return;
+					}
 
-		if (!result.success) {
-			toast.error(result.message || "Failed to import file");
-			return;
-		}
+					if (!result.success) {
+						throw new Error(result.message || "Failed to import file");
+					}
 
-		if (result.kind === "project" || result.project) {
-			const restored = await applyLoadedProject(result.project, result.path ?? null);
-			if (!restored) {
-				toast.error("Invalid project file format");
-				return;
-			}
+					if (result.kind === "project" || result.project) {
+						const restored = await applyLoadedProject(
+							result.project,
+							result.path ?? null,
+							isCurrent,
+						);
+						if (!isCurrent()) return;
+						if (!restored) {
+							throw new Error("Invalid project file format");
+						}
 
-			setProjectBrowserOpen(false);
-			await refreshProjectLibrary();
-			toast.success(result.path ? `Project loaded from ${result.path}` : "Project loaded");
-			return;
-		}
+						setProjectBrowserOpen(false);
+						toast.success(
+							result.path ? `Project loaded from ${result.path}` : "Project loaded",
+						);
+						return;
+					}
 
-		if (!result.path) {
-			toast.error("No media file selected");
-			return;
-		}
+					if (!result.path) {
+						throw new Error("No media file selected");
+					}
 
-		const sourcePath = fromFileUrl(result.path);
-		const sourceVideoUrl = await resolveVideoUrl(sourcePath);
-		try {
-			videoPlaybackRef.current?.pause();
-		} catch {
-			// no-op
-		}
+					const sourcePath = fromFileUrl(result.path);
+					const sourceVideoUrl = await resolveVideoUrl(sourcePath);
+					if (!isCurrent()) return;
+					await window.electronAPI.setCurrentVideoPath(sourcePath, {
+						preserveProjectPath: false,
+					});
+					if (!isCurrent()) return;
 
-		setIsPlaying(false);
-		setCurrentTime(0);
-		setDuration(0);
-		setVideoSourcePath(sourcePath);
-		setVideoPath(sourceVideoUrl);
-		setCurrentProjectPath(null);
-		setLastSavedSnapshot(null);
-		resetSourceScopedEditorState();
-		pendingFreshRecordingAutoZoomPathRef.current = autoApplyFreshRecordingAutoZooms
-			? sourceVideoUrl
-			: null;
-		setWebcam((prev) => ({
-			...prev,
-			enabled: false,
-			sourcePath: null,
-			timeOffsetMs: DEFAULT_WEBCAM_TIME_OFFSET_MS,
-		}));
-		applySessionPresentation(null);
-		await window.electronAPI.setCurrentVideoPath(sourcePath, { preserveProjectPath: false });
-		setProjectBrowserOpen(false);
-		await refreshProjectLibrary();
-		toast.success("Media imported");
+					try {
+						videoPlaybackRef.current?.pause();
+					} catch {
+						// no-op
+					}
+
+					setIsPlaying(false);
+					setCurrentTime(0);
+					setDuration(0);
+					setVideoSourcePath(sourcePath);
+					setVideoPath(sourceVideoUrl);
+					setCurrentProjectPath(null);
+					setLastSavedSnapshot(null);
+					resetSourceScopedEditorState();
+					pendingFreshRecordingAutoZoomPathRef.current = autoApplyFreshRecordingAutoZooms
+						? sourceVideoUrl
+						: null;
+					setWebcam((prev) => ({
+						...prev,
+						enabled: false,
+						sourcePath: null,
+						timeOffsetMs: DEFAULT_WEBCAM_TIME_OFFSET_MS,
+					}));
+					applySessionPresentation(null);
+					await refreshProjectLibrary();
+					if (!isCurrent()) return;
+					setError(null);
+					setProjectBrowserOpen(false);
+					toast.success("Media imported");
+				} catch (importError) {
+					if (!isCurrent()) return;
+					const message = getErrorMessage(importError);
+					toast.error(message);
+				}
+			},
+			{ onCurrentSettled: () => setLoading(false) },
+		);
 	}, [
 		applyLoadedProject,
 		applySessionPresentation,
 		autoApplyFreshRecordingAutoZooms,
 		confirmReplaceSourceWithUnsavedChanges,
+		loadOperationCoordinator,
 		refreshProjectLibrary,
 		resetSourceScopedEditorState,
 	]);
@@ -6866,7 +6973,7 @@ export default function VideoEditor() {
 			open={projectBrowserOpen}
 			onOpenChange={setProjectBrowserOpen}
 			entries={projectLibraryEntries}
-			anchorRef={error ? projectBrowserFallbackTriggerRef : projectBrowserTriggerRef}
+			anchorRef={projectBrowserTriggerRef}
 			onImportFile={() => {
 				void handleImportMediaOrProject();
 			}}
@@ -6904,10 +7011,27 @@ export default function VideoEditor() {
 		</Dialog>
 	);
 
-	if (loading) {
+	if (editorShellState.status === "loading") {
 		return (
-			<div className="flex h-screen items-center justify-center bg-background">
-				<div className="text-foreground">Loading video...</div>
+			<div className="flex h-screen items-center justify-center bg-editor-bg px-6 text-foreground">
+				<div
+					className="flex max-w-md flex-col items-center gap-4 text-center"
+					role="status"
+					aria-live="polite"
+				>
+					<div className="size-8 animate-pulse rounded-full border border-primary/30 bg-primary/10" />
+					<div>
+						<h1 className="text-lg font-semibold tracking-tight">
+							{t("editor.shell.loadingTitle", "Opening your editor")}
+						</h1>
+						<p className="mt-1 text-sm text-muted-foreground">
+							{t(
+								"editor.shell.loadingDescription",
+								"Loading your latest project and media...",
+							)}
+						</p>
+					</div>
+				</div>
 				{projectBrowser}
 				{projectSaveDialog}
 				{unsavedChangesDialog}
@@ -6916,19 +7040,56 @@ export default function VideoEditor() {
 			</div>
 		);
 	}
-	if (error) {
+	if (editorShellState.status === "empty" || editorShellState.status === "load-error") {
+		const isLoadError = editorShellState.status === "load-error";
 		return (
-			<div className="flex h-screen items-center justify-center bg-background">
-				<div className="flex flex-col items-center gap-3">
-					<div className="text-destructive">{error}</div>
-					<button
-						ref={projectBrowserFallbackTriggerRef}
-						type="button"
-						onClick={handleOpenProjectBrowser}
-						className="rounded-[5px] bg-neutral-800 px-3 py-1.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(0,0,0,0.18)] transition-colors hover:bg-neutral-700 dark:bg-white dark:text-black dark:hover:bg-white/90"
+			<div className="flex h-screen items-center justify-center bg-editor-bg px-6 text-foreground">
+				<div className="flex max-w-lg flex-col items-center text-center">
+					<div className="mb-5 flex size-12 items-center justify-center rounded-2xl border border-foreground/10 bg-surface-panel shadow-aureo-1">
+						<FolderOpen className="size-5 text-primary" weight="fill" />
+					</div>
+					<h1 className="text-xl font-semibold tracking-tight">
+						{isLoadError
+							? t("editor.shell.loadErrorTitle", "We couldn’t open this project")
+							: t("editor.shell.emptyTitle", "Start with a recording or project")}
+					</h1>
+					<p
+						className={cn(
+							"mt-2 max-w-md text-sm leading-relaxed",
+							isLoadError ? "text-destructive" : "text-muted-foreground",
+						)}
 					>
-						Open Projects
-					</button>
+						{isLoadError
+							? editorShellState.errorMessage
+							: t(
+									"editor.shell.emptyDescription",
+									"Import a video to begin editing, or reopen one of your saved Aureo projects.",
+								)}
+					</p>
+					<div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+						{isLoadError ? (
+							<Button
+								type="button"
+								autoFocus
+								onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+							>
+								{t("editor.shell.retryLoad", "Try again")}
+							</Button>
+						) : (
+							<Button type="button" onClick={() => void handleImportMediaOrProject()}>
+								<Upload className="mr-1.5 size-4" />
+								{t("editor.shell.importMedia", "Import media")}
+							</Button>
+						)}
+						<Button
+							ref={projectBrowserTriggerRef}
+							type="button"
+							variant="outline"
+							onClick={handleOpenProjectBrowser}
+						>
+							{t("editor.project.projects", "Open projects")}
+						</Button>
+					</div>
 				</div>
 				{projectBrowser}
 				{projectSaveDialog}
@@ -7367,21 +7528,39 @@ export default function VideoEditor() {
 				}
 				actions={
 					<>
-						<Button
-							type="button"
-							variant="toolbar"
-							size="icon-sm"
-							onClick={handleSaveProject}
-							disabled={!editorShellState.canSave || isSavingProjectName}
-							title={t("editor.commandMenu.saveProject", "Save project")}
-							aria-label={t("editor.commandMenu.saveProject", "Save project")}
-							className={cn(editorShellState.shouldConfirmClose && "text-primary")}
-						>
-							<FloppyDisk
-								className="h-4 w-4"
-								weight={editorShellState.shouldConfirmClose ? "fill" : "regular"}
-							/>
-						</Button>
+						{editorShellState.status === "error" ? (
+							<Button
+								type="button"
+								variant="toolbar"
+								size="sm"
+								onClick={handleSaveProject}
+								disabled={!editorShellState.canSave || isSavingProjectName}
+								className="gap-1.5 text-destructive"
+							>
+								<FloppyDisk className="h-4 w-4" weight="fill" />
+								<span>{t("editor.project.retrySave", "Retry save")}</span>
+							</Button>
+						) : (
+							<Button
+								type="button"
+								variant="toolbar"
+								size="icon-sm"
+								onClick={handleSaveProject}
+								disabled={!editorShellState.canSave || isSavingProjectName}
+								title={t("editor.commandMenu.saveProject", "Save project")}
+								aria-label={t("editor.commandMenu.saveProject", "Save project")}
+								className={cn(
+									editorShellState.shouldConfirmClose && "text-primary",
+								)}
+							>
+								<FloppyDisk
+									className="h-4 w-4"
+									weight={
+										editorShellState.shouldConfirmClose ? "fill" : "regular"
+									}
+								/>
+							</Button>
+						)}
 						<Popover open={presetPopoverOpen} onOpenChange={setPresetPopoverOpen}>
 							<PopoverTrigger asChild>
 								<button

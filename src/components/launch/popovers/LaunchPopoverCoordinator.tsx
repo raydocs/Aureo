@@ -7,12 +7,13 @@ import {
 	useMemo,
 	useState,
 } from "react";
+import type { LaunchPopoverId } from "@/lib/launchPopoverIds";
 
-interface LaunchPopoverCoordinatorValue {
-	openId: string | null;
-	requestOpen: (id: string) => void;
-	requestClose: (id: string) => void;
-	isOpen: (id: string) => boolean;
+export interface LaunchPopoverCoordinatorValue {
+	openId: LaunchPopoverId | null;
+	requestOpen: (id: LaunchPopoverId) => void;
+	requestClose: (id: LaunchPopoverId) => void;
+	isOpen: (id: LaunchPopoverId) => boolean;
 }
 
 const LaunchPopoverCoordinatorContext = createContext<LaunchPopoverCoordinatorValue | null>(null);
@@ -20,17 +21,17 @@ const LaunchPopoverCoordinatorContext = createContext<LaunchPopoverCoordinatorVa
 export { LaunchPopoverCoordinatorContext };
 
 export function LaunchPopoverCoordinatorProvider({ children }: { children: ReactNode }) {
-	const [openId, setOpenId] = useState<string | null>(null);
+	const [openId, setOpenId] = useState<LaunchPopoverId | null>(null);
 
-	const requestOpen = useCallback((id: string) => {
+	const requestOpen = useCallback((id: LaunchPopoverId) => {
 		setOpenId(id);
 	}, []);
 
-	const requestClose = useCallback((id: string) => {
+	const requestClose = useCallback((id: LaunchPopoverId) => {
 		setOpenId((currentId) => (currentId === id ? null : currentId));
 	}, []);
 
-	const isOpen = useCallback((id: string) => openId === id, [openId]);
+	const isOpen = useCallback((id: LaunchPopoverId) => openId === id, [openId]);
 
 	useEffect(() => {
 		const handleBlur = () => setOpenId(null);

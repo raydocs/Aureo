@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getCurrentWebcamPreviewAppearance } from "@/components/launch/webcamPreviewAppearance";
 import { getEffectiveRecordingDurationMs } from "@/lib/mediaTiming";
+import { resolveRecorderUiState } from "@/lib/recorderUiState";
 import {
 	getVideoExtensionForMimeType,
 	isWebmMimeType,
@@ -137,7 +138,7 @@ type UseScreenRecorderReturn = {
 	toggleRecording: () => void;
 	pauseRecording: () => void;
 	resumeRecording: () => void;
-	cancelRecording: () => void;
+	cancelRecording: () => Promise<boolean>;
 	preparePermissions: (options?: { startup?: boolean }) => Promise<boolean>;
 	isMacOS: boolean;
 	microphoneEnabled: boolean;
@@ -258,6 +259,25 @@ export function resolveCaptureDeviceId(
 	return deviceId || null;
 }
 
+export async function stopMediaRecorderAndWait(recorder: MediaRecorder): Promise<void> {
+	if (recorder.state === "inactive") return;
+	const stopped = new Promise<void>((resolve) => {
+		recorder.addEventListener("stop", () => resolve(), { once: true });
+	});
+	recorder.stop();
+	await stopped;
+}
+
+export async function discardNativeRecording(
+	stopRecording: () => Promise<{ success: boolean; path?: string }>,
+	deleteRecordingFile: (path: string) => Promise<{ success: boolean }>,
+): Promise<boolean> {
+	const result = await stopRecording();
+	if (!result.success || !result.path) return false;
+	const deletion = await deleteRecordingFile(result.path);
+	return deletion.success;
+}
+
 export function createProcessedMicrophoneConstraints(
 	microphoneDeviceId?: string,
 	profile: BrowserMicrophoneProfile = DEFAULT_BROWSER_MICROPHONE_PROFILE,
@@ -373,6 +393,16 @@ export function useScreenRecorder({
 	const [voiceEnhancementMode, setVoiceEnhancementMode] =
 		useState<VoiceEnhancementMode>("standard");
 	const [webcamEnabled, setWebcamEnabled] = useState(() => loadWebcamDeviceSettings().enabled);
+	const recorderUiState = resolveRecorderUiState({
+		recording,
+		paused,
+		countdownActive,
+		finalizing,
+	});
+
+	useEffect(() => {
+		void window.electronAPI?.setRecorderUiState?.(recorderUiState);
+	}, [recorderUiState]);
 	const [webcamDeviceId, setWebcamDeviceId] = useState<string | undefined>(
 		() => loadWebcamDeviceSettings().deviceId ?? undefined,
 	);
@@ -404,6 +434,9 @@ export function useScreenRecorder({
 	const nativeScreenRecording = useRef(false);
 	const nativeWindowsRecording = useRef(false);
 	const startInFlight = useRef(false);
+	const startRecordingRef = useRef<() => Promise<void>>(() => Promise.resolve());
+	const cancellationInFlight = useRef(false);
+	const restartInFlight = useRef(false);
 	const hasPromptedForReselect = useRef(false);
 	const hasShownNativeWindowsFallbackToast = useRef(false);
 	const countdownDelayLoaded = useRef(false);
@@ -645,6 +678,25 @@ export function useScreenRecorder({
 			micFallbackAudioInputDevices.current = null;
 			micFallbackRecorderMetadata.current = null;
 			resetMicFallbackTimingDiagnostics();
+		}
+	}, [resetMicFallbackTimingDiagnostics]);
+
+	const discardMicFallbackRecorder = useCallback(async () => {
+		const recorder = micFallbackRecorder.current;
+		micFallbackRecorder.current = null;
+		micFallbackChunks.current = [];
+		micFallbackTrackSettings.current = null;
+		micFallbackRequestedConstraints.current = null;
+		micFallbackAudioInputDevices.current = null;
+		micFallbackRecorderMetadata.current = null;
+		resetMicFallbackTimingDiagnostics();
+		if (!recorder) return;
+
+		recorder.ondataavailable = null;
+		try {
+			await stopMediaRecorderAndWait(recorder);
+		} finally {
+			recorder.stream.getTracks().forEach((track) => track.stop());
 		}
 	}, [resetMicFallbackTimingDiagnostics]);
 
@@ -1397,14 +1449,6 @@ export function useScreenRecorder({
 	}, []);
 
 	useEffect(() => {
-		let cleanup: (() => void) | undefined;
-
-		if (window.electronAPI?.onStopRecordingFromTray) {
-			cleanup = window.electronAPI.onStopRecordingFromTray(() => {
-				stopRecording.current();
-			});
-		}
-
 		const removeRecordingStateListener = window.electronAPI?.onRecordingStateChanged?.(
 			(state) => {
 				setRecording(state.recording);
@@ -1446,7 +1490,6 @@ export function useScreenRecorder({
 		);
 
 		return () => {
-			cleanup?.();
 			removeRecordingStateListener?.();
 			removeRecordingInterruptedListener?.();
 
@@ -2144,6 +2187,7 @@ export function useScreenRecorder({
 			setStarting(false);
 		}
 	};
+	startRecordingRef.current = startRecording;
 
 	const pauseRecording = useCallback(() => {
 		if (!recording || paused) return;
@@ -2237,18 +2281,20 @@ export function useScreenRecorder({
 		}
 	}, [markRecordingResumed, paused, recording, resumeMicFallbackRecorder]);
 
-	const cancelRecording = useCallback(() => {
-		if (!recording) return;
+	const cancelRecording = useCallback(async () => {
+		if (!recording || cancellationInFlight.current) return false;
+		cancellationInFlight.current = true;
 		setPaused(false);
 		markRecordingResumed(Date.now());
+		const micFallbackStopped = discardMicFallbackRecorder();
 
 		// Discard webcam recording regardless of recording mode
 		webcamChunks.current = [];
+		let webcamStopped = Promise.resolve();
 		if (webcamRecorder.current) {
-			cancelledRecorders.current.add(webcamRecorder.current);
-			if (webcamRecorder.current.state !== "inactive") {
-				webcamRecorder.current.stop();
-			}
+			const recorder = webcamRecorder.current;
+			cancelledRecorders.current.add(recorder);
+			webcamStopped = stopMediaRecorderAndWait(recorder);
 		}
 		webcamRecorder.current = null;
 		webcamStartTime.current = null;
@@ -2265,17 +2311,20 @@ export function useScreenRecorder({
 			setRecording(false);
 			cleanupCapturedMedia();
 			window.electronAPI?.setRecordingState(false);
-			void (async () => {
-				try {
-					const result = await window.electronAPI.stopNativeScreenRecording();
-					if (result?.path) {
-						await window.electronAPI.deleteRecordingFile(result.path);
-					}
-				} catch {
-					// Best-effort cleanup
-				}
-			})();
-			return;
+			let discarded = false;
+			try {
+				discarded = await discardNativeRecording(
+					window.electronAPI.stopNativeScreenRecording,
+					window.electronAPI.deleteRecordingFile,
+				);
+			} catch (error) {
+				console.error("Failed to discard native recording:", error);
+			}
+			await Promise.all([webcamStopped, micFallbackStopped]);
+			if (!discarded) {
+				toast.error("The recording stopped, but Aureo could not delete the captured file.");
+			}
+			return discarded;
 		}
 
 		if (mediaRecorder.current) {
@@ -2283,13 +2332,48 @@ export function useScreenRecorder({
 			cancelledRecorders.current.add(recorder);
 			chunks.current = [];
 			cleanupCapturedMedia();
-			if (recorder.state !== "inactive") {
-				recorder.stop();
-			}
+			const screenStopped = stopMediaRecorderAndWait(recorder);
 			setRecording(false);
 			window.electronAPI?.setRecordingState(false);
+			await Promise.all([screenStopped, webcamStopped, micFallbackStopped]);
+			return true;
 		}
-	}, [cleanupCapturedMedia, markRecordingResumed, recording]);
+
+		await Promise.all([webcamStopped, micFallbackStopped]);
+		return true;
+	}, [cleanupCapturedMedia, discardMicFallbackRecorder, markRecordingResumed, recording]);
+
+	useEffect(() => {
+		if (!recording) cancellationInFlight.current = false;
+	}, [recording]);
+
+	const restartRecording = useCallback(async () => {
+		if (!recording || restartInFlight.current) return;
+		restartInFlight.current = true;
+		try {
+			const discarded = await cancelRecording();
+			if (discarded) await startRecordingRef.current();
+		} finally {
+			cancellationInFlight.current = false;
+			restartInFlight.current = false;
+		}
+	}, [cancelRecording, recording]);
+
+	useEffect(() => {
+		return window.electronAPI?.onRecorderMenuCommand?.((command) => {
+			if (command === "pause") {
+				pauseRecording();
+			} else if (command === "resume") {
+				resumeRecording();
+			} else if (command === "stop") {
+				stopRecording.current();
+			} else if (command === "restart") {
+				void restartRecording();
+			} else if (command === "cancel") {
+				void cancelRecording();
+			}
+		});
+	}, [cancelRecording, pauseRecording, restartRecording, resumeRecording]);
 
 	const toggleRecording = async () => {
 		if (certificationMode || starting || countdownActive || finalizing) {

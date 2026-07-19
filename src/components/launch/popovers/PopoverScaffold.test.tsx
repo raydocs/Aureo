@@ -1,6 +1,20 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { DropdownItem } from "./PopoverScaffold";
+import { DropdownItem, resolveMenuNavigationIndex } from "./PopoverScaffold";
+
+describe("resolveMenuNavigationIndex", () => {
+	it("wraps arrow navigation and supports Home and End", () => {
+		expect(resolveMenuNavigationIndex(2, 3, "ArrowDown")).toBe(0);
+		expect(resolveMenuNavigationIndex(0, 3, "ArrowUp")).toBe(2);
+		expect(resolveMenuNavigationIndex(1, 3, "Home")).toBe(0);
+		expect(resolveMenuNavigationIndex(1, 3, "End")).toBe(2);
+	});
+
+	it("ignores unrelated keys and empty menus", () => {
+		expect(resolveMenuNavigationIndex(0, 3, "Tab")).toBeNull();
+		expect(resolveMenuNavigationIndex(0, 0, "ArrowDown")).toBeNull();
+	});
+});
 
 describe("DropdownItem", () => {
 	it("renders ordinary actions without a checked state", () => {
@@ -11,6 +25,7 @@ describe("DropdownItem", () => {
 		);
 
 		expect(html).toContain('role="menuitem"');
+		expect(html).toContain('tabindex="-1"');
 		expect(html).not.toContain("aria-checked");
 	});
 

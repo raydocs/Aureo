@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 interface EditorHeaderLayoutProps {
 	ariaLabel: string;
+	backgroundInert?: boolean;
 	leading: ReactNode;
 	identity: ReactNode;
 	actions: ReactNode;
@@ -12,6 +13,7 @@ const noDragRegionStyle = { WebkitAppRegion: "no-drag" } as CSSProperties;
 
 export function EditorHeaderLayout({
 	ariaLabel,
+	backgroundInert = false,
 	leading,
 	identity,
 	actions,
@@ -19,6 +21,8 @@ export function EditorHeaderLayout({
 	return (
 		<header
 			aria-label={ariaLabel}
+			aria-hidden={backgroundInert ? "true" : undefined}
+			{...(backgroundInert ? { inert: "" } : {})}
 			className="glass editor-liquid-header relative z-50 grid h-[52px] flex-shrink-0 grid-cols-[auto_minmax(150px,1fr)_auto] items-center gap-3 rounded-none border-x-0 border-t-0 px-3"
 			style={dragRegionStyle}
 		>

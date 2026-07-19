@@ -7,8 +7,9 @@ import { cn } from "@/lib/utils";
 const buttonVariants = cva(
 	[
 		"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium",
-		"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-		"disabled:pointer-events-none disabled:opacity-50",
+		"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ui-focus-ring)]",
+		"disabled:pointer-events-none disabled:opacity-[var(--ui-control-disabled-opacity)]",
+		"data-[state=open]:bg-[var(--ui-control-selected)] aria-pressed:bg-[var(--ui-control-selected)]",
 		"[&_svg]:pointer-events-none [&_svg]:shrink-0",
 		"transition-[color,background-color,border-color,box-shadow,transform] duration-normal ease-aureo-default",
 	],
@@ -28,7 +29,7 @@ const buttonVariants = cva(
 				quiet: "bg-transparent text-surface-foreground hover:bg-surface-panel/80 hover:text-surface-foreground active:scale-[0.97]",
 				glass: "glass text-surface-foreground hover:bg-surface-foreground/[0.06] hover:shadow-aureo-2 active:scale-[0.97]",
 				toolbar:
-					"rounded-control-sm bg-transparent text-surface-foreground hover:bg-surface-foreground/10 active:scale-[0.96] active:bg-surface-foreground/15",
+					"rounded-control-sm bg-transparent text-[var(--ui-label-primary)] hover:bg-[var(--ui-control-hover)] active:scale-[0.96] active:bg-[var(--ui-control-pressed)]",
 			},
 			size: {
 				default: "h-9 px-4 py-2",

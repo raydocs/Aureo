@@ -25,6 +25,16 @@ export function AreaSelectorOverlay() {
 	const [draftRect, setDraftRect] = useState<LocalRect | null>(null);
 	const [hint, setHint] = useState("Drag to select an area · Esc to cancel");
 	const [submitting, setSubmitting] = useState(false);
+	const [keyboardRect, setKeyboardRect] = useState<LocalRect>(() => {
+		const viewportWidth = typeof window === "undefined" ? 1280 : window.innerWidth;
+		const viewportHeight = typeof window === "undefined" ? 720 : window.innerHeight;
+		return {
+			x: Math.round(viewportWidth * 0.1),
+			y: Math.round(viewportHeight * 0.1),
+			width: Math.max(64, Math.round(viewportWidth * 0.8)),
+			height: Math.max(64, Math.round(viewportHeight * 0.8)),
+		};
+	});
 	const activePointerId = useRef<number | null>(null);
 
 	const resetDraft = useCallback(() => {
@@ -135,6 +145,13 @@ export function AreaSelectorOverlay() {
 		draftRect && draftRect.width > 0 && draftRect.height > 0
 			? `${Math.round(draftRect.width)} × ${Math.round(draftRect.height)}`
 			: null;
+	const updateKeyboardRect = (key: keyof LocalRect, value: string) => {
+		const parsed = Number(value);
+		if (Number.isFinite(parsed)) {
+			const minimum = key === "width" || key === "height" ? 16 : 0;
+			setKeyboardRect((current) => ({ ...current, [key]: Math.max(minimum, parsed) }));
+		}
+	};
 
 	return (
 		<div
@@ -145,6 +162,47 @@ export function AreaSelectorOverlay() {
 			onPointerCancel={onPointerCancel}
 		>
 			<div className="area-selector-scrim" />
+			<details
+				className="area-selector-keyboard"
+				onPointerDown={(event) => event.stopPropagation()}
+			>
+				<summary>Choose area with keyboard</summary>
+				<form
+					onSubmit={(event) => {
+						event.preventDefault();
+						setDraftRect(keyboardRect);
+						void completeSelection(keyboardRect);
+					}}
+				>
+					{(["x", "y", "width", "height"] as const).map((key) => (
+						<label key={key}>
+							<span>{key === "x" ? "Left" : key === "y" ? "Top" : key}</span>
+							<input
+								type="number"
+								min={key === "width" || key === "height" ? 16 : 0}
+								step={1}
+								value={Math.round(keyboardRect[key])}
+								aria-label={`Selection ${key === "x" ? "left" : key === "y" ? "top" : key}`}
+								onChange={(event) =>
+									updateKeyboardRect(key, event.currentTarget.value)
+								}
+							/>
+						</label>
+					))}
+					<div className="area-selector-keyboard-actions">
+						<button type="submit" disabled={submitting}>
+							Use selection
+						</button>
+						<button
+							type="button"
+							disabled={submitting}
+							onClick={() => void cancelSelection()}
+						>
+							Cancel
+						</button>
+					</div>
+				</form>
+			</details>
 			{draftRect && draftRect.width > 0 && draftRect.height > 0 ? (
 				<div
 					className="area-selector-rect"
@@ -158,7 +216,9 @@ export function AreaSelectorOverlay() {
 					{sizeLabel ? <div className="area-selector-size">{sizeLabel}</div> : null}
 				</div>
 			) : null}
-			<div className="area-selector-hint">{hint}</div>
+			<div className="area-selector-hint" role="status" aria-live="polite">
+				{hint}
+			</div>
 		</div>
 	);
 }

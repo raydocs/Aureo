@@ -9,6 +9,7 @@ import {
 	webContents as electronWebContents,
 	ipcMain,
 	Menu,
+	type MenuItemConstructorOptions,
 	Notification,
 	nativeImage,
 	session,
@@ -16,6 +17,16 @@ import {
 	systemPreferences,
 	Tray,
 } from "electron";
+import type {
+	NativeCaptureSourceType,
+	NativeOpenableLaunchPopoverId,
+} from "../src/lib/launchPopoverIds";
+import {
+	getRecorderMenuConfirmation,
+	isActiveRecorderUiState,
+	type RecorderMenuCommand,
+	type RecorderUiState,
+} from "../src/lib/recorderUiState";
 import { RECORDINGS_DIR } from "./appPaths";
 import { showCursor } from "./cursorHider";
 import { registerExtensionIpcHandlers } from "./extensions/extensionIpc";
@@ -53,6 +64,7 @@ import {
 	getUpdateToastWindow,
 	hideUpdateToastWindow,
 	isHudOverlayMousePassthroughSupported,
+	prepareHudOverlayForNativeDialog,
 	reassertHudOverlayMousePassthrough as reassertHudOverlayMouseState,
 	setHudOverlayRecordingActive,
 	showUpdateToastWindow,
@@ -178,6 +190,9 @@ let sourceSelectorWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let trayContextMenu: Menu | null = null;
 let selectedSourceName = "";
+let recorderUiState: RecorderUiState = "idle";
+let recorderSessionGeneration = 0;
+let recorderConfirmationOpen = false;
 let editorHasUnsavedChanges = false;
 let isForceClosing = false;
 let isCreatingMainWindow = false;
@@ -281,7 +296,7 @@ function showHudOverlayFromTray() {
 	return true;
 }
 
-function openHudOverlayPopover(popoverId: "webcam" | "more") {
+function openHudOverlayPopover(popoverId: NativeOpenableLaunchPopoverId) {
 	if (!showHudOverlayFromTray()) {
 		focusOrCreateMainWindow();
 	}
@@ -306,6 +321,20 @@ function openHudOverlayPopover(popoverId: "webcam" | "more") {
 		hud.webContents.once("did-finish-load", scheduleOpenRequest);
 	} else {
 		scheduleOpenRequest();
+	}
+}
+
+function openHudOverlaySource(sourceType: NativeCaptureSourceType) {
+	if (!showHudOverlayFromTray()) {
+		focusOrCreateMainWindow();
+	}
+	const hud = getHudOverlayWindow();
+	if (!hud || hud.isDestroyed()) return;
+	const send = () => hud.webContents.send("hud-overlay-open-source", sourceType);
+	if (hud.webContents.isLoading()) {
+		hud.webContents.once("did-finish-load", send);
+	} else {
+		send();
 	}
 }
 
@@ -445,11 +474,64 @@ function setupApplicationMenu() {
 			{ role: "about" },
 			{ type: "separator" },
 			{
-				label: "Show Recorder Controls",
+				label:
+					recorderUiState === "finalizing"
+						? "Show Recording Progress"
+						: "Show Recorder Controls",
 				click: () => {
 					if (!showHudOverlayFromTray()) focusOrCreateMainWindow();
 				},
 			},
+			...(recorderUiState === "recording" || recorderUiState === "paused"
+				? [
+						{
+							label:
+								recorderUiState === "paused"
+									? "Resume Recording"
+									: "Pause Recording",
+							click: () =>
+								sendRecorderMenuCommand(
+									recorderUiState === "paused" ? "resume" : "pause",
+								),
+						},
+						{
+							label: "Stop Recording",
+							click: () => sendRecorderMenuCommand("stop"),
+						},
+						{ type: "separator" as const },
+						{
+							label: "Restart Recording…",
+							click: () => void sendRecorderMenuCommand("restart"),
+						},
+						{
+							label: "Delete Recording…",
+							click: () => void sendRecorderMenuCommand("cancel"),
+						},
+					]
+				: recorderUiState === "countdown" || recorderUiState === "finalizing"
+					? [
+							{
+								label:
+									recorderUiState === "countdown"
+										? "Starting recording…"
+										: "Finalizing recording…",
+								enabled: false,
+							},
+						]
+					: []),
+			...(recorderUiState === "idle"
+				? [
+						{
+							label: "New Recording",
+							submenu: [
+								{ label: "Display", click: () => openHudOverlaySource("screen") },
+								{ label: "Window", click: () => openHudOverlaySource("window") },
+								{ label: "Area", click: () => openHudOverlaySource("area") },
+								{ label: "Device", click: () => openHudOverlaySource("device") },
+							],
+						},
+					]
+				: []),
 			{
 				label: "Camera Preview…",
 				click: () => openHudOverlayPopover("webcam"),
@@ -790,53 +872,188 @@ ipcMain.handle("check-for-app-updates", async () => {
 	return { success: true, logPath: getUpdaterLogPath() };
 });
 
-function updateTrayMenu(recording: boolean = false) {
+async function sendRecorderMenuCommand(command: RecorderMenuCommand) {
+	const target = getHudOverlayWindow() ?? mainWindow;
+	if (!target || target.isDestroyed()) return;
+
+	const confirmation = getRecorderMenuConfirmation(command);
+	if (confirmation) {
+		if (recorderConfirmationOpen) return;
+		const sessionGeneration = recorderSessionGeneration;
+		recorderConfirmationOpen = true;
+		const previousFocusedWindow = BrowserWindow.getFocusedWindow();
+		const wasAppFocused = previousFocusedWindow !== null;
+		const wasDockVisible = app.dock?.isVisible() ?? true;
+		let restoreHudInteraction: (() => void) | null = null;
+		let didPromoteForDialog = false;
+		try {
+			if (process.platform === "darwin") {
+				restoreHudInteraction = prepareHudOverlayForNativeDialog(target);
+			}
+			if (restoreHudInteraction) {
+				if (!wasDockVisible) {
+					app.setActivationPolicy("regular");
+					didPromoteForDialog = true;
+				}
+				let parentFocused = false;
+				for (let attempt = 0; attempt < 20; attempt += 1) {
+					app.focus({ steal: true });
+					target.show();
+					target.focus();
+					await new Promise<void>((resolve) => setTimeout(resolve, 25));
+					if (target.isFocused()) {
+						parentFocused = true;
+						break;
+					}
+				}
+				if (!parentFocused) return;
+			}
+			const result = await dialog.showMessageBox(target, {
+				type: "warning",
+				buttons: [confirmation.confirmLabel, "Cancel"],
+				defaultId: 1,
+				cancelId: 1,
+				message: confirmation.message,
+				detail: confirmation.detail,
+			});
+			if (result.response !== 0) return;
+			if (
+				sessionGeneration !== recorderSessionGeneration ||
+				!isActiveRecorderUiState(recorderUiState)
+			) {
+				return;
+			}
+		} finally {
+			try {
+				try {
+					restoreHudInteraction?.();
+				} catch (error) {
+					console.error(
+						"Failed to restore HUD interaction after recorder confirmation:",
+						error,
+					);
+				}
+				try {
+					if (
+						wasAppFocused &&
+						previousFocusedWindow &&
+						!previousFocusedWindow.isDestroyed() &&
+						previousFocusedWindow !== target
+					) {
+						previousFocusedWindow.focus();
+					}
+				} catch (error) {
+					console.error("Failed to restore focus after recorder confirmation:", error);
+				}
+				await new Promise<void>((resolve) => setImmediate(resolve));
+			} finally {
+				try {
+					if (didPromoteForDialog) app.setActivationPolicy("accessory");
+				} finally {
+					recorderConfirmationOpen = false;
+				}
+			}
+		}
+	}
+
+	if (target.isDestroyed() || target.webContents.isDestroyed()) return;
+	target.webContents.send("recorder-menu-command", command);
+}
+
+function updateTrayMenu(state: RecorderUiState = recorderUiState) {
 	if (!tray) return;
-	const trayIcon = recording ? getRecordingTrayIcon() : getDefaultTrayIcon();
-	const trayToolTip = recording ? `Recording: ${selectedSourceName}` : "Aureo";
-	const menuTemplate = recording
-		? [
-				{
-					label: "Show Controls",
-					click: () => {
-						if (!showHudOverlayFromTray()) {
-							focusOrCreateMainWindow();
-						}
+	if (isActiveRecorderUiState(state) !== isActiveRecorderUiState(recorderUiState)) {
+		recorderSessionGeneration += 1;
+	}
+	recorderUiState = state;
+	const active = state !== "idle";
+	const trayIcon = active ? getRecordingTrayIcon() : getDefaultTrayIcon();
+	const trayToolTip =
+		state === "recording"
+			? `Recording: ${selectedSourceName}`
+			: state === "paused"
+				? `Paused: ${selectedSourceName}`
+				: state === "countdown"
+					? "Starting recording…"
+					: state === "finalizing"
+						? "Finalizing recording…"
+						: "Aureo";
+	const showControlsItem: MenuItemConstructorOptions = {
+		label: state === "finalizing" ? "Show Progress" : "Show Controls",
+		click: () => {
+			if (!showHudOverlayFromTray()) {
+				focusOrCreateMainWindow();
+			}
+		},
+	};
+	const menuTemplate: MenuItemConstructorOptions[] =
+		state === "recording" || state === "paused"
+			? [
+					{ label: state === "paused" ? "Paused" : "Recording", enabled: false },
+					showControlsItem,
+					{
+						label: state === "paused" ? "Resume Recording" : "Pause Recording",
+						click: () =>
+							sendRecorderMenuCommand(state === "paused" ? "resume" : "pause"),
 					},
-				},
-				{
-					label: "Stop Recording",
-					click: () => {
-						if (mainWindow && !mainWindow.isDestroyed()) {
-							mainWindow.webContents.send("stop-recording-from-tray");
-						}
+					{
+						label: "Stop Recording",
+						click: () => sendRecorderMenuCommand("stop"),
 					},
-				},
-			]
-		: [
-				{
-					label: "Open",
-					click: () => {
-						if (!showHudOverlayFromTray()) {
-							focusOrCreateMainWindow();
-						}
+					{ type: "separator" as const },
+					{
+						label: "Restart Recording…",
+						click: () => void sendRecorderMenuCommand("restart"),
 					},
-				},
-				{
-					label: "Camera Preview…",
-					click: () => openHudOverlayPopover("webcam"),
-				},
-				{
-					label: "Settings…",
-					click: () => openHudOverlayPopover("more"),
-				},
-				{
-					label: "Quit",
-					click: () => {
-						app.quit();
+					{
+						label: "Delete Recording…",
+						click: () => void sendRecorderMenuCommand("cancel"),
 					},
-				},
-			];
+				]
+			: state === "countdown" || state === "finalizing"
+				? [
+						{
+							label:
+								state === "countdown"
+									? "Starting recording…"
+									: "Finalizing recording…",
+							enabled: false,
+						},
+						showControlsItem,
+					]
+				: [
+						{
+							label: "New Recording",
+							submenu: [
+								{ label: "Display", click: () => openHudOverlaySource("screen") },
+								{ label: "Window", click: () => openHudOverlaySource("window") },
+								{ label: "Area", click: () => openHudOverlaySource("area") },
+								{ label: "Device", click: () => openHudOverlaySource("device") },
+							],
+						},
+						{
+							label: "Open",
+							click: () => {
+								if (!showHudOverlayFromTray()) {
+									focusOrCreateMainWindow();
+								}
+							},
+						},
+						{
+							label: "Camera Preview…",
+							click: () => openHudOverlayPopover("webcam"),
+						},
+						{
+							label: "Settings…",
+							click: () => openHudOverlayPopover("more"),
+						},
+						{
+							label: "Quit",
+							click: () => {
+								app.quit();
+							},
+						},
+					];
 	const menu = Menu.buildFromTemplate(menuTemplate);
 	trayContextMenu = menu;
 	tray.setImage(trayIcon);
@@ -844,6 +1061,7 @@ function updateTrayMenu(recording: boolean = false) {
 	if (process.platform !== "win32") {
 		tray.setContextMenu(menu);
 	}
+	setupApplicationMenu();
 }
 
 function createEditorWindowWrapper() {
@@ -1093,14 +1311,17 @@ app.whenReady().then(async () => {
 		(recording: boolean, sourceName: string) => {
 			selectedSourceName = sourceName;
 			setHudOverlayRecordingActive(recording);
-			if (!tray) createTray();
-			updateTrayMenu(recording);
 			if (recording) {
 				reassertHudOverlayMouseState();
 			}
 			if (!recording) {
 				restoreWindowSafely(mainWindow);
 			}
+		},
+		(state: RecorderUiState, sourceName: string) => {
+			selectedSourceName = sourceName;
+			if (!tray) createTray();
+			updateTrayMenu(state);
 		},
 	);
 

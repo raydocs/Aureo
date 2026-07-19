@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+	clampWebcamPreviewSizeToViewport,
 	DEFAULT_WEBCAM_PREVIEW_APPEARANCE,
+	maxWebcamPreviewSizeForViewport,
 	normalizeWebcamPreviewAppearance,
+	WEBCAM_PREVIEW_SIZE_RANGE,
 } from "./webcamPreviewAppearance";
 
 const NEW_FIELD_DEFAULTS = {
@@ -45,5 +48,23 @@ describe("normalizeWebcamPreviewAppearance", () => {
 		expect(normalizeWebcamPreviewAppearance({ mirror: "yes" }).mirror).toBe(true);
 		expect(normalizeWebcamPreviewAppearance({ centerX: 1.7 }).centerX).toBe(1);
 		expect(normalizeWebcamPreviewAppearance({ centerX: 0.12345 }).centerX).toBe(0.123);
+	});
+});
+
+describe("clampWebcamPreviewSizeToViewport", () => {
+	it("preserves normal min/max defaults on large screens", () => {
+		const viewport = { width: 1440, height: 900 };
+		expect(clampWebcamPreviewSizeToViewport(208, viewport)).toBe(208);
+		expect(clampWebcamPreviewSizeToViewport(999, viewport)).toBe(WEBCAM_PREVIEW_SIZE_RANGE.max);
+		expect(clampWebcamPreviewSizeToViewport(10, viewport)).toBe(WEBCAM_PREVIEW_SIZE_RANGE.min);
+		expect(maxWebcamPreviewSizeForViewport(viewport)).toBe(900);
+	});
+
+	it("clamps against the shorter viewport edge without going negative", () => {
+		expect(clampWebcamPreviewSizeToViewport(320, { width: 120, height: 80 })).toBe(80);
+		expect(clampWebcamPreviewSizeToViewport(208, { width: 40, height: 200 })).toBe(40);
+		expect(clampWebcamPreviewSizeToViewport(208, { width: 0, height: 100 })).toBe(0);
+		expect(clampWebcamPreviewSizeToViewport(208, { width: -10, height: 50 })).toBe(0);
+		expect(maxWebcamPreviewSizeForViewport({ width: Number.NaN, height: 100 })).toBe(0);
 	});
 });

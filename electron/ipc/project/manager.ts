@@ -160,6 +160,7 @@ export async function resolveApprovedLocalMediaPath(candidatePath: string): Prom
 
 export async function replaceApprovedSessionLocalReadPaths(
 	filePaths: Array<string | null | undefined>,
+	options: { deadlineMs?: number } = {},
 ) {
 	const nextApprovedPaths = new Set<string>();
 	const approvedPathLists = await Promise.all(
@@ -172,10 +173,15 @@ export async function replaceApprovedSessionLocalReadPaths(
 		}
 	}
 
+	if (options.deadlineMs !== undefined && Date.now() >= options.deadlineMs) {
+		return false;
+	}
+
 	approvedLocalReadPaths.clear();
 	for (const approvedPath of nextApprovedPaths) {
 		approvedLocalReadPaths.add(approvedPath);
 	}
+	return true;
 }
 
 export async function resolveProjectMediaSources(
@@ -475,7 +481,10 @@ async function tryRecoverProjectFromBackup(
 	return { success: true, project };
 }
 
-export async function loadProjectFromPath(projectPath: string) {
+export async function loadProjectFromPath(
+	projectPath: string,
+	options: { activate?: boolean; deadlineMs?: number } = {},
+) {
 	const normalizedPath = normalizePath(projectPath);
 	let project: unknown;
 	let primaryFailure: ProjectPrimaryLoadFailure | null = null;
@@ -538,15 +547,46 @@ export async function loadProjectFromPath(projectPath: string) {
 			}
 		}
 	}
-	await replaceApprovedSessionLocalReadPaths(approvedProjectPaths);
+	if (options.activate === false) {
+		if (options.deadlineMs !== undefined && Date.now() >= options.deadlineMs) {
+			return {
+				success: false,
+				canceled: false,
+				message: "Project load expired before activation",
+			};
+		}
+		return {
+			success: true,
+			path: normalizedPath,
+			project,
+		};
+	}
 	await rememberRecentProject(normalizedPath);
+	const approved = await replaceApprovedSessionLocalReadPaths(approvedProjectPaths, {
+		deadlineMs: options.deadlineMs,
+	});
+	if (!approved) {
+		return {
+			success: false,
+			canceled: false,
+			message: "Project load expired before activation",
+		};
+	}
 
 	setCurrentProjectPath(normalizedPath);
 	setCurrentVideoPath(mediaSources.videoPath);
+	const webcamTimeOffsetMs = (
+		project as {
+			editor?: { webcam?: { timeOffsetMs?: unknown } };
+		}
+	).editor?.webcam?.timeOffsetMs;
 	setCurrentRecordingSession({
 		videoPath: mediaSources.videoPath,
 		webcamPath: mediaSources.webcamPath,
-		timeOffsetMs: 0,
+		timeOffsetMs:
+			typeof webcamTimeOffsetMs === "number" && Number.isFinite(webcamTimeOffsetMs)
+				? Math.round(webcamTimeOffsetMs)
+				: 0,
 	} as RecordingSessionData);
 
 	return {

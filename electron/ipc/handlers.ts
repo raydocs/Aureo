@@ -1,4 +1,5 @@
 import { BrowserWindow } from "electron";
+import type { RecorderUiState } from "../../src/lib/recorderUiState";
 import { registerAssetHandlers } from "./register/assets";
 import { registerCaptionHandlers } from "./register/captions";
 import { registerExportHandlers } from "./register/export";
@@ -56,13 +57,14 @@ export function registerIpcHandlers(
 	_getMainWindow: () => BrowserWindow | null,
 	getSourceSelectorWindow: () => BrowserWindow | null,
 	onRecordingStateChange?: (recording: boolean, sourceName: string) => void,
+	onRecorderUiStateChange?: (state: RecorderUiState, sourceName: string) => void,
 ) {
 	registerSourceHandlers({
 		createEditorWindow,
 		createSourceSelectorWindow,
 		getSourceSelectorWindow,
 	});
-	registerRecordingHandlers(onRecordingStateChange);
+	registerRecordingHandlers(onRecordingStateChange, onRecorderUiStateChange);
 	registerPermissionHandlers();
 	registerAssetHandlers();
 	registerExportHandlers();

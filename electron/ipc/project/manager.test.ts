@@ -179,6 +179,79 @@ describe("local media path policy", () => {
 		expect(result.project).toMatchObject({ videoPath });
 	});
 
+	it("reads a project candidate without replacing the active main-process project", async () => {
+		const activeVideoPath = path.join(tempPath, "active.mp4");
+		const candidateVideoPath = path.join(tempPath, "candidate.mp4");
+		const activeProjectPath = path.join(tempPath, "active.aureo");
+		const candidateProjectPath = path.join(tempPath, "candidate.aureo");
+		await fs.writeFile(activeVideoPath, "active-video");
+		await fs.writeFile(candidateVideoPath, "candidate-video");
+		await fs.writeFile(
+			candidateProjectPath,
+			JSON.stringify({ version: 1, videoPath: candidateVideoPath, editor: {} }),
+			"utf-8",
+		);
+
+		const state = await import("../state");
+		const { loadProjectFromPath } = await import("./manager");
+		state.setCurrentProjectPath(activeProjectPath);
+		state.setCurrentVideoPath(activeVideoPath);
+		state.setCurrentRecordingSession({
+			videoPath: activeVideoPath,
+			webcamPath: null,
+			timeOffsetMs: 12,
+		});
+		state.approvedLocalReadPaths.clear();
+		state.approvedLocalReadPaths.add(activeVideoPath);
+
+		const result = await loadProjectFromPath(candidateProjectPath, { activate: false });
+
+		expect(result.success).toBe(true);
+		expect(state.currentProjectPath).toBe(activeProjectPath);
+		expect(state.currentVideoPath).toBe(activeVideoPath);
+		expect(state.currentRecordingSession).toMatchObject({
+			videoPath: activeVideoPath,
+			timeOffsetMs: 12,
+		});
+		expect([...state.approvedLocalReadPaths]).toEqual([activeVideoPath]);
+	});
+
+	it("does not activate a project after its operation deadline", async () => {
+		const activeVideoPath = path.join(tempPath, "active.mp4");
+		const candidateVideoPath = path.join(tempPath, "candidate.mp4");
+		const activeProjectPath = path.join(tempPath, "active.aureo");
+		const candidateProjectPath = path.join(tempPath, "candidate.aureo");
+		await fs.writeFile(activeVideoPath, "active-video");
+		await fs.writeFile(candidateVideoPath, "candidate-video");
+		await fs.writeFile(
+			candidateProjectPath,
+			JSON.stringify({ version: 1, videoPath: candidateVideoPath, editor: {} }),
+			"utf-8",
+		);
+
+		const state = await import("../state");
+		const { loadProjectFromPath } = await import("./manager");
+		state.setCurrentProjectPath(activeProjectPath);
+		state.setCurrentVideoPath(activeVideoPath);
+		state.setCurrentRecordingSession({
+			videoPath: activeVideoPath,
+			webcamPath: null,
+			timeOffsetMs: 0,
+		});
+		state.approvedLocalReadPaths.clear();
+		state.approvedLocalReadPaths.add(activeVideoPath);
+
+		const result = await loadProjectFromPath(candidateProjectPath, {
+			deadlineMs: Date.now() - 1,
+		});
+
+		expect(result.success).toBe(false);
+		expect(state.currentProjectPath).toBe(activeProjectPath);
+		expect(state.currentVideoPath).toBe(activeVideoPath);
+		expect(state.currentRecordingSession?.videoPath).toBe(activeVideoPath);
+		expect([...state.approvedLocalReadPaths]).toEqual([activeVideoPath]);
+	});
+
 	it("rejects invalid project payloads before approving media paths", async () => {
 		const downloadsPath = path.join(tempRoot, "Downloads");
 		const videoPath = path.join(downloadsPath, "recording.mp4");

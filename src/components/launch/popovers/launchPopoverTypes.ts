@@ -1,4 +1,6 @@
-export type CaptureSourceType = "screen" | "window" | "area" | "device";
+export type { NativeCaptureSourceType as CaptureSourceType } from "@/lib/launchPopoverIds";
+
+import type { NativeCaptureSourceType as CaptureSourceType } from "@/lib/launchPopoverIds";
 
 export interface DesktopSource {
 	id: string;

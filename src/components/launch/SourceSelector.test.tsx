@@ -2,7 +2,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/contexts/I18nContext";
 import type { DesktopSource } from "./popovers/launchPopoverTypes";
-import { buildDeviceSource, SourceSelectorContent } from "./SourceSelector";
+import {
+	buildDeviceSource,
+	resolveSourceOptionNavigation,
+	SourceSelectorContent,
+} from "./SourceSelector";
 
 const screen: DesktopSource = {
 	id: "screen:1",
@@ -33,6 +37,15 @@ const windowSource: DesktopSource = {
 };
 
 describe("SourceSelectorContent", () => {
+	it("resolves source-option keyboard navigation without committing a source", () => {
+		expect(resolveSourceOptionNavigation("ArrowDown", 0, 3)).toBe(1);
+		expect(resolveSourceOptionNavigation("ArrowDown", 2, 3)).toBe(0);
+		expect(resolveSourceOptionNavigation("ArrowUp", 0, 3)).toBe(2);
+		expect(resolveSourceOptionNavigation("Home", 2, 3)).toBe(0);
+		expect(resolveSourceOptionNavigation("End", 0, 3)).toBe(2);
+		expect(resolveSourceOptionNavigation("Enter", 0, 3)).toBeNull();
+	});
+
 	it("uses listbox options with one selected roving tab stop in screen mode", () => {
 		const html = renderToStaticMarkup(
 			<I18nProvider>
@@ -85,6 +98,7 @@ describe("SourceSelectorContent", () => {
 					windowSources={[windowSource]}
 					selectedSource={screen.name}
 					selectedSourceType="area"
+					loading={true}
 					onSourceSelect={vi.fn()}
 				/>
 			</I18nProvider>,

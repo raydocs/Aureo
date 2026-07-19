@@ -1,0 +1,163 @@
+{
+  "recordedAt": "2026-07-19T08:23:02.036Z",
+  "target": "http://127.0.0.1:55316/?windowType=editor&certification=1&devOpenInput=%2FUsers%2Fruirui%2FDownloads%2Frecordlyx-recovery%2Ffixtures%2Frelease-v1%2Fmedia%2Fmixed-audio.mp4",
+  "checks": {
+    "narrowOpen": {
+      "viewport": [
+        1279,
+        720
+      ],
+      "mode": "modal",
+      "panelCount": 1,
+      "role": "dialog",
+      "ariaModal": "true",
+      "activeLabel": "Close",
+      "workspaceInert": true,
+      "headerInert": true,
+      "toggleExpanded": "true",
+      "firstLabel": "Close",
+      "lastLabel": "Cursor Sway",
+      "mountToken": "inspector-settings-stable"
+    },
+    "tabWrap": {
+      "activeIsFirst": true,
+      "activeLabel": "Close"
+    },
+    "shiftTabWrap": {
+      "activeIsLast": true,
+      "activeLabel": "Cursor Sway"
+    },
+    "escapeDismissal": {
+      "mode": "closed",
+      "focusReturnedExactly": true,
+      "activeLabel": "Toggle inspector"
+    },
+    "backdropDismissal": {
+      "targetWasBackdrop": true,
+      "mode": "closed",
+      "focusReturnedExactly": true,
+      "workspacePointerDowns": 0
+    },
+    "temporaryStateBeforeBreakpoint": {
+      "advancedFound": true,
+      "advancedPressed": "false",
+      "mountToken": "inspector-settings-stable"
+    },
+    "breakpointDocked": {
+      "viewport": [
+        1280,
+        720
+      ],
+      "mode": "docked",
+      "panelCount": 1,
+      "mountToken": "inspector-settings-stable",
+      "advancedPressed": "true",
+      "toggleExpanded": "false",
+      "workspaceInert": false
+    },
+    "breakpointReturnNarrow": {
+      "mode": "closed",
+      "panelCount": 1,
+      "mountToken": "inspector-settings-stable",
+      "advancedPressed": "true"
+    },
+    "largeViewport": {
+      "viewport": [
+        1440,
+        900
+      ],
+      "mode": "docked",
+      "panelCount": 1,
+      "exportVisible": true,
+      "inspectorDoesNotOverlapExport": true,
+      "transportPresent": true
+    },
+    "explicitTemporaryStatePreservation": {
+      "before1279": {
+        "mode": "modal",
+        "mountToken": "inspector-settings-stable",
+        "advancedPressed": "true"
+      },
+      "docked1280": {
+        "mode": "docked",
+        "mountToken": "inspector-settings-stable",
+        "advancedPressed": "true"
+      },
+      "after1279": {
+        "mode": "closed",
+        "mountToken": "inspector-settings-stable",
+        "advancedPressed": "true"
+      },
+      "preserved": true
+    },
+    "transportControls": {
+      "label": "Play / Pause",
+      "buttonLabels": [
+        "Skip Back",
+        "Play",
+        "Skip Forward",
+        "Split Clip (C)",
+        "Zoom timeline to playhead"
+      ],
+      "visible": true
+    }
+  },
+  "screenshots": [
+    ".agent/runs/aureo-uiux-parity-2026-07/evidence/editor-inspector-1279x720-light-modal.png",
+    ".agent/runs/aureo-uiux-parity-2026-07/evidence/editor-inspector-1279x720-dark-modal.png",
+    ".agent/runs/aureo-uiux-parity-2026-07/evidence/editor-inspector-1279x720-reduced-transparency.png",
+    ".agent/runs/aureo-uiux-parity-2026-07/evidence/editor-inspector-1280x720-high-contrast-docked.png",
+    ".agent/runs/aureo-uiux-parity-2026-07/evidence/editor-inspector-1440x900-long-labels-docked.png"
+  ],
+  "pass": true,
+  "reviewerFixRuntime": {
+    "recordedAt": "2026-07-19T08:42:17.999Z",
+    "settingsState": {
+      "mode": "modal",
+      "notificationInert": true,
+      "comboboxes": [
+        {
+          "label": null,
+          "text": "English"
+        }
+      ],
+      "buttons": [
+        "Light",
+        "Dark",
+        "System",
+        "English",
+        "FocusedSnappier motion for demos, walkthroughs, and everyday recordings.",
+        "SmoothGentler motion for presentations, keynote-style videos, and polished reveals.",
+        "Customize"
+      ]
+    },
+    "openSelect": true,
+    "selectOpenBefore": {
+      "portalOpen": true,
+      "activeOutsideInspector": true,
+      "inspectorMode": "modal"
+    },
+    "selectAfterEscape": {
+      "portalOpen": false,
+      "inspectorMode": "modal",
+      "activeInsideInspector": true
+    },
+    "shortcutsOpened": {
+      "found": true,
+      "text": "Customize",
+      "label": "Shortcuts"
+    },
+    "dialogBefore": {
+      "nestedOpen": true,
+      "activeOutsideInspector": true,
+      "inspectorMode": "modal",
+      "dialogCount": 2
+    },
+    "dialogAfter": {
+      "dialogCount": 1,
+      "inspectorMode": "modal",
+      "activeInsideInspector": true
+    },
+    "pass": true
+  }
+}

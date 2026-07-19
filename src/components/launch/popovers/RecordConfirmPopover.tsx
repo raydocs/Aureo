@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
-import { Button } from "@/components/ui/button";
 import { useScopedT } from "@/contexts/I18nContext";
+import styles from "../LaunchWindow.module.css";
 import { useLaunchPopoverCoordinator } from "./LaunchPopoverCoordinator";
 import { HudPopover } from "./PopoverScaffold";
 
@@ -25,6 +25,7 @@ export function RecordConfirmPopover({
 					requestClose(POPOVER_ID);
 				}
 			}}
+			modal
 			role="dialog"
 			aria-label={t("recording.recordConfirm", "Record confirmation")}
 			trigger={trigger}
@@ -35,18 +36,23 @@ export function RecordConfirmPopover({
 					{t("recording.preflightMutedCameraBody")}
 				</p>
 				<div className="mt-4 flex justify-end gap-2">
-					<Button variant="ghost" size="sm" onClick={() => requestClose(POPOVER_ID)}>
+					<button
+						type="button"
+						className={styles.confirmAction}
+						onClick={() => requestClose(POPOVER_ID)}
+					>
 						{t("recording.cancel")}
-					</Button>
-					<Button
-						size="sm"
+					</button>
+					<button
+						type="button"
+						className={`${styles.confirmAction} ${styles.confirmActionPrimary}`}
 						onClick={() => {
 							requestClose(POPOVER_ID);
 							onRecordAnyway();
 						}}
 					>
 						{t("recording.preflightRecordAnyway")}
-					</Button>
+					</button>
 				</div>
 			</div>
 		</HudPopover>

@@ -464,7 +464,7 @@ function SegmentedRow({
 						title={option.accessibleLabel}
 						className={`min-w-7 rounded-[8px] px-2 py-1 text-[11px] transition-colors ${
 							option.selected
-								? "bg-[var(--launch-selected)] text-[var(--launch-accent)]"
+								? "bg-[var(--launch-selected)] text-[var(--launch-text)]"
 								: "text-[var(--launch-text-muted)] hover:bg-[var(--launch-hover)]"
 						}`}
 						onClick={option.onClick}

@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aureo UI/UX Parity - Implementation Notes</title>
+  <style>
+    body {
+      color: #202124;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      margin: 0 auto;
+      max-width: 920px;
+      padding: 40px 24px;
+    }
+    h1, h2 { line-height: 1.2; }
+    code {
+      background: #f1f3f4;
+      border-radius: 4px;
+      padding: 2px 5px;
+    }
+    .meta {
+      background: #f8f9fa;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .timeline {
+      background: #f8f9fa;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      max-height: 360px;
+      overflow: auto;
+      padding: 8px;
+    }
+    .timeline-note {
+      color: #5f6368;
+      margin-bottom: 10px;
+    }
+    .event {
+      background: #fff;
+      border: 1px solid #e8eaed;
+      border-radius: 8px;
+      margin: 8px 0;
+      padding: 12px 14px;
+    }
+    .event-head {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .event-summary {
+      margin: 0;
+    }
+    .event time {
+      color: #5f6368;
+      font-size: 13px;
+    }
+    .badge, .phase, .actor {
+      border-radius: 999px;
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      padding: 5px 8px;
+      text-transform: uppercase;
+    }
+    .badge { background: #e8f0fe; color: #174ea6; }
+    .status-done, .status-validated { background: #e6f4ea; color: #137333; }
+    .status-blocked, .status-failed { background: #fce8e6; color: #c5221f; }
+    .status-decision { background: #fef7e0; color: #b06000; }
+    .phase, .actor {
+      background: #f1f3f4;
+      color: #3c4043;
+      font-weight: 600;
+    }
+    li { margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <h1>Aureo UI/UX Parity</h1>
+  <div class="meta">
+    <p><strong>Goal ID:</strong> <code>aureo-uiux-parity-2026-07</code></p>
+    <p><strong>Started:</strong> 2026-07-18T20:59:13Z</p>
+    <p><strong>Parent goal:</strong> none</p>
+    <p><strong>Mode:</strong> full</p>
+    <p><strong>Objective:</strong> 建立并逐步实施 Aureo 的 macOS 原生感 UI/UX 体系，使录制 HUD、菜单与 Popover、编辑器 Shell、Inspector、时间线和导出工作流达到接近 Screen Studio 的逻辑性、易用性与完成度。</p>
+  </div>
+
+  <h2>Resume Here</h2>
+  <ul>
+    <li><strong>Status:</strong> [validated] Production Phase 0 and Editor Shell Slice 1.1 remain committed; Slice 1.2 Responsive Inspector ownership is independently approved and has passed its final pre-commit matrix.</li>
+    <li><strong>Current phase:</strong> [checkpoint] Commit the approved Slice 1.2 thirteen-path checkpoint locally, verify a clean branch ahead 8 / behind 0, and do not push.</li>
+    <li><strong>Completed:</strong> Typed/state foundation, source keyboard browsing versus activation, compound source anchor/expanded synchronization, webcam passthrough release, source close focus restoration, modal recording preflight, pointer-equivalent keyboard webcam resize, native state synchronization, idle and destructive native recording actions, Project Browser focus safety, countdown semantics, Area Selection keyboard access, and 1440/1280/960/880 DIP visual review.</li>
+    <li><strong>Active work:</strong> One persistent ResponsiveInspector owns the sole SettingsPanel across 1279/1280. Narrow mode is modal and isolates the header, workspace, and notifications; portaled Radix layers retain their own keyboard authority. No implementation remains in flight.</li>
+    <li><strong>Blockers:</strong> No known Slice 1.2 blocker remains. The original Documents repo remains preserved with APFS-damaged local objects.</li>
+    <li><strong>Next action:</strong> After the local checkpoint, begin roadmap Phase 1 Slice 1.3 intentional shell states from the new clean HEAD. Map existing loading/empty/load-error/save-error paths, establish focused RED contracts, and preserve the Slice 1.1 save-ownership and Slice 1.2 Inspector boundaries.</li>
+    <li><strong>Last validation:</strong> Independent exact-diff re-review returned APPROVE. Focused shell Vitest passed 4 files / 17 tests; final full Vitest passed 166 files / 1443 tests; production TypeScript, focused Biome, i18n, direct Vite production build, Electron main normalization/smoke, diff check, runtime/visual matrix, and protected-path checks passed.</li>
+    <li><strong>Protected paths:</strong> All untracked files matching <code>* 2.*</code>. They appear to be duplicate/backup files; do not delete, modify, stage, or use them as implementation sources without user approval.</li>
+  </ul>
+
+  <h2>Screen Studio Principle Comparison</h2>
+  <table border="1" cellpadding="8" cellspacing="0">
+    <thead><tr><th>Surface</th><th>Benchmark principle</th><th>Aureo baseline gap</th><th>Target evidence</th></tr></thead>
+    <tbody>
+      <tr><td>Capture HUD</td><td>One shallow row of recording decisions; state visible in-place.</td><td>Source trigger semantics diverge; disclosure affordances vary; preflight and passthrough behavior are inconsistent.</td><td>Source/Mic/Webcam/Audio/Record usable in one layer; 4 responsive widths; keyboard/focus and hardware flow checks.</td></tr>
+      <tr><td>Menu / Popover</td><td>OS commands use native menus; rich short configuration uses a compact anchored popover.</td><td>Stringly IDs, mixed roles, compound source trigger, no unified open/selected/disabled state contract.</td><td>Typed command IDs, one-open coordinator, matching trigger/popup semantics, focus return, no detached overlays.</td></tr>
+      <tr><td>Editor shell</td><td>Project identity and primary actions stay stable; content dominates chrome.</td><td>Large controller owns dense inline composition; export and inspector compete; fixed overlay can cover preview.</td><td>52px stable header, clear dirty/save/export state, correct drag/no-drag, 1279/1280 and 1440 viewport proofs.</td></tr>
+      <tr><td>Inspector</td><td>Selection reveals relevant properties; global settings stay outside object editing.</td><td>Global and selection navigation conflict; frame/crop aliases; annotation bypass; global Settings in rail; duplicated deletion.</td><td>Explicit selection header/deselect, global tabs only, one delete action, compact advanced disclosure, one mounted panel.</td></tr>
+      <tr><td>Timeline</td><td>Media type and edit intent are legible before interaction.</td><td>Semantic model exists but presentation under-communicates clips/audio/zoom/captions/webcam; keyboard semantics are incomplete.</td><td>Thumbnails, waveforms, distinguishable semantic lanes, unified selection/DnD, labels/time ranges, long-project performance.</td></tr>
+      <tr><td>Export</td><td>Choose an outcome, not an encoder implementation; progress and result actions remain obvious.</td><td>Codec, pipeline, backend, CUDA and muxing jargon are first-class; progress can disappear with a non-modal dropdown.</td><td>Purpose presets, Advanced disclosure, quick repeat export, human phase labels, retry/Save Again/reveal with backend contracts unchanged.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Implementation Slices</h2>
+  <ol>
+    <li><strong>F1 Contracts:</strong> freeze launch coordinator/native routing, inspector placement/selection, and export status behavior with focused tests.</li>
+    <li><strong>F2 Typed IDs:</strong> share <code>LaunchPopoverId</code> and native-openable subset across coordinator, Electron main/preload, and environment declarations.</li>
+    <li><strong>F3 Semantic aliases:</strong> define restrained material, label, separator, control-state, focus, geometry, elevation, and motion aliases; map launch variables compatibly; preserve always-dark HUD and opaque fallbacks.</li>
+    <li><strong>C1 Source correctness:</strong> arrow navigation without commit, synchronized mode state, correct anchor/ARIA, identity by source ID.</li>
+    <li><strong>C2 HUD consistency:</strong> normalize disclosure affordances; modal record confirmation; symmetric webcam passthrough; resize-engine keyboard behavior; disabled coordinator cleanup.</li>
+    <li><strong>E1 Inspector IA:</strong> remove frame/crop aliases, decouple extensions, promote annotation, add explicit selection header and one deselect/delete path.</li>
+    <li><strong>E2 Shell density:</strong> move global Settings out of the effect rail, add compact primitive variants and advanced accordions, preserve responsive one-mount inspector.</li>
+    <li><strong>T1 Timeline presentation:</strong> visual semantic lanes, thumbnails/waveforms, labels/time ranges, keyboard semantics; preserve model/DnD/time math.</li>
+    <li><strong>X1 Export simplification:</strong> hide engineering controls and jargon, add purpose presets and preference persistence, then add quick-export split state.</li>
+    <li><strong>V1 Certification:</strong> shared CDP harness, viewport/mode capture matrix, visual diff, mounted a11y tests, packaged Electron evidence.</li>
+  </ol>
+
+  <h2>Execution Plan</h2>
+  <ol>
+    <li><strong>Plan and audit.</strong> Establish Screen Studio behavior/principles, Aureo gaps, surface classification, implementation slices, and measurable gates.</li>
+    <li><strong>UI foundation.</strong> Define restrained shared tokens and control states; formalize Native Menu, Compact Popover, Inspector/Sheet, and Dialog contracts. Migrate incrementally rather than redesigning every component at once.</li>
+    <li><strong>Capture experience.</strong> Keep the idle HUD focused on source, camera, microphone, system audio, and record. Unify Source/Mic/Webcam/Quality popovers, recording confirmation, health escalation, keyboard/focus behavior, and webcam preview constraints.</li>
+    <li><strong>Editor shell and inspector.</strong> Clarify project title, dirty/save state, transport, preview, navigation, and export hierarchy. Make the inspector selection-driven with common controls first and engineering tuning under Advanced/developer surfaces.</li>
+    <li><strong>Semantic timeline.</strong> Add immediate clip readability via thumbnails and audio summaries; reveal microphone/system audio and semantic zoom/caption/webcam tracks on demand; standardize selection, resize, copy/paste, context, zoom, and snapping feedback.</li>
+    <li><strong>Export delivery.</strong> Replace implementation-oriented normal controls with purpose-oriented presets; retain advanced codec/backend controls outside the default path; unify preparing/progress/success/failure/retry/result states.</li>
+    <li><strong>Integrated validation.</strong> Run automated gates, packaged smoke checks, multi-viewport screenshots, keyboard/accessibility modes, localization stress, and Screen Studio comparison review. Record scoped misses explicitly.</li>
+  </ol>
+
+  <h2>Surface Contract</h2>
+  <ul>
+    <li><strong>Native Menu:</strong> application/menu-bar actions, context menus, recent projects, standard edit/view/window/help actions, and simple command lists.</li>
+    <li><strong>Compact Popover:</strong> anchored, short-lived selection or lightweight configuration for source, microphone, webcam, quality, countdown, and compact export choices. No nested popovers or long forms.</li>
+    <li><strong>Inspector / Sheet:</strong> persistent contextual properties, advanced camera/crop/export configuration, preferences, and multi-control editing.</li>
+    <li><strong>Dialog:</strong> destructive confirmation, permission recovery, unrecoverable errors, or decisions that must interrupt progress. Routine configuration must not be a dialog.</li>
+  </ul>
+
+  <h2>Phase Gates</h2>
+  <ul>
+    <li><strong>Visual:</strong> screenshots at compact laptop, standard laptop, and large desktop sizes; no clipping, unexplained detached overlays, or competing primary actions.</li>
+    <li><strong>Interaction:</strong> trigger/anchor relationship is obvious; Escape, Return, arrows, Tab, outside-click, focus restoration, disabled states, and errors are consistent.</li>
+    <li><strong>Accessibility:</strong> visible focus, semantic roles/names, reduced motion/transparency, high contrast, and long localized labels are covered.</li>
+    <li><strong>Automated:</strong> targeted regression tests first, then TypeScript, relevant tests, Biome, and broader suite proportional to blast radius.</li>
+    <li><strong>Runtime:</strong> packaged Electron smoke for native menus/windows and screenshot verification for surfaces whose correctness depends on real macOS composition.</li>
+    <li><strong>Product:</strong> normal flows do not expose codec, queue, pipeline, backend, spring mass, or similar implementation details unless the user deliberately enters Advanced/developer controls.</li>
+  </ul>
+
+  <h2>Progress Timeline</h2>
+  <p class="timeline-note">Progress is rendered directly in this file from the inline <code>progressEvents</code> array below. Append a new event to that array whenever execution reality changes meaningfully.</p>
+  <div id="progress-timeline" class="timeline"></div>
+
+  <h2>Decisions Outside The Spec</h2>
+  <ul>
+    <li>Match Screen Studio's hierarchy, disclosure, feedback, and macOS conventions; do not copy its brand, proprietary assets, exact colors, or pixel layout.</li>
+    <li>Pause broad feature expansion until the shared interaction foundation and primary capture/edit/export paths are coherent.</li>
+    <li>Use many read-only/reviewer orbs, but keep each code slice single-writer to avoid conflicting implementations.</li>
+    <li>All future Amp orb threads use <code>agent_mode: medium</code>; do not use low/small. The main thread remains the single writer.</li>
+    <li>Do not perform a big-bang rewrite of <code>VideoEditor.tsx</code> or <code>SettingsPanel.tsx</code>; extract boundaries only while delivering a verified product slice.</li>
+    <li>Prefer real Electron/macOS native surfaces where behavior matters; use React for timeline, inspector, preview, crop, and other rich custom interfaces.</li>
+    <li>The 18 July benchmark sharpens product priority: menu bar is a durable control/recovery surface; quick export repeats the last successful settings; camera framing metadata must remain continuous through editor/export; timeline needs pointer-centered pinch/⌘-wheel zoom and compatible batch selection; exporter backend/pipeline/CUDA diagnostics belong under Advanced.</li>
+  </ul>
+
+  <h2>Changes And Tradeoffs</h2>
+  <ul>
+    <li>The pre-goal HUD work was preserved as baseline commit <code>e96ccfe</code> instead of being folded into the parity implementation.</li>
+    <li>Ten untracked duplicate/backup files remain intentionally untouched. Temporary typecheck used an uncommitted config that excluded <code>* 2.ts(x)</code>, then removed it.</li>
+    <li>After the host restart, APFS still blocked reads from two unchanged tracked files and multiple dependency inodes. The tracked files were preserved under <code>/tmp</code> and restored byte-exact from Git index blobs. The damaged dependency tree is preserved as <code>node_modules.apfs-bad-20260718T192451</code> and excluded only through local <code>.git/info/exclude</code>; the replacement used <code>npm ci --ignore-scripts</code> plus the Electron runtime installer, so project postinstall and Whisper staging did not run.</li>
+    <li>Orb agents cannot see unpushed local changes; therefore meaningful baselines are pushed before orb review, and the main thread validates any returned recommendation against the current worktree.</li>
+    <li>Foundation review found that root semantic aliases do not recompute when a descendant changes their dependencies. Reduced-transparency scopes now redeclare the dependent aliases locally, including a same-cascade-layer launch-theme override verified in the mounted HUD.</li>
+    <li>The timeline already has semantic clip/speed/source-audio/zoom/mask/webcam/caption/annotation/audio rows, DnD, selection, keyboard shortcuts, and cached waveforms. The implementation phase will first expose existing <code>Row label</code> support, resolve silently invisible trim regions, stabilize row order, then add a bounded raw-video filmstrip; it will not rewrite DnD/time math.</li>
+  </ul>
+
+  <h2>Validation</h2>
+  <ul>
+    <li>[validated] Editor Shell Slice 1.2 automation: focused shell Vitest 4 files / 17 tests; final full Vitest 166 files / 1443 tests; production TypeScript, focused Biome, i18n, direct Vite production build, Electron main normalization/smoke, diff check, and protected-path check passed.</li>
+    <li>[validated] Editor Shell Slice 1.2 real Electron: at 1279×720 the narrow Inspector is one modal dialog with close-first initial focus, Tab/Shift+Tab containment, Escape/backdrop dismissal, exact return to the opening toggle, inert header/workspace, and zero background pointer delivery. At 1280×720 it docks and normalizes open state; returning to 1279 keeps the same SettingsPanel DOM token and open Cursor Advanced state. At 1440×900 Export and all five transport actions remain visible and do not overlap the dock.</li>
+    <li>[validated] Editor Shell Slice 1.2 visual matrix: light, dark, reduced-transparency, high-contrast, and synthetic long-label screenshots cover 1279×720, 1280×720, and 1440×900. The unchanged SettingsPanel slider-track presentation remains visually dense at 320px, but the new ownership/modal boundary introduces no critical Save/Export/transport clipping or overlap.</li>
+    <li>[approved] Editor Shell Slice 1.2 independent exact-diff re-review returned APPROVE with no high-confidence blockers after the portal keyboard-ownership and notification-inert fixes.</li>
+    <li>[limitation] A final aggregate <code>npm run build</code> was invoked in error even though it includes deferred native-helper and Whisper work. It stopped at Whisper staging because CMake was unavailable. Immediate Git inventory proved no additional tracked or untracked path delta; no Whisper/model/runtime path was staged. The valid production gate was rerun directly with Vite plus Electron main normalization/smoke.</li>
+    <li>[validated] Production Phase 0 baseline at <code>aa1150a</code>: full Vitest 163 files / 1422 tests in 23.74 s, production TypeScript, i18n, and non-Whisper Vite/Electron main smoke passed.</li>
+    <li>[incomplete] Full repository Biome baseline reports 111 errors and 18 warnings across 613 files. These are existing formatting/import diagnostics; unrelated broad auto-formatting was not performed.</li>
+    <li>[validated] Deterministic release fixtures: 12 generated non-user-data media/project files verify against manifest SHA-256 <code>f1fd36e118372bf800b7d81a9782ce1d259c4cd865339b2092c810d8af6ae5bf</code>; regeneration is checksum-stable with the locked FFmpeg dependency. Independent review corrected the long timeline to use ten-minute primary/mic/system/webcam media and Aureo's actual sidecar/settings contracts.</li>
+    <li>[incomplete] Production dependency audit reports one moderate transitive <code>js-yaml</code> advisory. Lockfile metadata inventories 742 packages, with two unknown license fields requiring notice review.</li>
+    <li>[done] Baseline commit: targeted launch tests 56/56.</li>
+    <li>[done] Baseline commit: full Vitest suite 155 files / 1391 tests.</li>
+    <li>[done] Baseline commit: Biome check passed for 18 touched launch files.</li>
+    <li>[done] Baseline commit: TypeScript passed when protected duplicate files were excluded; the normal command is currently contaminated by an untracked duplicate test filename.</li>
+    <li>[done] Plan quality: Capture, Editor/Inspector, Export, validation, and engineering-boundary audits consolidated with exact files, slices, risks, and phase gates.</li>
+    <li>[done] Timeline audit: confirmed existing semantic model/DnD/waveform capabilities and scoped the highest-impact gaps to missing row labels, no clip filmstrip, invisible trim regions, dynamic unlabeled reflow, zoom-only select-all naming, shared mask/annotation selection, and duplicate surface CSS.</li>
+    <li>[done] Foundation slice 1: shared typed <code>LaunchPopoverId</code> and native-openable subset now span coordinator, main, preload, and renderer environment declarations.</li>
+    <li>[done] Foundation slice 1: shared semantic material/label/separator/control/focus/motion aliases added; launch compatibility variables map to them while retaining light/dark/always-dark HUD values.</li>
+    <li>[validated] Foundation slice 1: TypeScript passed with protected duplicates excluded; full Vitest 157 files / 1394 tests; Biome and diff check passed.</li>
+    <li>[validated] Foundation slice 2: shared Button, HUD controls, source mode tabs, and source choices consume hover/pressed/selected/disabled/focus/label/separator roles; PostCSS contract tests verify exact light/dark/HUD/reduced-transparency selector scopes.</li>
+    <li>[validated] Foundation slice 2 runtime: isolated current-source Electron HUD captured default, source-open, quality-open, keyboard-focus, and reduced-transparency states. Default/open/focus layouts are unclipped; reduced transparency changes floating material <code>rgba(28,28,32,.88) → #1c1c20</code> and separator <code>.12 → .24</code>.</li>
+    <li>[validated] Foundation slice 2 gates: targeted 51/51; full Vitest 157 files / 1397 tests; production TypeScript passed with protected duplicates excluded; Biome, Vite production build, and diff check passed.</li>
+    <li>[validated] Capture slice 1: source option ArrowUp/Down/Home/End now move focus without committing or dismissing; internal source-mode changes synchronize the dock highlight; exactly one dock segment reports expanded; source dock is a Radix anchor rather than a compound non-interactive trigger; trigger popup role now matches the dialog.</li>
+    <li>[validated] Capture slice 1: webcam preview pointer-up always releases a passthrough hold, including sub-threshold clicks. Targeted 51/51, production TypeScript, Biome, Vite build, diff check, and mounted Electron source keyboard traversal passed.</li>
+    <li>[validated] Capture slice 2: normal HUD popovers default to non-modal while record confirmation explicitly opts into modal focus containment; closing the anchored compound source picker restores the exact opening dock segment without overwriting an intentional external focus transfer. Targeted 5 files / 16 tests, protected-file-excluding TypeScript, Biome, production Vite/Electron build, and diff check passed.</li>
+    <li>[validated] Capture slice 2 runtime: Electron CDP proved Window → internal Area → Escape closes only the source dialog, leaves all segments collapsed, and focuses Window. Certification mode intentionally disables webcam hardware, so the real muted-camera focus trap still requires a physical-device pass; the modal prop is covered at scaffold and confirmation component boundaries.</li>
+    <li>[validated] Capture slice 3: all four webcam resize handles now route keyboard arrows through the pointer resize engine, preserving the opposite corner, viewport constraints, 160/208/288 snap magnets, 8px normal and 16px Shift steps, Option center scaling, placement persistence, and transient size feedback. Targeted 7 files / 65 tests, protected-file-excluding TypeScript, Biome, production Vite/Electron build, and diff check passed.</li>
+    <li>[validated] Capture slice 4: the renderer publishes a typed idle/countdown/recording/paused/finalizing UI state independently from cursor-capture lifecycle. Tray and macOS application menus rebuild from that one state; recording/paused expose Pause/Resume and Stop, countdown/finalizing disable mutations, and finalizing offers Show Progress. Commands target the HUD renderer through one typed IPC channel.</li>
+    <li>[validated] Capture slice 4 runtime: synthetic state publication in isolated Electron produced tray menus <code>Recording, Show Controls, Pause Recording, Stop Recording</code>, <code>Paused, Show Controls, Resume Recording, Stop Recording</code>, and <code>Finalizing recording…, Show Progress</code>. The macOS app menu mirrored Resume/Stop and finalizing state, and AXPress on tray Pause delivered typed command <code>pause</code> back to the HUD. Targeted 68 tests, TypeScript, production build, and diff check passed. <code>electron/ipc/register/recording.ts</code> retains pre-existing whole-file Biome format drift; the new IPC block itself follows local formatting and no unrelated reformat was applied.</li>
+    <li>[validated] Capture slice 5: idle tray and macOS app menus expose a typed New Recording submenu in Display, Window, Area, Device order. Native source requests focus/show the HUD, set the source picker mode, and open the existing coordinated dialog rather than bypassing selection. AppleScript AXPress on Area produced one dialog with Area expanded and its internal Area radio active. Targeted 11 tests, TypeScript, Biome, production build, and diff check passed.</li>
+    <li>[validated] Capture slice 6: shared launch command menus now use programmatic-only menuitem tab stops, focus the checked item (or first enabled item) on open, wrap ArrowUp/ArrowDown, support Home/End, and perform 500ms text-prefix typeahead while leaving Tab untrapped. Real Electron Quality menu opened on checked Ultra, ArrowDown wrapped to Standard, End/Home reached boundaries, and <code>h</code> focused High.</li>
+    <li>[validated] Capture slice 7: tray and app menus add Restart/Delete with parented native confirmation and duplicate-dialog protection. Confirmation dispatch is scoped to the active recorder session generation. Renderer cancellation waits for screen, webcam, and native microphone-fallback recorder stop events; native restart only proceeds after helper stop and file deletion both succeed, preserving existing source and device preferences. The macOS HUD is temporarily made focusable/non-passthrough and, when needed, promoted from accessory to regular only for the sheet lifecycle; exact HUD, focus, and activation state is restored through exception-safe cleanup. Targeted 74 tests, protected-file-excluding TypeScript, Biome, diff check, Vite build, and real tray/sheet/command runtime checks passed.</li>
+    <li>[validated] Capture accessibility: Project Browser now uses modal semantics, initial focus, a Tab loop, visible focus rings, and return focus to the stable More control even when the originating menu item unmounts. Countdown exposes assertive atomic status text and an auto-focused Cancel button. Area Selection retains pointer dragging and adds a compact keyboard disclosure with numeric Left/Top/Width/Height, submit, Cancel, and polite status updates. Targeted 5 tests, TypeScript, Biome, Vite build, and real Electron keyboard/runtime checks passed.</li>
+    <li>[validated] Capture visual certification: deterministic screenshots at 1440, 1280, 960, and 880 DIP show one centered, unified HUD with no clipping, overlap, detached overlays, or competing primary action. The 880 DIP layout collapses labels cleanly while retaining every recording decision. Final review widened the clipped drag affordance and reduced Close contrast so the red Record control remains the sole primary action.</li>
+  </ul>
+
+  <h2>Evidence</h2>
+  <ul>
+    <li>Editor Shell Slice 1.2 runtime contract and exact focus/breakpoint results: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/editor-inspector-runtime-5191073.json</code>, SHA-256 <code>e0ee646f6532c660f8f3934a7ec63536633f85b9e805a438702b4aadfb6a8710</code>.</li>
+    <li>Editor Shell Slice 1.2 visual evidence: <code>editor-inspector-1279x720-light-modal.png</code>, <code>editor-inspector-1279x720-dark-modal.png</code>, <code>editor-inspector-1279x720-reduced-transparency.png</code>, <code>editor-inspector-1280x720-high-contrast-docked.png</code>, and <code>editor-inspector-1440x900-long-labels-docked.png</code> in the goal evidence directory.</li>
+    <li>Editor Shell Slice 1.2 continuation handoff: <code>handoffs/2026-07-19-aureo-editor-shell-slice-1.2.md</code>.</li>
+    <li>Phase 0 baseline, fixture inventory, release decisions, and blocker matrix: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/phase-0-baseline-aa1150a.md</code>.</li>
+    <li>Read-only Electron security evidence: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/security-audit-aa1150a.md</code>; independent runner review <a href="https://ampcode.com/threads/T-019f78e0-f364-75ec-a7ed-6b18f676b061">AUR-SEC-002</a>.</li>
+    <li>Read-only selection evidence: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/selection-audit-aa1150a.md</code>; independent runner review <a href="https://ampcode.com/threads/T-019f78e0-fd47-73c4-88fe-3e022ff30532">AUR-SEL-002</a>.</li>
+    <li>Baseline commit: <code>e96ccfe Refine launch HUD source controls and webcam preview</code>.</li>
+    <li>Amp Project: <a href="https://ampcode.com/@rw8/Aureo">rw8/Aureo</a>.</li>
+    <li>Screen Studio benchmark orb: <a href="https://ampcode.com/threads/T-019f770a-306b-77c1-bc16-a396fe1f2a49">thread</a>.</li>
+    <li>Engineering plan orb: <a href="https://ampcode.com/threads/T-019f770a-38af-7666-a3f2-7bfff1212f0b">thread</a>.</li>
+    <li>Focused audit orbs: <a href="https://ampcode.com/threads/T-019f770a-b141-7095-b7a3-0298baaf1419">capture</a>, <a href="https://ampcode.com/threads/T-019f770a-b7cf-707a-9d49-9348dac190f0">editor</a>, <a href="https://ampcode.com/threads/T-019f770a-be96-7283-87d0-5f871a9ef253">timeline</a>, <a href="https://ampcode.com/threads/T-019f770a-c586-744d-82b3-c9ab41fb1ce8">export</a>, <a href="https://ampcode.com/threads/T-019f770a-cc9c-76fe-af46-8cc3b2668a21">native surfaces</a>, <a href="https://ampcode.com/threads/T-019f770a-d46c-71fd-87ed-f1df7865b925">validation</a>.</li>
+    <li>Foundation review: <a href="https://ampcode.com/threads/T-019f7721-3308-7098-ba56-fec05108c0bf">medium orb</a>; inheritance and false-confidence test findings fixed in slice 2.</li>
+    <li>Foundation runtime artifacts: <code>release/ui-ux-certification/2026-07-18T15-45-foundation/</code> (ignored generated evidence; default/source-open/quality-open/keyboard-focus/reduced-transparency).</li>
+    <li>Capture source runtime artifact: <code>release/ui-ux-certification/2026-07-18T15-58-capture-source/source-keyboard-browse.png</code>; CDP evidence shows Window remains the sole expanded mode while ArrowDown moves focus from the first to second option without changing selection or closing the dialog.</li>
+    <li>Capture focus runtime artifact: <code>release/ui-ux-certification/2026-07-18T16-10-capture-focus/source-window-open.png</code>; picker is anchored, legible, and unclipped. Visual review noted only the existing tight <code>Windows2</code> count spacing polish issue.</li>
+    <li>Final Capture viewport artifacts: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/capture-hud-1440x260.png</code>, <code>capture-hud-1280x260.png</code>, <code>capture-hud-960x260.png</code>, and <code>capture-hud-880x260.png</code>.</li>
+  </ul>
+
+  <h2>Capture Residual Limitations</h2>
+  <ul>
+    <li>Certification mode disables physical webcam hardware, so the real muted-camera preflight focus trap remains a physical-device pass; modal behavior is covered at component boundaries.</li>
+    <li>The Area Selection keyboard form was verified in a real virtual-desktop overlay and main-process geometry validation remains authoritative, but a heterogeneous multi-display arrangement was not physically exercised.</li>
+    <li>The original Documents repo remains preserved for forensic recovery of APFS-damaged local objects. The healthy Downloads clone is authoritative for subsequent work.</li>
+  </ul>
+
+  <h2>Next Goal Candidates</h2>
+  <ul>
+    <li>Immediate next slice: Editor Shell Slice 1.2 responsive Inspector ownership—one mount across 1279/1280, docked at larger widths, modal sheet below the breakpoint, complete focus containment/dismissal/return semantics, and no <code>SettingsPanel</code> framework rewrite.</li>
+    <li>Production and distribution readiness: the repository-specific critical path, Developer ID versus Mac App Store gates, security/privacy/legal blockers, clean-machine definition of done, and Amp agent-to-agent operating model are recorded in <code>handoffs/2026-07-19-aureo-production-release-roadmap.md</code>.</li>
+  </ul>
+  <script>
+    const progressEvents = [
+      {
+        ts: "2026-07-18T20:59:13Z",
+        status: "created",
+        phase: "start",
+        actor: "agent",
+        summary: "Goal ledger created."
+      },
+      {
+        ts: "2026-07-18T21:00:00Z",
+        status: "validated",
+        phase: "baseline",
+        actor: "agent",
+        summary: "Committed and pushed capture HUD baseline e96ccfe after TypeScript, 1391 tests, and Biome passed. Protected duplicate files were excluded and left untouched."
+      },
+      {
+        ts: "2026-07-18T21:03:00Z",
+        status: "doing",
+        phase: "plan-audit",
+        actor: "agent",
+        summary: "Added rw8/Aureo to Amp Projects, created the execution workflow, spawned eight read-only orb audits, and wrote the initial phase plan and gates."
+      },
+      {
+        ts: "2026-07-18T21:18:00Z",
+        status: "done",
+        phase: "plan-audit",
+        actor: "agent+orbs",
+        summary: "Consolidated capture, editor/inspector, export, validation, and engineering audits into a Screen Studio principle matrix, exact review-sized slices, explicit product boundaries, and visual/interaction/accessibility/automation gates. Timeline and native-boundary synthesis remain scoped follow-ups rather than falsely completed evidence."
+      },
+      {
+        ts: "2026-07-18T21:19:00Z",
+        status: "doing",
+        phase: "ui-foundation",
+        actor: "agent",
+        summary: "Started the first implementation phase: typed launch action contracts and no-visual-change shared semantic aliases, preserving Electron native menus and HUD transparent-window behavior."
+      },
+      {
+        ts: "2026-07-18T21:28:00Z",
+        status: "validated",
+        phase: "ui-foundation",
+        actor: "agent",
+        summary: "Completed Foundation slice 1: typed all launch popover IDs, narrowed native menu requests to webcam/more, added shared semantic UI aliases, and compatibly mapped launch light/dark/HUD tokens. TypeScript (protected duplicates excluded), 157 files/1394 tests, Biome, and diff check passed."
+      },
+      {
+        ts: "2026-07-18T21:49:40Z",
+        status: "validated",
+        phase: "ui-foundation",
+        actor: "agent+medium-orb",
+        summary: "Completed Foundation slice 2: migrated shared Button/HUD/source state roles, fixed nested reduced-transparency alias inheritance at both base and launch-theme cascade scopes, preserved dark focus color, tightened PostCSS selector tests and typed mocks, and captured real Electron default/open/focus/opaque HUD evidence. Full Vitest 157 files/1397 tests, TypeScript, Biome, Vite build, and diff check passed."
+      },
+      {
+        ts: "2026-07-18T22:00:00Z",
+        status: "validated",
+        phase: "capture-hud",
+        actor: "agent",
+        summary: "Capture slice 1 fixed source keyboard browsing versus activation, synchronized internal mode and dock open state, corrected dialog/expanded semantics, replaced the compound Radix trigger with an anchor, and released webcam passthrough after every pointer-up. Targeted 51 tests, TypeScript, Biome, Vite build, diff check, and real Electron keyboard traversal passed."
+      },
+      {
+        ts: "2026-07-18T22:10:00Z",
+        status: "validated",
+        phase: "capture-hud",
+        actor: "agent",
+        summary: "Capture slice 2 restored focus to the exact compound-source opener and made the consequential muted-camera preflight modal while leaving ordinary HUD popovers non-modal. Targeted 16 tests, TypeScript, Biome, production build, diff check, and Electron CDP source Escape/focus return passed."
+      },
+      {
+        ts: "2026-07-18T22:18:00Z",
+        status: "validated",
+        phase: "capture-hud",
+        actor: "agent",
+        summary: "Capture slice 3 routed keyboard webcam resizing through the shared pointer geometry, preserving fixed corners, viewport clamps, snap magnets, coarse and center modifiers, placement, and live size feedback. Targeted 65 tests, TypeScript, Biome, production build, and diff check passed."
+      },
+      {
+        ts: "2026-07-18T22:30:00Z",
+        status: "validated",
+        phase: "capture-hud",
+        actor: "agent",
+        summary: "Capture slice 4 made renderer recorder UI state authoritative for tray and macOS application menus, added Pause/Resume/Stop command routing, and held finalizing/countdown menus in non-mutating progress states. Targeted 68 tests, TypeScript, build, and real macOS menu/command checks passed."
+      },
+      {
+        ts: "2026-07-18T22:36:00Z",
+        status: "validated",
+        phase: "capture-hud",
+        actor: "agent",
+        summary: "Capture slice 5 added idle native New Recording source actions that open the existing HUD picker in Display, Window, Area, or Device mode. Targeted 11 tests, TypeScript, Biome, build, and real macOS status-menu Area launch passed."
+      },
+      {
+        ts: "2026-07-18T22:42:00Z",
+        status: "validated",
+        phase: "capture-hud",
+        actor: "agent",
+        summary: "Capture slice 6 completed the shared launch menu keyboard model: selected-first focus, wrapped arrows, Home/End, typeahead, programmatic menuitem tab stops, and untrapped Tab. Targeted 12 tests, TypeScript, Biome, build, and real Electron keyboard behavior passed."
+      },
+      {
+        ts: "2026-07-19T02:32:59Z",
+        status: "validated",
+        phase: "capture-hud",
+        actor: "agent",
+        summary: "Validated Capture slice 7 after repairing APFS-damaged tracked/dependency inodes without running Whisper. Native Restart/Delete sheets are interactable and parented to Aureo, Cancel and stale sessions dispatch nothing, confirmation deduplicates, successful confirmation dispatches one typed command, and renderer stop/delete barriers preserve restart settings. Targeted 74 tests, TypeScript, Biome, build, diff check, and real macOS runtime checks passed."
+      },
+      {
+        ts: "2026-07-19T03:34:17Z",
+        status: "recovered",
+        phase: "capture-hud",
+        actor: "agent",
+        summary: "Migrated the readable worktree to a healthy Downloads clone after APFS damaged local-only Git objects. Consolidated the seven unreachable local commits and validated Capture slice 7 as cfbb73a; post-commit status is clean and ahead one, diff check passed, protected * 2.* files were excluded, and no push occurred."
+      },
+      {
+        ts: "2026-07-19T03:52:02Z",
+        status: "validated",
+        phase: "capture-accessibility",
+        actor: "agent",
+        summary: "Completed Capture accessibility: Project Browser modal focus containment and stable return focus, assertive countdown semantics with a focusable Cancel action, and a keyboard form alternative for Area Selection. Targeted tests, TypeScript, Biome, build, and real Electron focus/keyboard checks passed."
+      },
+      {
+        ts: "2026-07-19T03:57:46Z",
+        status: "completed",
+        phase: "capture-certification",
+        actor: "agent",
+        summary: "Completed Capture certification at 1440, 1280, 960, and 880 DIP. All widths are unclipped and unified; the compact layout retains all actions. Final review fixed a clipped drag handle and reduced Close prominence so Record is the sole primary visual action."
+      },
+      {
+        ts: "2026-07-19T04:43:02Z",
+        status: "planned",
+        phase: "production-readiness-handoff",
+        actor: "agent+gpt-reviewers",
+        summary: "Recorded the full post-Capture production roadmap: Editor Shell, unified selection/Inspector/Timeline, project recovery, Export, Capture reliability, Whisper-last, security/privacy/legal closure, Developer ID and Mac App Store distribution gates, RC certification, and a sole-writer Amp agent-to-agent protocol. No release-readiness claim was made and no push occurred."
+      },
+      {
+        ts: "2026-07-19T05:36:37Z",
+        status: "validated",
+        phase: "production-phase-0",
+        actor: "agent+gpt-auditors",
+        summary: "Established the production baseline and fixed release-v1 fixture corpus at aa1150a. Vitest 1422/1422, TypeScript, i18n, and non-Whisper build smoke passed; existing full-Biome drift and one moderate production advisory were classified. Twelve media/project fixtures reproduce a stable checksum manifest. Read-only security and selection audits were recorded and independent local-runner reviews dispatched."
+      },
+      {
+        ts: "2026-07-19T07:11:33Z",
+        status: "red",
+        phase: "editor-shell-1.1",
+        actor: "agent",
+        summary: "Added the focused derived Editor shell-state contract. The isolated Vitest run failed at the intended missing ./EditorShellState module boundary, establishing RED evidence for empty/dirty/saving/saved/error identity, Save, close-confirmation, and Export behavior before implementation."
+      },
+      {
+        ts: "2026-07-19T07:17:00Z",
+        status: "validated",
+        phase: "editor-shell-1.1",
+        actor: "agent",
+        summary: "Implemented and integrated one discriminated Editor shell state without changing project serialization or main-process persistence. Focused Vitest passed 4 files / 17 tests; TypeScript, focused Biome, diff check, and protected-path check passed."
+      },
+      {
+        ts: "2026-07-19T07:26:49Z",
+        status: "red",
+        phase: "editor-shell-1.1-review",
+        actor: "independent-runner+agent",
+        summary: "Independent review found that a late old save or overlapping named/autosave completion could overwrite the replacement identity’s shell operation state. Deferred-promise and overlapping-operation regression tests reproduced both failures before the fix."
+      },
+      {
+        ts: "2026-07-19T07:30:21Z",
+        status: "validated",
+        phase: "editor-shell-1.1-review-fix",
+        actor: "agent",
+        summary: "Separated project identity from operation ownership, moved queued claims to actual execution, synchronously canceled pending autosave on identity replacement, guarded the current-project lookup before path/dialog effects, and retained identity tokens in React state so old callbacks cannot acquire new authority. Focused 3 files / 18 tests, full 165 files / 1433 tests, TypeScript, focused Biome, i18n, production build, Electron main smoke, and protected-path checks passed; independent re-review remains pending."
+      },
+      {
+        ts: "2026-07-19T06:52:17Z",
+        status: "approved",
+        phase: "editor-shell-1.1-review",
+        actor: "independent-runner",
+        summary: "Independent exact-scope re-review approved all six files with no high-confidence blockers. The reviewer directly read the four untracked shell/tracker files, verified the post-lookup ownership guard and identity/operation redesign, and reran focused 3 files / 18 tests, TypeScript, and scoped diff check."
+      },
+      {
+        ts: "2026-07-19T06:53:00Z",
+        status: "done",
+        phase: "editor-shell-1.1-checkpoint",
+        actor: "agent",
+        summary: "Committed the independently approved six-file Editor Shell Slice 1.1 as bde3b2c. The branch remained unpushed and clean, protected * 2.* and Whisper/model/runtime paths were untouched, and the next dependency-ordered slice is Editor Shell 1.2 responsive Inspector ownership."
+      },
+      {
+        ts: "2026-07-19T08:06:26Z",
+        status: "doing",
+        phase: "editor-shell-1.2",
+        actor: "agent",
+        summary: "Started Responsive Inspector ownership from clean 5191073 (ahead 7, behind 0). Restored the canonical goal, ledger, production roadmap, release configuration, and Phase 0 baseline; mapping current ownership and modal patterns precedes RED tests. No push or protected/Whisper work."
+      },
+      {
+        ts: "2026-07-19T08:10:22Z",
+        status: "red",
+        phase: "editor-shell-1.2",
+        actor: "agent",
+        summary: "Mapped the two mutually exclusive VideoEditor Inspector insertion points and existing Project Browser/Radix modal patterns. Focused ResponsiveInspector Vitest now fails 6/6 for the intended absent mode semantics, modal dialog/backdrop/inert contract, and Tab wrap behavior after a minimal harness scaffold removed the initial missing-module error."
+      },
+      {
+        ts: "2026-07-19T08:18:08Z",
+        status: "validated",
+        phase: "editor-shell-1.2-green",
+        actor: "agent",
+        summary: "Integrated one persistent ResponsiveInspector host without changing SettingsPanel business logic. Narrow mode now has dialog/backdrop/inert semantics, close-first initial focus, document Escape and Tab containment, and deferred exact toggle focus restoration; docking normalizes open state without moving panel ownership. Focused 4 files / 15 tests, TypeScript, focused Biome, diff check, and protected-path check passed."
+      },
+      {
+        ts: "2026-07-19T08:26:02Z",
+        status: "validated",
+        phase: "editor-shell-1.2-certification",
+        actor: "agent",
+        summary: "Real Electron CDP passed the 1279/1280 ownership and modal-focus contract, including exact Escape/backdrop return focus, inert background interception, and preserved Cursor Advanced state on the same SettingsPanel DOM identity. Five appearance/viewport screenshots were recorded. Full Vitest 166 files / 1441 tests, TypeScript, focused Biome, i18n, Vite build, Electron main smoke, diff, and protected-path checks passed; exact-diff review is next."
+      },
+      {
+        ts: "2026-07-19T08:39:54Z",
+        status: "red",
+        phase: "editor-shell-1.2-review-fix",
+        actor: "independent-reviewer+agent",
+        summary: "Exact-diff review requested changes: document-level Tab/Escape trapping conflicts with SettingsPanel Radix portals, and the actionable Sonner Toaster remains outside modal inert scope. Focused regression run now fails 2/9 for precisely those missing event-ownership and auxiliary-background isolation behaviors."
+      },
+      {
+        ts: "2026-07-19T08:42:44Z",
+        status: "validated",
+        phase: "editor-shell-1.2-review-fix",
+        actor: "agent",
+        summary: "Scoped the keyboard trap to sheet-owned event targets and isolated the Sonner notification layer during narrow modality. Focused shell tests pass 4 files / 17 tests; TypeScript, focused Biome, rebuilt production bundles/Electron main smoke, diff, and protected checks pass. Real Electron Select and Shortcuts Dialog portals each own Escape, close independently, keep Inspector modal, and return focus inside; notification wrapper is inert."
+      },
+      {
+        ts: "2026-07-19T08:49:00Z",
+        status: "approved",
+        phase: "editor-shell-1.2-review",
+        actor: "independent-reviewer",
+        summary: "Independent read-only exact-diff re-review returned APPROVE with no high-confidence blockers. It accepted the stable one-mount ownership, portal keyboard authority, notification isolation, focus timing/return, breakpoint normalization, layering, tests, and runtime evidence."
+      },
+      {
+        ts: "2026-07-19T08:51:56Z",
+        status: "validated",
+        phase: "editor-shell-1.2-checkpoint",
+        actor: "agent",
+        summary: "Final pre-commit gates passed: focused 4 files / 17 tests, full 166 files / 1443 tests, TypeScript, focused Biome, i18n, direct Vite production build, Electron main normalization/smoke, diff, runtime/visual, and protected-path checks. The aggregate build was mistakenly invoked, stopped at deferred Whisper for missing CMake, and an immediate inventory confirmed no extra file delta or staged runtime/model path."
+      }
+    ];
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderEvent(event) {
+      const status = escapeHtml(event.status || "event");
+      const phase = escapeHtml(event.phase || "general");
+      const actor = escapeHtml(event.actor || "agent");
+      const timestamp = escapeHtml(event.ts || "");
+      const summary = escapeHtml(event.summary || "");
+      return `
+        <article class="event">
+          <div class="event-head">
+            <span class="badge status-${status}">${status}</span>
+            <span class="phase">${phase}</span>
+            <span class="actor">${actor}</span>
+            <time datetime="${timestamp}">${timestamp}</time>
+          </div>
+          <p class="event-summary">${summary}</p>
+        </article>
+      `;
+    }
+
+    function renderProgressTimeline() {
+      const target = document.getElementById("progress-timeline");
+      const events = Array.isArray(progressEvents) ? progressEvents : [];
+      if (events.length === 0) {
+        target.innerHTML = "<p>No progress events recorded yet.</p>";
+        return;
+      }
+      target.innerHTML = events.map(renderEvent).join("");
+    }
+    renderProgressTimeline();
+  </script>
+</body>
+</html>

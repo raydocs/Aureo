@@ -6,6 +6,7 @@ export const WEBCAM_RESIZE_SNAP_TOLERANCE = 6;
 export const WEBCAM_RESIZE_QUANTIZE_STEP = 8;
 
 export type WebcamResizeCorner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
 
 function clamp(value: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, value));
@@ -149,4 +150,53 @@ export function computeResizedPreviewBox(params: {
 		offset: { x: round2(offsetX), y: round2(offsetY) },
 		snappedTo,
 	};
+}
+
+/** Adapt one keyboard arrow step to the same constrained geometry used by pointer resizing. */
+export function computeKeyboardResizedPreviewBox(params: {
+	corner: WebcamResizeCorner;
+	key: string;
+	startSize: number;
+	startOffset: { x: number; y: number };
+	coarse: boolean;
+	centerScale: boolean;
+	snapSizes: readonly number[];
+	viewport: { width: number; height: number };
+}): ReturnType<typeof computeResizedPreviewBox> | null {
+	const arrowKeys: readonly ArrowKey[] = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+	if (!arrowKeys.includes(params.key as ArrowKey)) return null;
+
+	const key = params.key as ArrowKey;
+	const grows =
+		(key === "ArrowLeft" && params.corner.endsWith("left")) ||
+		(key === "ArrowRight" && params.corner.endsWith("right")) ||
+		(key === "ArrowUp" && params.corner.startsWith("top")) ||
+		(key === "ArrowDown" && params.corner.startsWith("bottom"));
+	const shrinks =
+		(key === "ArrowLeft" && params.corner.endsWith("right")) ||
+		(key === "ArrowRight" && params.corner.endsWith("left")) ||
+		(key === "ArrowUp" && params.corner.startsWith("bottom")) ||
+		(key === "ArrowDown" && params.corner.startsWith("top"));
+	if (!grows && !shrinks) return null;
+
+	const cornerSign = {
+		x: params.corner.endsWith("left") ? -1 : 1,
+		y: params.corner.startsWith("top") ? -1 : 1,
+	};
+	const sizeStep = params.coarse ? 16 : 8;
+	const pointerStep = (grows ? sizeStep : -sizeStep) / (params.centerScale ? 2 : 1);
+
+	return computeResizedPreviewBox({
+		corner: params.corner,
+		startSize: params.startSize,
+		startOffset: params.startOffset,
+		delta: {
+			x: cornerSign.x * pointerStep,
+			y: cornerSign.y * pointerStep,
+		},
+		centerScale: params.centerScale,
+		quantize: false,
+		snapSizes: params.snapSizes,
+		viewport: params.viewport,
+	});
 }

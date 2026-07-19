@@ -1,4 +1,9 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type {
+	NativeCaptureSourceType,
+	NativeOpenableLaunchPopoverId,
+} from "../src/lib/launchPopoverIds";
+import type { RecorderMenuCommand, RecorderUiState } from "../src/lib/recorderUiState";
 import type { RecordingSessionData, RecordingWebcamAppearance } from "./ipc/types";
 
 type NativeVideoExportWriteResult = { success: boolean; error?: string };
@@ -185,12 +190,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	hudOverlaySetWebcamPreviewVisible: (visible: boolean) => {
 		ipcRenderer.send("hud-overlay-set-webcam-preview-visible", visible);
 	},
-	onHudOverlayOpenPopover: (callback: (popoverId: "webcam" | "more") => void) => {
-		const listener = (_event: Electron.IpcRendererEvent, popoverId: "webcam" | "more") => {
+	onHudOverlayOpenPopover: (callback: (popoverId: NativeOpenableLaunchPopoverId) => void) => {
+		const listener = (
+			_event: Electron.IpcRendererEvent,
+			popoverId: NativeOpenableLaunchPopoverId,
+		) => {
 			callback(popoverId);
 		};
 		ipcRenderer.on("hud-overlay-open-popover", listener);
 		return () => ipcRenderer.removeListener("hud-overlay-open-popover", listener);
+	},
+	onHudOverlayOpenSource: (callback: (sourceType: NativeCaptureSourceType) => void) => {
+		const listener = (_event: Electron.IpcRendererEvent, sourceType: NativeCaptureSourceType) =>
+			callback(sourceType);
+		ipcRenderer.on("hud-overlay-open-source", listener);
+		return () => ipcRenderer.removeListener("hud-overlay-open-source", listener);
 	},
 	getHudOverlayCaptureProtection: () => {
 		return ipcRenderer.invoke("get-hud-overlay-capture-protection");
@@ -612,6 +626,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	setRecordingState: (recording: boolean) => {
 		return ipcRenderer.invoke("set-recording-state", recording);
 	},
+	setRecorderUiState: (state: RecorderUiState) => {
+		return ipcRenderer.invoke("set-recorder-ui-state", state);
+	},
 	setCursorScale: (scale: number) => {
 		return ipcRenderer.invoke("set-cursor-scale", scale);
 	},
@@ -624,10 +641,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	getSystemCursorAssets: () => {
 		return ipcRenderer.invoke("get-system-cursor-assets");
 	},
-	onStopRecordingFromTray: (callback: () => void) => {
-		const listener = () => callback();
-		ipcRenderer.on("stop-recording-from-tray", listener);
-		return () => ipcRenderer.removeListener("stop-recording-from-tray", listener);
+	onRecorderMenuCommand: (callback: (command: RecorderMenuCommand) => void) => {
+		const listener = (_event: Electron.IpcRendererEvent, command: RecorderMenuCommand) =>
+			callback(command);
+		ipcRenderer.on("recorder-menu-command", listener);
+		return () => ipcRenderer.removeListener("recorder-menu-command", listener);
 	},
 	onRecordingStateChanged: (
 		callback: (state: { recording: boolean; sourceName: string }) => void,
@@ -711,7 +729,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			captionSidecar,
 		);
 	},
-	openVideoFilePicker: (options?: { includeProjects?: boolean }) => {
+	openVideoFilePicker: (options?: {
+		includeProjects?: boolean;
+		activateSelection?: boolean;
+		deadlineMs?: number;
+	}) => {
 		return ipcRenderer.invoke("open-video-file-picker", options);
 	},
 	openAudioFilePicker: () => {
@@ -765,6 +787,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		options?: {
 			preserveProjectPath?: boolean;
 			hideOverlayCursorByDefault?: boolean;
+			deadlineMs?: number;
 		},
 	) => {
 		return ipcRenderer.invoke("set-current-video-path", path, options);
@@ -777,7 +800,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			hideOverlayCursorByDefault?: boolean;
 			webcamAppearance?: RecordingWebcamAppearance | null;
 		},
-		options?: { preserveProjectPath?: boolean },
+		options?: { preserveProjectPath?: boolean; deadlineMs?: number },
 	) => {
 		return ipcRenderer.invoke("set-current-recording-session", session, options);
 	},
@@ -837,8 +860,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	loadProjectFile: () => {
 		return ipcRenderer.invoke("load-project-file");
 	},
-	loadCurrentProjectFile: () => {
-		return ipcRenderer.invoke("load-current-project-file");
+	loadCurrentProjectFile: (options?: { activate?: boolean; deadlineMs?: number }) => {
+		return ipcRenderer.invoke("load-current-project-file", options);
 	},
 	getProjectsDirectory: () => {
 		return ipcRenderer.invoke("get-projects-directory");
@@ -846,8 +869,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	listProjectFiles: () => {
 		return ipcRenderer.invoke("list-project-files");
 	},
-	openProjectFileAtPath: (filePath: string) => {
-		return ipcRenderer.invoke("open-project-file-at-path", filePath);
+	openProjectFileAtPath: (
+		filePath: string,
+		options?: { activate?: boolean; deadlineMs?: number },
+	) => {
+		return ipcRenderer.invoke("open-project-file-at-path", filePath, options);
 	},
 	openProjectsDirectory: () => {
 		return ipcRenderer.invoke("open-projects-directory");

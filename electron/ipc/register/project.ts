@@ -21,7 +21,6 @@ import {
 	persistRecordingsDirectorySetting,
 	rememberRecentProject,
 	replaceApprovedSessionLocalReadPaths,
-	rememberApprovedLocalReadPath,
 	resolveApprovedLocalMediaPath,
 	saveProjectThumbnail,
   saveRecentProjectPaths,
@@ -42,7 +41,6 @@ import {
 } from "../state";
 import type { RecordingSessionData } from "../types";
 import {
-	approveUserPath,
 	getRecordingsDir,
 	getTelemetryPathForVideo,
 	isAutoRecordingPath,
@@ -56,6 +54,15 @@ function normalizeRecordingTimeOffsetMs(value: unknown): number {
 
 function normalizeBoolean(value: unknown, fallback = false): boolean {
   return typeof value === "boolean" ? value : fallback;
+}
+
+function getActivatedMediaUrl(videoPath: string | null) {
+  try {
+    const baseUrl = getMediaServerBaseUrl()
+    return baseUrl && videoPath ? buildMediaUrl(baseUrl, videoPath) : null
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -498,13 +505,16 @@ export function registerProjectHandlers() {
     }
   })
 
-  ipcMain.handle('load-current-project-file', async () => {
+  ipcMain.handle('load-current-project-file', async (_, options?: { activate?: boolean; deadlineMs?: number }) => {
     try {
       if (!currentProjectPath) {
         return { success: false, message: 'No active project' }
       }
 
-      return await loadProjectFromPath(currentProjectPath)
+      const result = await loadProjectFromPath(currentProjectPath, options)
+      return result.success && options?.activate !== false
+        ? { ...result, mediaUrl: getActivatedMediaUrl(currentVideoPath) }
+        : result
     } catch (error) {
       console.error('Failed to load current project file:', error)
       return {
@@ -547,9 +557,12 @@ export function registerProjectHandlers() {
     }
   })
 
-  ipcMain.handle('open-project-file-at-path', async (_, filePath: string) => {
+  ipcMain.handle('open-project-file-at-path', async (_, filePath: string, options?: { activate?: boolean; deadlineMs?: number }) => {
     try {
-      return await loadProjectFromPath(filePath)
+      const result = await loadProjectFromPath(filePath, options)
+      return result.success && options?.activate !== false
+        ? { ...result, mediaUrl: getActivatedMediaUrl(currentVideoPath) }
+        : result
     } catch (error) {
       console.error('Failed to open project file at path:', error)
       return {
@@ -574,12 +587,11 @@ export function registerProjectHandlers() {
       return { success: false, error: String(error), message: 'Failed to open projects folder.' }
     }
   })
-  ipcMain.handle('set-current-video-path', async (_, path: string, options?: { preserveProjectPath?: boolean; hideOverlayCursorByDefault?: boolean }) => {
-    setCurrentVideoPath(normalizeVideoSourcePath(path) ?? path)
-    approveUserPath(currentVideoPath)
-    const resolvedSession = await resolveRecordingSession(currentVideoPath)
+  ipcMain.handle('set-current-video-path', async (_, path: string, options?: { preserveProjectPath?: boolean; hideOverlayCursorByDefault?: boolean; deadlineMs?: number }) => {
+    const nextVideoPath = normalizeVideoSourcePath(path) ?? path
+    const resolvedSession = await resolveRecordingSession(nextVideoPath)
       ?? {
-        videoPath: currentVideoPath!,
+        videoPath: nextVideoPath,
         webcamPath: null,
         timeOffsetMs: 0,
       }
@@ -591,30 +603,44 @@ export function registerProjectHandlers() {
         normalizeBoolean(resolvedSession.hideOverlayCursorByDefault),
     }
 
-    setCurrentRecordingSession(nextSession)
-    await replaceApprovedSessionLocalReadPaths([
-      resolvedSession.videoPath,
-      resolvedSession.webcamPath,
-    ])
-
     if (nextSession.webcamPath) {
       await persistRecordingSessionManifest(nextSession)
     }
 
+    const approved = await replaceApprovedSessionLocalReadPaths(
+      [resolvedSession.videoPath, resolvedSession.webcamPath],
+      { deadlineMs: options?.deadlineMs },
+    )
+    if (!approved) {
+      return { success: false, message: 'Media load expired before activation' }
+    }
+
+    const mediaUrl = getActivatedMediaUrl(nextVideoPath)
+    const windows = BrowserWindow.getAllWindows()
+    setCurrentVideoPath(nextVideoPath)
+    setCurrentRecordingSession(nextSession)
     if (!options?.preserveProjectPath) {
       setCurrentProjectPath(null)
     }
 
-    for (const window of BrowserWindow.getAllWindows()) {
+    for (const window of windows) {
       if (!window.isDestroyed()) {
-        window.webContents.send('recording-session-changed', nextSession);
+        try {
+          window.webContents.send('recording-session-changed', nextSession)
+        } catch (error) {
+          console.warn('Failed to broadcast recording session activation:', error)
+        }
       }
     }
 
-    return { success: true, webcamPath: nextSession.webcamPath ?? null }
+    return {
+      success: true,
+      webcamPath: nextSession.webcamPath ?? null,
+      mediaUrl,
+    }
   })
 
-  ipcMain.handle('set-current-recording-session', async (_, session: RecordingSessionData, options?: { preserveProjectPath?: boolean }) => {
+  ipcMain.handle('set-current-recording-session', async (_, session: RecordingSessionData, options?: { preserveProjectPath?: boolean; deadlineMs?: number }) => {
     const normalizedVideoPath = normalizeVideoSourcePath(session.videoPath) ?? session.videoPath
     // When webcamAppearance is omitted, carry the stored framing so editor time-offset
     // tweaks do not clobber crop/mirror. Explicit null clears it.
@@ -626,28 +652,42 @@ export function registerProjectHandlers() {
       session.webcamAppearance,
       existingAppearance,
     )
-    setCurrentVideoPath(normalizedVideoPath)
-    setCurrentRecordingSession({
+    const nextSession: RecordingSessionData = {
       videoPath: normalizedVideoPath,
       webcamPath: normalizeVideoSourcePath(session.webcamPath ?? null),
       timeOffsetMs: normalizeRecordingTimeOffsetMs(session.timeOffsetMs),
       hideOverlayCursorByDefault: normalizeBoolean(session.hideOverlayCursorByDefault),
       webcamAppearance,
-    });
-    await rememberApprovedLocalReadPath(currentRecordingSession!.videoPath)
-    await rememberApprovedLocalReadPath(currentRecordingSession!.webcamPath)
+    }
+    await persistRecordingSessionManifest(nextSession)
+
+    const approved = await replaceApprovedSessionLocalReadPaths(
+      [nextSession.videoPath, nextSession.webcamPath],
+      { deadlineMs: options?.deadlineMs },
+    )
+    if (!approved) {
+      return { success: false, message: 'Recording session load expired before activation' }
+    }
+
+    const mediaUrl = getActivatedMediaUrl(normalizedVideoPath)
+    const windows = BrowserWindow.getAllWindows()
+    setCurrentVideoPath(normalizedVideoPath)
+    setCurrentRecordingSession(nextSession)
     if (!options?.preserveProjectPath) {
       setCurrentProjectPath(null)
     }
-    await persistRecordingSessionManifest(currentRecordingSession!)
 
-    for (const window of BrowserWindow.getAllWindows()) {
+    for (const window of windows) {
       if (!window.isDestroyed()) {
-        window.webContents.send('recording-session-changed', currentRecordingSession);
+        try {
+          window.webContents.send('recording-session-changed', nextSession)
+        } catch (error) {
+          console.warn('Failed to broadcast recording session activation:', error)
+        }
       }
     }
 
-    return { success: true }
+    return { success: true, mediaUrl }
   })
 
   ipcMain.handle('get-current-recording-session', () => {

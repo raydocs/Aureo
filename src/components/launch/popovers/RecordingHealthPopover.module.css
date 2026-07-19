@@ -79,33 +79,3 @@
 .recordingHealthStatusUnknown {
 	color: var(--launch-label);
 }
-
-.dark .recordingHealthIconSuccess,
-.launch-theme.dark .recordingHealthIconSuccess {
-	color: #4ade80;
-}
-
-.dark .recordingHealthIconWarning,
-.launch-theme.dark .recordingHealthIconWarning {
-	color: #fbbf24;
-}
-
-.dark .recordingHealthIconError,
-.launch-theme.dark .recordingHealthIconError {
-	color: #f87171;
-}
-
-.dark .recordingHealthStatusSuccess,
-.launch-theme.dark .recordingHealthStatusSuccess {
-	color: #4ade80;
-}
-
-.dark .recordingHealthStatusWarning,
-.launch-theme.dark .recordingHealthStatusWarning {
-	color: #fbbf24;
-}
-
-.dark .recordingHealthStatusError,
-.launch-theme.dark .recordingHealthStatusError {
-	color: #f87171;
-}

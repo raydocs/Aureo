@@ -91,13 +91,13 @@
 
   <h2>Resume Here</h2>
   <ul>
-    <li><strong>Status:</strong> [doing] Capture HUD. Plan, UI Foundation, and Capture slices 1–7 are complete; APFS recovery commit <code>cfbb73a</code> is local on <code>feat/launch-menu-bar-upgrade</code>.</li>
-    <li><strong>Current phase:</strong> Finish Capture HUD interaction architecture and evidence before moving to Editor Shell.</li>
-    <li><strong>Completed:</strong> Typed/state foundation, source keyboard browsing versus activation, compound source anchor/expanded synchronization, webcam passthrough release, source close focus restoration, modal recording preflight, pointer-equivalent keyboard webcam resize, native state synchronization, idle New Recording source launch actions, and confirmed native Restart/Delete with renderer-owned recorder transitions.</li>
-    <li><strong>Active work:</strong> Capture multi-viewport screenshots and complete the final Capture visual/accessibility review.</li>
+    <li><strong>Status:</strong> [done] Capture HUD. Plan, UI Foundation, Capture slices 1–7, accessibility, and responsive visual certification are complete on <code>feat/launch-menu-bar-upgrade</code>.</li>
+    <li><strong>Current phase:</strong> Capture HUD is certified; transition next to Editor Shell.</li>
+    <li><strong>Completed:</strong> Typed/state foundation, source keyboard browsing versus activation, compound source anchor/expanded synchronization, webcam passthrough release, source close focus restoration, modal recording preflight, pointer-equivalent keyboard webcam resize, native state synchronization, idle and destructive native recording actions, Project Browser focus safety, countdown semantics, Area Selection keyboard access, and 1440/1280/960/880 DIP visual review.</li>
+    <li><strong>Active work:</strong> None in Capture. The next implementation phase is Editor Shell.</li>
     <li><strong>Blockers:</strong> No implementation blocker in the healthy recovery clone at <code>/Users/ruirui/Downloads/recordlyx-recovery</code>. The original Documents repo remains preserved with APFS-damaged local objects; its seven local commits plus slice 7 were consolidated into recovery commit <code>cfbb73a</code>.</li>
-    <li><strong>Next action:</strong> Perform Capture multi-viewport visual review and record residual limitations. Whisper runtime replacement remains explicitly deferred until the end.</li>
-    <li><strong>Last validation:</strong> Capture accessibility passed 4 targeted files / 5 tests, TypeScript, Biome, diff check, and Vite renderer/main/preload build. Real Electron proved Project Browser modal initial focus, trapped Tab, Escape return to More, countdown assertive/atomic live text with auto-focused Cancel, and a focusable Area Selection keyboard form with numeric bounds and Cancel.</li>
+    <li><strong>Next action:</strong> Begin Editor Shell from the audited controller/header/inspector boundaries. Whisper runtime replacement remains explicitly deferred until the end.</li>
+    <li><strong>Last validation:</strong> Capture visual certification passed at 1440, 1280, 960, and 880 DIP. The final HUD has no clipping, overlap, detached overlays, or competing primary actions; 880 DIP collapses cleanly to icons. The audit fixed a clipped drag handle and demoted Close so Record remains the sole primary visual action.</li>
     <li><strong>Protected paths:</strong> All untracked files matching <code>* 2.*</code>. They appear to be duplicate/backup files; do not delete, modify, stage, or use them as implementation sources without user approval.</li>
   </ul>
 
@@ -207,6 +207,7 @@
     <li>[validated] Capture slice 6: shared launch command menus now use programmatic-only menuitem tab stops, focus the checked item (or first enabled item) on open, wrap ArrowUp/ArrowDown, support Home/End, and perform 500ms text-prefix typeahead while leaving Tab untrapped. Real Electron Quality menu opened on checked Ultra, ArrowDown wrapped to Standard, End/Home reached boundaries, and <code>h</code> focused High.</li>
     <li>[validated] Capture slice 7: tray and app menus add Restart/Delete with parented native confirmation and duplicate-dialog protection. Confirmation dispatch is scoped to the active recorder session generation. Renderer cancellation waits for screen, webcam, and native microphone-fallback recorder stop events; native restart only proceeds after helper stop and file deletion both succeed, preserving existing source and device preferences. The macOS HUD is temporarily made focusable/non-passthrough and, when needed, promoted from accessory to regular only for the sheet lifecycle; exact HUD, focus, and activation state is restored through exception-safe cleanup. Targeted 74 tests, protected-file-excluding TypeScript, Biome, diff check, Vite build, and real tray/sheet/command runtime checks passed.</li>
     <li>[validated] Capture accessibility: Project Browser now uses modal semantics, initial focus, a Tab loop, visible focus rings, and return focus to the stable More control even when the originating menu item unmounts. Countdown exposes assertive atomic status text and an auto-focused Cancel button. Area Selection retains pointer dragging and adds a compact keyboard disclosure with numeric Left/Top/Width/Height, submit, Cancel, and polite status updates. Targeted 5 tests, TypeScript, Biome, Vite build, and real Electron keyboard/runtime checks passed.</li>
+    <li>[validated] Capture visual certification: deterministic screenshots at 1440, 1280, 960, and 880 DIP show one centered, unified HUD with no clipping, overlap, detached overlays, or competing primary action. The 880 DIP layout collapses labels cleanly while retaining every recording decision. Final review widened the clipped drag affordance and reduced Close contrast so the red Record control remains the sole primary action.</li>
   </ul>
 
   <h2>Evidence</h2>
@@ -220,11 +221,19 @@
     <li>Foundation runtime artifacts: <code>release/ui-ux-certification/2026-07-18T15-45-foundation/</code> (ignored generated evidence; default/source-open/quality-open/keyboard-focus/reduced-transparency).</li>
     <li>Capture source runtime artifact: <code>release/ui-ux-certification/2026-07-18T15-58-capture-source/source-keyboard-browse.png</code>; CDP evidence shows Window remains the sole expanded mode while ArrowDown moves focus from the first to second option without changing selection or closing the dialog.</li>
     <li>Capture focus runtime artifact: <code>release/ui-ux-certification/2026-07-18T16-10-capture-focus/source-window-open.png</code>; picker is anchored, legible, and unclipped. Visual review noted only the existing tight <code>Windows2</code> count spacing polish issue.</li>
+    <li>Final Capture viewport artifacts: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/capture-hud-1440x260.png</code>, <code>capture-hud-1280x260.png</code>, <code>capture-hud-960x260.png</code>, and <code>capture-hud-880x260.png</code>.</li>
+  </ul>
+
+  <h2>Capture Residual Limitations</h2>
+  <ul>
+    <li>Certification mode disables physical webcam hardware, so the real muted-camera preflight focus trap remains a physical-device pass; modal behavior is covered at component boundaries.</li>
+    <li>The Area Selection keyboard form was verified in a real virtual-desktop overlay and main-process geometry validation remains authoritative, but a heterogeneous multi-display arrangement was not physically exercised.</li>
+    <li>The original Documents repo remains preserved for forensic recovery of APFS-damaged local objects. The healthy Downloads clone is authoritative for subsequent work.</li>
   </ul>
 
   <h2>Next Goal Candidates</h2>
   <ul>
-    <li>Empty at start.</li>
+    <li>Editor Shell: stabilize project identity, dirty/save/export hierarchy, drag/no-drag regions, and responsive inspector ownership at 1279×720 and 1440×900.</li>
   </ul>
   <script>
     const progressEvents = [
@@ -339,6 +348,13 @@
         phase: "capture-accessibility",
         actor: "agent",
         summary: "Completed Capture accessibility: Project Browser modal focus containment and stable return focus, assertive countdown semantics with a focusable Cancel action, and a keyboard form alternative for Area Selection. Targeted tests, TypeScript, Biome, build, and real Electron focus/keyboard checks passed."
+      },
+      {
+        ts: "2026-07-19T03:57:46Z",
+        status: "completed",
+        phase: "capture-certification",
+        actor: "agent",
+        summary: "Completed Capture certification at 1440, 1280, 960, and 880 DIP. All widths are unclipped and unified; the compact layout retains all actions. Final review fixed a clipped drag handle and reduced Close prominence so Record is the sole primary visual action."
       }
     ];
 

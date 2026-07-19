@@ -349,7 +349,7 @@
 
 .dragHandle {
 	display: flex;
-	width: 6px;
+	width: 12px;
 	height: 44px;
 	align-items: center;
 	justify-content: center;
@@ -474,17 +474,18 @@
 	width: 32px;
 	height: 32px;
 	border-radius: 999px !important;
-	background: var(--launch-text);
-	color: var(--launch-surface-solid);
+	border: 1px solid var(--launch-border-strong);
+	background: var(--launch-hover);
+	color: var(--launch-text-muted);
 }
 
 .closeButton:hover {
-	background: #ffffff;
-	color: #252527;
+	background: var(--launch-selected);
+	color: var(--launch-text);
 }
 
 .closeButton:focus-visible {
-	outline-color: var(--launch-text);
+	outline-color: var(--launch-accent);
 	outline-offset: 3px;
 }
 

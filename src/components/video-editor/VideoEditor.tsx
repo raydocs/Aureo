@@ -183,8 +183,15 @@ import {
 } from "./projectPersistence";
 import { SettingsPanel } from "./SettingsPanel";
 import { EditorHeaderLayout } from "./shell/EditorHeaderLayout";
+import { deriveEditorShellState, type ProjectSaveOperation } from "./shell/EditorShellState";
 import { EditorTransport } from "./shell/EditorTransport";
 import { PreviewVolumeControl } from "./shell/PreviewVolumeControl";
+import {
+	createProjectSaveOperationTracker,
+	type ProjectIdentityToken,
+	type ProjectSaveOperationToken,
+	type ProjectSaveOperationTracker,
+} from "./shell/ProjectSaveOperationTracker";
 import { getDevOpenRecordingConfig, getSmokeExportConfig } from "./smokeExportConfig";
 import { createSmokeExportProgressSampler } from "./smokeExportProgress";
 import { APP_HEADER_ICON_BUTTON_CLASS, DiscordLinkButton, FeedbackDialog } from "./TutorialHelp";
@@ -435,6 +442,17 @@ export default function VideoEditor() {
 	const [isEditingProjectName, setIsEditingProjectName] = useState(false);
 	const [projectNameDraft, setProjectNameDraft] = useState("");
 	const [isSavingProjectName, setIsSavingProjectName] = useState(false);
+	const [projectSaveOperation, setProjectSaveOperation] = useState<ProjectSaveOperation>({
+		status: "idle",
+	});
+	const projectSaveOperationTrackerRef = useRef<ProjectSaveOperationTracker | null>(null);
+	if (projectSaveOperationTrackerRef.current === null) {
+		projectSaveOperationTrackerRef.current = createProjectSaveOperationTracker();
+	}
+	const projectSaveOperationTracker = projectSaveOperationTrackerRef.current;
+	const [projectIdentityToken, setProjectIdentityToken] = useState<ProjectIdentityToken>(() =>
+		projectSaveOperationTracker.currentIdentity(),
+	);
 	const [projectSaveDialogOpen, setProjectSaveDialogOpen] = useState(false);
 	const [projectSaveDialogDraft, setProjectSaveDialogDraft] = useState("");
 	const [isSavingProjectDialog, setIsSavingProjectDialog] = useState(false);
@@ -1606,6 +1624,30 @@ export default function VideoEditor() {
 			projectAutosaveTimeoutRef.current = null;
 		}
 	}, []);
+	const claimProjectSaveOperation = useCallback(
+		(identity: ProjectIdentityToken) => projectSaveOperationTracker.claimOperation(identity),
+		[projectSaveOperationTracker],
+	);
+	const isProjectIdentityCurrent = useCallback(
+		(identity: ProjectIdentityToken) => projectSaveOperationTracker.isIdentityCurrent(identity),
+		[projectSaveOperationTracker],
+	);
+	const updateProjectSaveOperation = useCallback(
+		(token: ProjectSaveOperationToken, operation: ProjectSaveOperation) =>
+			projectSaveOperationTracker.commitOperation(token, () =>
+				setProjectSaveOperation(operation),
+			),
+		[projectSaveOperationTracker],
+	);
+	const isProjectSaveOperationCurrent = useCallback(
+		(token: ProjectSaveOperationToken) => projectSaveOperationTracker.isOperationCurrent(token),
+		[projectSaveOperationTracker],
+	);
+	const resetProjectSaveOperation = useCallback(() => {
+		clearPendingProjectAutosave();
+		setProjectIdentityToken(projectSaveOperationTracker.invalidateIdentity());
+		setProjectSaveOperation({ status: "idle" });
+	}, [clearPendingProjectAutosave, projectSaveOperationTracker]);
 
 	const queueProjectSave = useCallback((task: () => Promise<boolean>) => {
 		const run = projectSaveQueueRef.current.catch(() => undefined).then(task);
@@ -2026,35 +2068,7 @@ export default function VideoEditor() {
 		() => videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null),
 		[videoPath, videoSourcePath],
 	);
-	const projectDisplayName = useMemo(() => {
-		const fileName =
-			currentProjectPath?.split(/[\\/]/).pop() ??
-			currentSourcePath?.split(/[\\/]/).pop() ??
-			"";
-		const withoutExtension = fileName.replace(/\.aureo$/i, "").replace(/\.[^.]+$/, "");
-		return withoutExtension || t("editor.project.untitled", "Untitled");
-	}, [currentProjectPath, currentSourcePath, t]);
-
-	useEffect(() => {
-		if (!isEditingProjectName) {
-			setProjectNameDraft(projectDisplayName);
-		}
-	}, [isEditingProjectName, projectDisplayName]);
-
-	useEffect(() => {
-		if (!isEditingProjectName) {
-			return;
-		}
-
-		const frameId = window.requestAnimationFrame(() => {
-			projectNameInputRef.current?.focus();
-			projectNameInputRef.current?.select();
-		});
-
-		return () => {
-			window.cancelAnimationFrame(frameId);
-		};
-	}, [isEditingProjectName]);
+	const projectSaveSourcePathRef = useRef(currentSourcePath);
 
 	useEffect(() => {
 		if (!projectSaveDialogOpen) {
@@ -2334,6 +2348,7 @@ export default function VideoEditor() {
 			setVideoSourcePath(sourcePath);
 			setVideoPath(await resolveVideoUrl(sourcePath));
 			setCurrentProjectPath(path ?? null);
+			resetProjectSaveOperation();
 			pendingFreshRecordingAutoZoomPathRef.current = null;
 			if (normalizedEditor.webcam.sourcePath) {
 				await window.electronAPI.setCurrentRecordingSession?.(
@@ -2487,6 +2502,7 @@ export default function VideoEditor() {
 			applySessionPresentation,
 			buildPersistedEditorState,
 			refreshProjectLibrary,
+			resetProjectSaveOperation,
 			syncHistoryButtons,
 		],
 	);
@@ -2621,10 +2637,11 @@ export default function VideoEditor() {
 		nextAnnotationZIndexRef.current = 1;
 		pendingFreshRecordingAutoSuggestTelemetryCountRef.current = 0;
 		autoSuggestedVideoPathRef.current = null;
+		resetProjectSaveOperation();
 		resetEditorHistoryStack(editorHistoryRef.current);
 		applyingHistoryRef.current = false;
 		syncHistoryButtons();
-	}, [syncHistoryButtons]);
+	}, [resetProjectSaveOperation, syncHistoryButtons]);
 
 	const handleUploadWebcam = useCallback(async () => {
 		const result = await window.electronAPI.openVideoFilePicker();
@@ -2677,11 +2694,72 @@ export default function VideoEditor() {
 		() => hasUnsavedProjectChanges(currentProjectSnapshot, lastSavedSnapshot),
 		[currentProjectSnapshot, lastSavedSnapshot],
 	);
-	const projectSaveStatusLabel = hasUnsavedChanges
-		? t("editor.project.unsavedChanges", "Unsaved changes")
-		: currentProjectPath
-			? t("editor.project.saved", "Saved")
-			: t("editor.project.notSavedYet", "Not saved yet");
+	const editorShellState = useMemo(
+		() =>
+			deriveEditorShellState({
+				currentProjectPath,
+				currentSourcePath,
+				hasVideo: Boolean(videoPath),
+				hasUnsavedChanges,
+				saveOperation: projectSaveOperation,
+				untitledName: t("editor.project.untitled", "Untitled"),
+			}),
+		[
+			currentProjectPath,
+			currentSourcePath,
+			hasUnsavedChanges,
+			projectSaveOperation,
+			t,
+			videoPath,
+		],
+	);
+	const projectDisplayName = editorShellState.projectName;
+	const projectSaveStatusLabel = useMemo(() => {
+		switch (editorShellState.status) {
+			case "dirty":
+				return t("editor.project.unsavedChanges", "Unsaved changes");
+			case "saving":
+				return t("editor.project.saving", "Saving...");
+			case "saved":
+				return t("editor.project.saved", "Saved");
+			case "error":
+				return t("editor.project.saveError", "Save failed: {{message}}", {
+					message: editorShellState.errorMessage,
+				});
+			case "not-saved":
+			case "empty":
+				return t("editor.project.notSavedYet", "Not saved yet");
+		}
+	}, [editorShellState, t]);
+
+	useEffect(() => {
+		if (!isEditingProjectName) {
+			setProjectNameDraft(projectDisplayName);
+		}
+	}, [isEditingProjectName, projectDisplayName]);
+
+	useEffect(() => {
+		if (!isEditingProjectName) {
+			return;
+		}
+
+		const frameId = window.requestAnimationFrame(() => {
+			projectNameInputRef.current?.focus();
+			projectNameInputRef.current?.select();
+		});
+
+		return () => {
+			window.cancelAnimationFrame(frameId);
+		};
+	}, [isEditingProjectName]);
+
+	useEffect(() => {
+		if (projectSaveSourcePathRef.current === currentSourcePath) {
+			return;
+		}
+		projectSaveSourcePathRef.current = currentSourcePath;
+		resetProjectSaveOperation();
+	}, [currentSourcePath, resetProjectSaveOperation]);
 
 	useEffect(() => {
 		async function loadInitialData() {
@@ -3271,14 +3349,24 @@ export default function VideoEditor() {
 
 	const saveProject = useCallback(
 		async (forceSaveAs: boolean, options?: SaveProjectOptions) => {
+			if (!currentSourcePath) {
+				if (!options?.silent) {
+					toast.error("No video loaded");
+				}
+				return false;
+			}
+
 			clearPendingProjectAutosave();
+			const saveIdentityToken = projectIdentityToken;
 			return queueProjectSave(async () => {
-				if (!currentSourcePath) {
-					if (!options?.silent) {
-						toast.error("No video loaded");
-					}
+				if (!isProjectIdentityCurrent(saveIdentityToken)) {
 					return false;
 				}
+				const saveOperationToken = claimProjectSaveOperation(saveIdentityToken);
+				if (!saveOperationToken) {
+					return false;
+				}
+				updateProjectSaveOperation(saveOperationToken, { status: "saving" });
 
 				const shouldCaptureThumbnail = options?.captureThumbnail ?? true;
 				const shouldRefreshLibrary = options?.refreshLibraryAfterSave ?? true;
@@ -3306,6 +3394,9 @@ export default function VideoEditor() {
 					if (!forceSaveAs && !targetProjectPath) {
 						const activeProjectResult =
 							await window.electronAPI.loadCurrentProjectFile();
+						if (!isProjectSaveOperationCurrent(saveOperationToken)) {
+							return false;
+						}
 						if (activeProjectResult.success && activeProjectResult.path) {
 							targetProjectPath = activeProjectResult.path;
 							setCurrentProjectPath(activeProjectResult.path);
@@ -3313,16 +3404,24 @@ export default function VideoEditor() {
 					}
 
 					if (forceSaveAs || !targetProjectPath) {
+						updateProjectSaveOperation(saveOperationToken, { status: "idle" });
 						if (options?.silent) {
 							return false;
 						}
 
-						return openProjectSaveDialog(projectDisplayName || fileNameBase);
+						const saved = await openProjectSaveDialog(
+							projectDisplayName || fileNameBase,
+						);
+						updateProjectSaveOperation(saveOperationToken, { status: "idle" });
+						return saved;
 					}
 
 					const thumbnailDataUrl = shouldCaptureThumbnail
 						? await captureProjectThumbnail()
 						: undefined;
+					if (!isProjectSaveOperationCurrent(saveOperationToken)) {
+						return false;
+					}
 
 					const result = await window.electronAPI.saveProjectFile(
 						projectData,
@@ -3330,8 +3429,12 @@ export default function VideoEditor() {
 						targetProjectPath,
 						thumbnailDataUrl,
 					);
+					if (!isProjectSaveOperationCurrent(saveOperationToken)) {
+						return false;
+					}
 
 					if (result.canceled) {
+						updateProjectSaveOperation(saveOperationToken, { status: "idle" });
 						if (!options?.silent) {
 							toast.info("Project save canceled");
 						}
@@ -3339,8 +3442,13 @@ export default function VideoEditor() {
 					}
 
 					if (!result.success) {
-						if (!options?.silent) {
-							toast.error(result.message || "Failed to save project");
+						const message = result.message || "Failed to save project";
+						const updated = updateProjectSaveOperation(saveOperationToken, {
+							status: "error",
+							message,
+						});
+						if (updated && !options?.silent) {
+							toast.error(message);
 						}
 						return false;
 					}
@@ -3360,13 +3468,27 @@ export default function VideoEditor() {
 					if (shouldRefreshLibrary) {
 						await refreshProjectLibrary();
 					}
+					if (!isProjectSaveOperationCurrent(saveOperationToken)) {
+						return false;
+					}
+					updateProjectSaveOperation(saveOperationToken, { status: "idle" });
 
 					if (!options?.silent) {
 						toast.success(`Project saved to ${result.path}`);
 					}
 					return true;
+				} catch (error) {
+					const message = getErrorMessage(error);
+					const updated = updateProjectSaveOperation(saveOperationToken, {
+						status: "error",
+						message,
+					});
+					if (updated && !options?.silent) {
+						toast.error(message);
+					}
+					return false;
 				} finally {
-					if (shouldRemountPreview) {
+					if (shouldRemountPreview && isProjectSaveOperationCurrent(saveOperationToken)) {
 						remountPreview();
 					}
 				}
@@ -3374,23 +3496,28 @@ export default function VideoEditor() {
 		},
 		[
 			captureProjectThumbnail,
+			claimProjectSaveOperation,
 			clearPendingProjectAutosave,
 			currentSourcePath,
 			currentProjectPath,
 			currentProjectSnapshot,
 			currentPersistedEditorState,
 			lastSavedSnapshot?.projectId,
+			isProjectIdentityCurrent,
+			isProjectSaveOperationCurrent,
 			openProjectSaveDialog,
 			projectDisplayName,
+			projectIdentityToken,
 			queueProjectSave,
 			refreshProjectLibrary,
 			remountPreview,
+			updateProjectSaveOperation,
 		],
 	);
 
 	useEffect(() => {
-		window.electronAPI.setHasUnsavedChanges(hasUnsavedChanges);
-	}, [hasUnsavedChanges]);
+		window.electronAPI.setHasUnsavedChanges(editorShellState.shouldConfirmClose);
+	}, [editorShellState.shouldConfirmClose]);
 
 	useEffect(() => {
 		const cleanup = window.electronAPI.onRequestSaveBeforeClose(async () => {
@@ -3401,15 +3528,21 @@ export default function VideoEditor() {
 	}, [saveProject]);
 
 	const handleSaveProject = useCallback(async () => {
+		if (!editorShellState.canSave) {
+			return;
+		}
 		await saveProject(false);
-	}, [saveProject]);
+	}, [editorShellState.canSave, saveProject]);
 
 	const handleSaveProjectAs = useCallback(async () => {
+		if (!editorShellState.canSave) {
+			return;
+		}
 		const saved = await saveProject(true);
 		if (saved) {
 			setProjectBrowserOpen(false);
 		}
-	}, [saveProject]);
+	}, [editorShellState.canSave, saveProject]);
 
 	useEffect(() => {
 		if (!currentProjectPath || !hasUnsavedChanges) {
@@ -3448,6 +3581,16 @@ export default function VideoEditor() {
 				return false;
 			}
 
+			clearPendingProjectAutosave();
+			const saveIdentityToken = projectIdentityToken;
+			if (!isProjectIdentityCurrent(saveIdentityToken)) {
+				return false;
+			}
+			const saveOperationToken = claimProjectSaveOperation(saveIdentityToken);
+			if (!saveOperationToken) {
+				return false;
+			}
+			updateProjectSaveOperation(saveOperationToken, { status: "saving" });
 			try {
 				const projectData =
 					currentProjectSnapshot?.videoPath === currentSourcePath
@@ -3458,20 +3601,32 @@ export default function VideoEditor() {
 								lastSavedSnapshot?.projectId ?? null,
 							);
 				const thumbnailDataUrl = await captureProjectThumbnail();
+				if (!isProjectSaveOperationCurrent(saveOperationToken)) {
+					return false;
+				}
 				const result = await window.electronAPI.saveProjectFileNamed(
 					projectData,
 					trimmedProjectName,
 					thumbnailDataUrl,
 					mode,
 				);
+				if (!isProjectSaveOperationCurrent(saveOperationToken)) {
+					return false;
+				}
 
 				if (result.canceled) {
+					updateProjectSaveOperation(saveOperationToken, { status: "idle" });
 					toast.info("Project save canceled");
 					return false;
 				}
 
 				if (!result.success) {
-					toast.error(result.message || "Failed to save project");
+					const message = result.message || "Failed to save project";
+					if (
+						updateProjectSaveOperation(saveOperationToken, { status: "error", message })
+					) {
+						toast.error(message);
+					}
 					return false;
 				}
 
@@ -3488,20 +3643,42 @@ export default function VideoEditor() {
 					),
 				);
 				await refreshProjectLibrary();
+				if (!isProjectSaveOperationCurrent(saveOperationToken)) {
+					return false;
+				}
+				updateProjectSaveOperation(saveOperationToken, { status: "idle" });
 				toast.success(result.path ? `Project saved to ${result.path}` : "Project saved");
 				return true;
+			} catch (error) {
+				if (
+					updateProjectSaveOperation(saveOperationToken, {
+						status: "error",
+						message: getErrorMessage(error),
+					})
+				) {
+					throw error;
+				}
+				return false;
 			} finally {
-				remountPreview();
+				if (isProjectSaveOperationCurrent(saveOperationToken)) {
+					remountPreview();
+				}
 			}
 		},
 		[
 			captureProjectThumbnail,
+			claimProjectSaveOperation,
+			clearPendingProjectAutosave,
 			currentPersistedEditorState,
 			currentProjectSnapshot,
 			currentSourcePath,
+			isProjectIdentityCurrent,
+			isProjectSaveOperationCurrent,
 			lastSavedSnapshot?.projectId,
+			projectIdentityToken,
 			refreshProjectLibrary,
 			remountPreview,
+			updateProjectSaveOperation,
 		],
 	);
 
@@ -3580,7 +3757,7 @@ export default function VideoEditor() {
 
 	const confirmReplaceSourceWithUnsavedChanges = useCallback(
 		async (actionLabel: string) => {
-			if (!hasUnsavedChanges) {
+			if (!editorShellState.shouldConfirmClose) {
 				return true;
 			}
 
@@ -3595,7 +3772,7 @@ export default function VideoEditor() {
 
 			return false;
 		},
-		[hasUnsavedChanges, openUnsavedChangesDialog, saveProject],
+		[editorShellState.shouldConfirmClose, openUnsavedChangesDialog, saveProject],
 	);
 
 	const handleOpenProjectFromLibrary = useCallback(
@@ -5958,7 +6135,7 @@ export default function VideoEditor() {
 	]);
 
 	const handleOpenExportDropdown = useCallback(() => {
-		if (!videoPath) {
+		if (!editorShellState.canExport) {
 			toast.error("No video loaded");
 			return;
 		}
@@ -5971,7 +6148,7 @@ export default function VideoEditor() {
 		setShowExportDropdown(true);
 		setExportProgress(null);
 		setExportError(null);
-	}, [videoPath, hasPendingExportSave]);
+	}, [editorShellState.canExport, hasPendingExportSave]);
 
 	const handleStartExportFromDropdown = useCallback(() => {
 		const video = videoPlaybackRef.current?.video;
@@ -6137,6 +6314,8 @@ export default function VideoEditor() {
 
 	const commandMenuCommands = useMemo<EditorCommandDefinition[]>(() => {
 		const unavailable = !videoPath;
+		const saveUnavailable = !editorShellState.canSave;
+		const exportUnavailable = !editorShellState.canExport;
 		const addAnnotation = () => {
 			const nextTrackIndex =
 				annotationRegions.length > 0
@@ -6363,7 +6542,7 @@ export default function VideoEditor() {
 				label: t("editor.commandMenu.saveProject", "Save project"),
 				keywords: ["project", "write"],
 				shortcut: isMac ? "⌘ S" : "Ctrl S",
-				disabled: unavailable,
+				disabled: saveUnavailable,
 				run: handleSaveProject,
 			},
 			{
@@ -6372,7 +6551,7 @@ export default function VideoEditor() {
 				label: t("editor.commandMenu.saveProjectAs", "Save project as…"),
 				keywords: ["project", "duplicate", "copy"],
 				shortcut: isMac ? "⌘ ⇧ S" : "Ctrl Shift S",
-				disabled: unavailable,
+				disabled: saveUnavailable,
 				run: handleSaveProjectAs,
 			},
 			{
@@ -6380,7 +6559,7 @@ export default function VideoEditor() {
 				group: "project",
 				label: t("common.actions.export", "Export"),
 				keywords: ["render", "video", "mp4", "hevc", "gif", "share"],
-				disabled: unavailable,
+				disabled: exportUnavailable,
 				run: handleOpenExportDropdown,
 			},
 		];
@@ -6392,6 +6571,8 @@ export default function VideoEditor() {
 		canRedo,
 		canUndo,
 		effectiveShowCursor,
+		editorShellState.canExport,
+		editorShellState.canSave,
 		handleOpenExportDropdown,
 		handleOpenProjectBrowser,
 		handleRedo,
@@ -7109,7 +7290,7 @@ export default function VideoEditor() {
 								onSubmit={(event) => void handleProjectNameSubmit(event)}
 								className="flex max-w-full items-baseline gap-1 rounded-lg border border-hairline bg-surface-elevated px-2.5 py-1 shadow-aureo-2"
 							>
-								{hasUnsavedChanges ? (
+								{editorShellState.shouldConfirmClose ? (
 									<span className="mt-[1px] size-2 shrink-0 rounded-full bg-primary" />
 								) : null}
 								<input
@@ -7128,7 +7309,7 @@ export default function VideoEditor() {
 											closeProjectNameEditor();
 										}
 									}}
-									disabled={isSavingProjectName}
+									disabled={!editorShellState.canSave || isSavingProjectName}
 									className="min-w-[10ch] max-w-[min(28vw,280px)] bg-transparent text-sm font-semibold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/60 disabled:cursor-wait"
 									style={{ width: `${Math.max(projectNameDraft.length, 10)}ch` }}
 									aria-label={t("editor.project.renameInput", "Project name")}
@@ -7141,12 +7322,13 @@ export default function VideoEditor() {
 							<button
 								type="button"
 								onClick={() => setIsEditingProjectName(true)}
+								disabled={!editorShellState.canSave}
 								className="group flex min-w-0 max-w-full flex-col items-center rounded-lg px-2.5 py-1 text-center transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
 								title={t("editor.project.renameTitle", "Rename project")}
 								aria-label={`${projectDisplayName}. ${projectSaveStatusLabel}. ${t("editor.project.renameTitle", "Rename project")}`}
 							>
 								<span className="flex min-w-0 max-w-full items-baseline gap-1">
-									{hasUnsavedChanges ? (
+									{editorShellState.shouldConfirmClose ? (
 										<span className="mt-[1px] size-2 shrink-0 rounded-full bg-primary" />
 									) : null}
 									<span className="truncate text-sm font-semibold tracking-tight text-foreground">
@@ -7159,9 +7341,11 @@ export default function VideoEditor() {
 								<span
 									className={cn(
 										"hidden text-[10px] font-medium leading-none min-[980px]:block",
-										hasUnsavedChanges
-											? "text-primary"
-											: "text-muted-foreground",
+										editorShellState.status === "error"
+											? "text-destructive"
+											: editorShellState.shouldConfirmClose
+												? "text-primary"
+												: "text-muted-foreground",
 									)}
 								>
 									{projectSaveStatusLabel}
@@ -7177,14 +7361,14 @@ export default function VideoEditor() {
 							variant="toolbar"
 							size="icon-sm"
 							onClick={handleSaveProject}
-							disabled={!videoPath || isSavingProjectName}
+							disabled={!editorShellState.canSave || isSavingProjectName}
 							title={t("editor.commandMenu.saveProject", "Save project")}
 							aria-label={t("editor.commandMenu.saveProject", "Save project")}
-							className={cn(hasUnsavedChanges && "text-primary")}
+							className={cn(editorShellState.shouldConfirmClose && "text-primary")}
 						>
 							<FloppyDisk
 								className="h-4 w-4"
-								weight={hasUnsavedChanges ? "fill" : "regular"}
+								weight={editorShellState.shouldConfirmClose ? "fill" : "regular"}
 							/>
 						</Button>
 						<Popover open={presetPopoverOpen} onOpenChange={setPresetPopoverOpen}>
@@ -7425,6 +7609,7 @@ export default function VideoEditor() {
 								<Button
 									type="button"
 									onClick={handleOpenExportDropdown}
+									disabled={!editorShellState.canExport}
 									className="inline-flex h-8 min-w-[96px] items-center justify-center gap-2 rounded-lg bg-primary px-3.5 text-primary-foreground shadow-aureo-1 transition-colors hover:bg-primary/90"
 								>
 									<Download className="h-4 w-4" />

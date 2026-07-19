@@ -91,13 +91,13 @@
 
   <h2>Resume Here</h2>
   <ul>
-    <li><strong>Status:</strong> [doing] Production-readiness Phase 0 baseline and deterministic fixtures are established on top of the certified Capture HUD.</li>
-    <li><strong>Current phase:</strong> Finish the Phase 0 checkpoint, then implement Editor Shell Slice 1.1 from one derived discriminated shell state.</li>
+    <li><strong>Status:</strong> [checkpoint] Production Phase 0 is committed as <code>da450fd</code>; Editor Shell Slice 1.1 is implemented, fully verified, and independently approved for this bounded commit.</li>
+    <li><strong>Current phase:</strong> Commit the approved Editor Shell Slice 1.1 checkpoint without pushing, then continue with the next production-roadmap slice.</li>
     <li><strong>Completed:</strong> Typed/state foundation, source keyboard browsing versus activation, compound source anchor/expanded synchronization, webcam passthrough release, source close focus restoration, modal recording preflight, pointer-equivalent keyboard webcam resize, native state synchronization, idle and destructive native recording actions, Project Browser focus safety, countdown semantics, Area Selection keyboard access, and 1440/1280/960/880 DIP visual review.</li>
-    <li><strong>Active work:</strong> A fixed non-user-data release fixture corpus and baseline evidence are present in the worktree. Independent read-only security and selection audits completed on local runner <code>aureo-local</code>, pinned to committed HEAD <code>aa1150a</code>; their release blockers are recorded and remain unresolved by design in this Phase 0 checkpoint.</li>
-    <li><strong>Blockers:</strong> No implementation blocker in the healthy recovery clone at <code>/Users/ruirui/Downloads/recordlyx-recovery</code>. The original Documents repo remains preserved with APFS-damaged local objects; its seven local commits plus slice 7 were consolidated into recovery commit <code>cfbb73a</code>.</li>
-    <li><strong>Next action:</strong> Commit the bounded Phase 0 fixture/evidence checkpoint after review, then add the first failing Editor Shell state-model test. Whisper runtime replacement remains explicitly deferred until the end.</li>
-    <li><strong>Last validation:</strong> Full Vitest 163 files / 1422 tests, production TypeScript, i18n, and non-Whisper Vite/Electron main smoke passed. Full Biome honestly fails on 111 existing errors / 18 warnings. Twelve release fixtures verify against a stable SHA-256 manifest; production npm audit reports one moderate transitive <code>js-yaml</code> advisory.</li>
+    <li><strong>Active work:</strong> Editor Shell Slice 1.1 is GREEN and independently approved after resolving the stale async-save race and follow-up ownership gap after current-project lookup. Identity and operation revisions are separate, queued saves claim ownership only when execution starts, identity reset synchronously cancels pending autosave, and named saves explicitly claim overlapping ownership.</li>
+    <li><strong>Blockers:</strong> No known Editor Shell Slice 1.1 blocker remains. The original Documents repo remains preserved with APFS-damaged local objects.</li>
+    <li><strong>Next action:</strong> After this bounded local checkpoint commit, select the next dependency-ordered production-roadmap slice. Do not push; Whisper runtime replacement remains explicitly deferred until the end.</li>
+    <li><strong>Last validation:</strong> Post-redesign focused Vitest passed 3 files / 18 tests; full Vitest passed 165 files / 1433 tests; production TypeScript, focused Biome, i18n structure, Vite production build, Electron main normalization/smoke, diff check, and protected <code>* 2.*</code> path check passed.</li>
     <li><strong>Protected paths:</strong> All untracked files matching <code>* 2.*</code>. They appear to be duplicate/backup files; do not delete, modify, stage, or use them as implementation sources without user approval.</li>
   </ul>
 
@@ -377,6 +377,41 @@
         phase: "production-phase-0",
         actor: "agent+gpt-auditors",
         summary: "Established the production baseline and fixed release-v1 fixture corpus at aa1150a. Vitest 1422/1422, TypeScript, i18n, and non-Whisper build smoke passed; existing full-Biome drift and one moderate production advisory were classified. Twelve media/project fixtures reproduce a stable checksum manifest. Read-only security and selection audits were recorded and independent local-runner reviews dispatched."
+      },
+      {
+        ts: "2026-07-19T07:11:33Z",
+        status: "red",
+        phase: "editor-shell-1.1",
+        actor: "agent",
+        summary: "Added the focused derived Editor shell-state contract. The isolated Vitest run failed at the intended missing ./EditorShellState module boundary, establishing RED evidence for empty/dirty/saving/saved/error identity, Save, close-confirmation, and Export behavior before implementation."
+      },
+      {
+        ts: "2026-07-19T07:17:00Z",
+        status: "validated",
+        phase: "editor-shell-1.1",
+        actor: "agent",
+        summary: "Implemented and integrated one discriminated Editor shell state without changing project serialization or main-process persistence. Focused Vitest passed 4 files / 17 tests; TypeScript, focused Biome, diff check, and protected-path check passed."
+      },
+      {
+        ts: "2026-07-19T07:26:49Z",
+        status: "red",
+        phase: "editor-shell-1.1-review",
+        actor: "independent-runner+agent",
+        summary: "Independent review found that a late old save or overlapping named/autosave completion could overwrite the replacement identity’s shell operation state. Deferred-promise and overlapping-operation regression tests reproduced both failures before the fix."
+      },
+      {
+        ts: "2026-07-19T07:30:21Z",
+        status: "validated",
+        phase: "editor-shell-1.1-review-fix",
+        actor: "agent",
+        summary: "Separated project identity from operation ownership, moved queued claims to actual execution, synchronously canceled pending autosave on identity replacement, guarded the current-project lookup before path/dialog effects, and retained identity tokens in React state so old callbacks cannot acquire new authority. Focused 3 files / 18 tests, full 165 files / 1433 tests, TypeScript, focused Biome, i18n, production build, Electron main smoke, and protected-path checks passed; independent re-review remains pending."
+      },
+      {
+        ts: "2026-07-19T06:52:17Z",
+        status: "approved",
+        phase: "editor-shell-1.1-review",
+        actor: "independent-runner",
+        summary: "Independent exact-scope re-review approved all six files with no high-confidence blockers. The reviewer directly read the four untracked shell/tracker files, verified the post-lookup ownership guard and identity/operation redesign, and reran focused 3 files / 18 tests, TypeScript, and scoped diff check."
       }
     ];
 

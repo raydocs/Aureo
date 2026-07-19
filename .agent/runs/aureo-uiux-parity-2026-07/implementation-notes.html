@@ -91,12 +91,12 @@
 
   <h2>Resume Here</h2>
   <ul>
-    <li><strong>Status:</strong> [checkpoint] Production Phase 0 is committed as <code>da450fd</code>; Editor Shell Slice 1.1 is implemented, fully verified, and independently approved for this bounded commit.</li>
-    <li><strong>Current phase:</strong> Commit the approved Editor Shell Slice 1.1 checkpoint without pushing, then continue with the next production-roadmap slice.</li>
+    <li><strong>Status:</strong> [done] Production Phase 0 is committed as <code>da450fd</code>; Editor Shell Slice 1.1 is committed as <code>bde3b2c</code> after full verification and independent approval.</li>
+    <li><strong>Current phase:</strong> Begin Editor Shell Slice 1.2: responsive Inspector ownership with one mounted panel across the 1280px breakpoint and a real modal sheet below it.</li>
     <li><strong>Completed:</strong> Typed/state foundation, source keyboard browsing versus activation, compound source anchor/expanded synchronization, webcam passthrough release, source close focus restoration, modal recording preflight, pointer-equivalent keyboard webcam resize, native state synchronization, idle and destructive native recording actions, Project Browser focus safety, countdown semantics, Area Selection keyboard access, and 1440/1280/960/880 DIP visual review.</li>
-    <li><strong>Active work:</strong> Editor Shell Slice 1.1 is GREEN and independently approved after resolving the stale async-save race and follow-up ownership gap after current-project lookup. Identity and operation revisions are separate, queued saves claim ownership only when execution starts, identity reset synchronously cancels pending autosave, and named saves explicitly claim overlapping ownership.</li>
+    <li><strong>Active work:</strong> No implementation is currently in flight. The next writer should map the existing duplicated dock/overlay render branches in <code>VideoEditor.tsx</code>, write focused RED coverage for one-mount and modal focus behavior, then implement the smallest Slice 1.2 boundary without refactoring <code>SettingsPanel.tsx</code>.</li>
     <li><strong>Blockers:</strong> No known Editor Shell Slice 1.1 blocker remains. The original Documents repo remains preserved with APFS-damaged local objects.</li>
-    <li><strong>Next action:</strong> After this bounded local checkpoint commit, select the next dependency-ordered production-roadmap slice. Do not push; Whisper runtime replacement remains explicitly deferred until the end.</li>
+    <li><strong>Next action:</strong> Read the production roadmap’s Phase 1 Slice 1.2 contract; inspect <code>VideoEditor.tsx</code> around inspector layout state and the dock/overlay branches; add focused failing tests proving one Inspector mount plus initial focus, Tab containment, Escape/backdrop dismissal, inert background, and exact return focus. Do not push; Whisper runtime replacement remains explicitly deferred until the end.</li>
     <li><strong>Last validation:</strong> Post-redesign focused Vitest passed 3 files / 18 tests; full Vitest passed 165 files / 1433 tests; production TypeScript, focused Biome, i18n structure, Vite production build, Electron main normalization/smoke, diff check, and protected <code>* 2.*</code> path check passed.</li>
     <li><strong>Protected paths:</strong> All untracked files matching <code>* 2.*</code>. They appear to be duplicate/backup files; do not delete, modify, stage, or use them as implementation sources without user approval.</li>
   </ul>
@@ -240,7 +240,7 @@
 
   <h2>Next Goal Candidates</h2>
   <ul>
-    <li>Editor Shell: stabilize project identity, dirty/save/export hierarchy, drag/no-drag regions, and responsive inspector ownership at 1279×720 and 1440×900.</li>
+    <li>Immediate next slice: Editor Shell Slice 1.2 responsive Inspector ownership—one mount across 1279/1280, docked at larger widths, modal sheet below the breakpoint, complete focus containment/dismissal/return semantics, and no <code>SettingsPanel</code> framework rewrite.</li>
     <li>Production and distribution readiness: the repository-specific critical path, Developer ID versus Mac App Store gates, security/privacy/legal blockers, clean-machine definition of done, and Amp agent-to-agent operating model are recorded in <code>handoffs/2026-07-19-aureo-production-release-roadmap.md</code>.</li>
   </ul>
   <script>
@@ -412,6 +412,13 @@
         phase: "editor-shell-1.1-review",
         actor: "independent-runner",
         summary: "Independent exact-scope re-review approved all six files with no high-confidence blockers. The reviewer directly read the four untracked shell/tracker files, verified the post-lookup ownership guard and identity/operation redesign, and reran focused 3 files / 18 tests, TypeScript, and scoped diff check."
+      },
+      {
+        ts: "2026-07-19T06:53:00Z",
+        status: "done",
+        phase: "editor-shell-1.1-checkpoint",
+        actor: "agent",
+        summary: "Committed the independently approved six-file Editor Shell Slice 1.1 as bde3b2c. The branch remained unpushed and clean, protected * 2.* and Whisper/model/runtime paths were untouched, and the next dependency-ordered slice is Editor Shell 1.2 responsive Inspector ownership."
       }
     ];
 

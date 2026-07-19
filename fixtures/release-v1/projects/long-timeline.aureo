@@ -1,0 +1,4592 @@
+{
+  "version": 1,
+  "projectId": "fixture-project-v1",
+  "videoPath": "__FIXTURE_ROOT__/media/sidecars/primary.mp4",
+  "editor": {
+    "zoomRegions": [
+      {
+        "id": "zoom-1",
+        "startMs": 1000,
+        "endMs": 4000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-2",
+        "startMs": 11000,
+        "endMs": 14000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-3",
+        "startMs": 21000,
+        "endMs": 24000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-4",
+        "startMs": 31000,
+        "endMs": 34000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-5",
+        "startMs": 41000,
+        "endMs": 44000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-6",
+        "startMs": 51000,
+        "endMs": 54000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-7",
+        "startMs": 61000,
+        "endMs": 64000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-8",
+        "startMs": 71000,
+        "endMs": 74000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-9",
+        "startMs": 81000,
+        "endMs": 84000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-10",
+        "startMs": 91000,
+        "endMs": 94000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-11",
+        "startMs": 101000,
+        "endMs": 104000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-12",
+        "startMs": 111000,
+        "endMs": 114000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-13",
+        "startMs": 121000,
+        "endMs": 124000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-14",
+        "startMs": 131000,
+        "endMs": 134000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-15",
+        "startMs": 141000,
+        "endMs": 144000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-16",
+        "startMs": 151000,
+        "endMs": 154000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-17",
+        "startMs": 161000,
+        "endMs": 164000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-18",
+        "startMs": 171000,
+        "endMs": 174000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-19",
+        "startMs": 181000,
+        "endMs": 184000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-20",
+        "startMs": 191000,
+        "endMs": 194000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-21",
+        "startMs": 201000,
+        "endMs": 204000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-22",
+        "startMs": 211000,
+        "endMs": 214000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-23",
+        "startMs": 221000,
+        "endMs": 224000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-24",
+        "startMs": 231000,
+        "endMs": 234000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-25",
+        "startMs": 241000,
+        "endMs": 244000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-26",
+        "startMs": 251000,
+        "endMs": 254000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-27",
+        "startMs": 261000,
+        "endMs": 264000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-28",
+        "startMs": 271000,
+        "endMs": 274000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-29",
+        "startMs": 281000,
+        "endMs": 284000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-30",
+        "startMs": 291000,
+        "endMs": 294000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-31",
+        "startMs": 301000,
+        "endMs": 304000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-32",
+        "startMs": 311000,
+        "endMs": 314000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-33",
+        "startMs": 321000,
+        "endMs": 324000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-34",
+        "startMs": 331000,
+        "endMs": 334000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-35",
+        "startMs": 341000,
+        "endMs": 344000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-36",
+        "startMs": 351000,
+        "endMs": 354000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-37",
+        "startMs": 361000,
+        "endMs": 364000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-38",
+        "startMs": 371000,
+        "endMs": 374000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-39",
+        "startMs": 381000,
+        "endMs": 384000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-40",
+        "startMs": 391000,
+        "endMs": 394000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-41",
+        "startMs": 401000,
+        "endMs": 404000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-42",
+        "startMs": 411000,
+        "endMs": 414000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-43",
+        "startMs": 421000,
+        "endMs": 424000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-44",
+        "startMs": 431000,
+        "endMs": 434000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-45",
+        "startMs": 441000,
+        "endMs": 444000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-46",
+        "startMs": 451000,
+        "endMs": 454000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-47",
+        "startMs": 461000,
+        "endMs": 464000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-48",
+        "startMs": 471000,
+        "endMs": 474000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-49",
+        "startMs": 481000,
+        "endMs": 484000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-50",
+        "startMs": 491000,
+        "endMs": 494000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-51",
+        "startMs": 501000,
+        "endMs": 504000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-52",
+        "startMs": 511000,
+        "endMs": 514000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-53",
+        "startMs": 521000,
+        "endMs": 524000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-54",
+        "startMs": 531000,
+        "endMs": 534000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-55",
+        "startMs": 541000,
+        "endMs": 544000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-56",
+        "startMs": 551000,
+        "endMs": 554000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-57",
+        "startMs": 561000,
+        "endMs": 564000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.35
+        },
+        "mode": "instant"
+      },
+      {
+        "id": "zoom-58",
+        "startMs": 571000,
+        "endMs": 574000,
+        "depth": 2,
+        "focus": {
+          "cx": 0.25,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-59",
+        "startMs": 581000,
+        "endMs": 584000,
+        "depth": 3,
+        "focus": {
+          "cx": 0.5,
+          "cy": 0.35
+        },
+        "mode": "auto"
+      },
+      {
+        "id": "zoom-60",
+        "startMs": 591000,
+        "endMs": 594000,
+        "depth": 4,
+        "focus": {
+          "cx": 0.75,
+          "cy": 0.6499999999999999
+        },
+        "mode": "auto"
+      }
+    ],
+    "trimRegions": [],
+    "clipRegions": [
+      {
+        "id": "clip-1",
+        "startMs": 0,
+        "endMs": 5000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-2",
+        "startMs": 5000,
+        "endMs": 10000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-3",
+        "startMs": 10000,
+        "endMs": 15000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-4",
+        "startMs": 15000,
+        "endMs": 20000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-5",
+        "startMs": 20000,
+        "endMs": 25000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-6",
+        "startMs": 25000,
+        "endMs": 30000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-7",
+        "startMs": 30000,
+        "endMs": 35000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-8",
+        "startMs": 35000,
+        "endMs": 40000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-9",
+        "startMs": 40000,
+        "endMs": 45000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-10",
+        "startMs": 45000,
+        "endMs": 50000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-11",
+        "startMs": 50000,
+        "endMs": 55000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-12",
+        "startMs": 55000,
+        "endMs": 60000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-13",
+        "startMs": 60000,
+        "endMs": 65000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-14",
+        "startMs": 65000,
+        "endMs": 70000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-15",
+        "startMs": 70000,
+        "endMs": 75000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-16",
+        "startMs": 75000,
+        "endMs": 80000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-17",
+        "startMs": 80000,
+        "endMs": 85000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-18",
+        "startMs": 85000,
+        "endMs": 90000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-19",
+        "startMs": 90000,
+        "endMs": 95000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-20",
+        "startMs": 95000,
+        "endMs": 100000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-21",
+        "startMs": 100000,
+        "endMs": 105000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-22",
+        "startMs": 105000,
+        "endMs": 110000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-23",
+        "startMs": 110000,
+        "endMs": 115000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-24",
+        "startMs": 115000,
+        "endMs": 120000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-25",
+        "startMs": 120000,
+        "endMs": 125000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-26",
+        "startMs": 125000,
+        "endMs": 130000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-27",
+        "startMs": 130000,
+        "endMs": 135000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-28",
+        "startMs": 135000,
+        "endMs": 140000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-29",
+        "startMs": 140000,
+        "endMs": 145000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-30",
+        "startMs": 145000,
+        "endMs": 150000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-31",
+        "startMs": 150000,
+        "endMs": 155000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-32",
+        "startMs": 155000,
+        "endMs": 160000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-33",
+        "startMs": 160000,
+        "endMs": 165000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-34",
+        "startMs": 165000,
+        "endMs": 170000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-35",
+        "startMs": 170000,
+        "endMs": 175000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-36",
+        "startMs": 175000,
+        "endMs": 180000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-37",
+        "startMs": 180000,
+        "endMs": 185000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-38",
+        "startMs": 185000,
+        "endMs": 190000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-39",
+        "startMs": 190000,
+        "endMs": 195000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-40",
+        "startMs": 195000,
+        "endMs": 200000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-41",
+        "startMs": 200000,
+        "endMs": 205000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-42",
+        "startMs": 205000,
+        "endMs": 210000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-43",
+        "startMs": 210000,
+        "endMs": 215000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-44",
+        "startMs": 215000,
+        "endMs": 220000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-45",
+        "startMs": 220000,
+        "endMs": 225000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-46",
+        "startMs": 225000,
+        "endMs": 230000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-47",
+        "startMs": 230000,
+        "endMs": 235000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-48",
+        "startMs": 235000,
+        "endMs": 240000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-49",
+        "startMs": 240000,
+        "endMs": 245000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-50",
+        "startMs": 245000,
+        "endMs": 250000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-51",
+        "startMs": 250000,
+        "endMs": 255000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-52",
+        "startMs": 255000,
+        "endMs": 260000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-53",
+        "startMs": 260000,
+        "endMs": 265000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-54",
+        "startMs": 265000,
+        "endMs": 270000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-55",
+        "startMs": 270000,
+        "endMs": 275000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-56",
+        "startMs": 275000,
+        "endMs": 280000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-57",
+        "startMs": 280000,
+        "endMs": 285000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-58",
+        "startMs": 285000,
+        "endMs": 290000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-59",
+        "startMs": 290000,
+        "endMs": 295000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-60",
+        "startMs": 295000,
+        "endMs": 300000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-61",
+        "startMs": 300000,
+        "endMs": 305000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-62",
+        "startMs": 305000,
+        "endMs": 310000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-63",
+        "startMs": 310000,
+        "endMs": 315000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-64",
+        "startMs": 315000,
+        "endMs": 320000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-65",
+        "startMs": 320000,
+        "endMs": 325000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-66",
+        "startMs": 325000,
+        "endMs": 330000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-67",
+        "startMs": 330000,
+        "endMs": 335000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-68",
+        "startMs": 335000,
+        "endMs": 340000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-69",
+        "startMs": 340000,
+        "endMs": 345000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-70",
+        "startMs": 345000,
+        "endMs": 350000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-71",
+        "startMs": 350000,
+        "endMs": 355000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-72",
+        "startMs": 355000,
+        "endMs": 360000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-73",
+        "startMs": 360000,
+        "endMs": 365000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-74",
+        "startMs": 365000,
+        "endMs": 370000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-75",
+        "startMs": 370000,
+        "endMs": 375000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-76",
+        "startMs": 375000,
+        "endMs": 380000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-77",
+        "startMs": 380000,
+        "endMs": 385000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-78",
+        "startMs": 385000,
+        "endMs": 390000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-79",
+        "startMs": 390000,
+        "endMs": 395000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-80",
+        "startMs": 395000,
+        "endMs": 400000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-81",
+        "startMs": 400000,
+        "endMs": 405000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-82",
+        "startMs": 405000,
+        "endMs": 410000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-83",
+        "startMs": 410000,
+        "endMs": 415000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-84",
+        "startMs": 415000,
+        "endMs": 420000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-85",
+        "startMs": 420000,
+        "endMs": 425000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-86",
+        "startMs": 425000,
+        "endMs": 430000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-87",
+        "startMs": 430000,
+        "endMs": 435000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-88",
+        "startMs": 435000,
+        "endMs": 440000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-89",
+        "startMs": 440000,
+        "endMs": 445000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-90",
+        "startMs": 445000,
+        "endMs": 450000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-91",
+        "startMs": 450000,
+        "endMs": 455000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-92",
+        "startMs": 455000,
+        "endMs": 460000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-93",
+        "startMs": 460000,
+        "endMs": 465000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-94",
+        "startMs": 465000,
+        "endMs": 470000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-95",
+        "startMs": 470000,
+        "endMs": 475000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-96",
+        "startMs": 475000,
+        "endMs": 480000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-97",
+        "startMs": 480000,
+        "endMs": 485000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-98",
+        "startMs": 485000,
+        "endMs": 490000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-99",
+        "startMs": 490000,
+        "endMs": 495000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-100",
+        "startMs": 495000,
+        "endMs": 500000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-101",
+        "startMs": 500000,
+        "endMs": 505000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-102",
+        "startMs": 505000,
+        "endMs": 510000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-103",
+        "startMs": 510000,
+        "endMs": 515000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-104",
+        "startMs": 515000,
+        "endMs": 520000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-105",
+        "startMs": 520000,
+        "endMs": 525000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-106",
+        "startMs": 525000,
+        "endMs": 530000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-107",
+        "startMs": 530000,
+        "endMs": 535000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-108",
+        "startMs": 535000,
+        "endMs": 540000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-109",
+        "startMs": 540000,
+        "endMs": 545000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-110",
+        "startMs": 545000,
+        "endMs": 550000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-111",
+        "startMs": 550000,
+        "endMs": 555000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-112",
+        "startMs": 555000,
+        "endMs": 560000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-113",
+        "startMs": 560000,
+        "endMs": 565000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-114",
+        "startMs": 565000,
+        "endMs": 570000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-115",
+        "startMs": 570000,
+        "endMs": 575000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-116",
+        "startMs": 575000,
+        "endMs": 580000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-117",
+        "startMs": 580000,
+        "endMs": 585000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-118",
+        "startMs": 585000,
+        "endMs": 590000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-119",
+        "startMs": 590000,
+        "endMs": 595000,
+        "speed": 1,
+        "showSourceAudio": true
+      },
+      {
+        "id": "clip-120",
+        "startMs": 595000,
+        "endMs": 600000,
+        "speed": 1,
+        "showSourceAudio": true
+      }
+    ],
+    "speedRegions": [
+      {
+        "id": "speed-1",
+        "startMs": 5000,
+        "endMs": 8000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-2",
+        "startMs": 20000,
+        "endMs": 23000,
+        "speed": 2
+      },
+      {
+        "id": "speed-3",
+        "startMs": 35000,
+        "endMs": 38000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-4",
+        "startMs": 50000,
+        "endMs": 53000,
+        "speed": 2
+      },
+      {
+        "id": "speed-5",
+        "startMs": 65000,
+        "endMs": 68000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-6",
+        "startMs": 80000,
+        "endMs": 83000,
+        "speed": 2
+      },
+      {
+        "id": "speed-7",
+        "startMs": 95000,
+        "endMs": 98000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-8",
+        "startMs": 110000,
+        "endMs": 113000,
+        "speed": 2
+      },
+      {
+        "id": "speed-9",
+        "startMs": 125000,
+        "endMs": 128000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-10",
+        "startMs": 140000,
+        "endMs": 143000,
+        "speed": 2
+      },
+      {
+        "id": "speed-11",
+        "startMs": 155000,
+        "endMs": 158000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-12",
+        "startMs": 170000,
+        "endMs": 173000,
+        "speed": 2
+      },
+      {
+        "id": "speed-13",
+        "startMs": 185000,
+        "endMs": 188000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-14",
+        "startMs": 200000,
+        "endMs": 203000,
+        "speed": 2
+      },
+      {
+        "id": "speed-15",
+        "startMs": 215000,
+        "endMs": 218000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-16",
+        "startMs": 230000,
+        "endMs": 233000,
+        "speed": 2
+      },
+      {
+        "id": "speed-17",
+        "startMs": 245000,
+        "endMs": 248000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-18",
+        "startMs": 260000,
+        "endMs": 263000,
+        "speed": 2
+      },
+      {
+        "id": "speed-19",
+        "startMs": 275000,
+        "endMs": 278000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-20",
+        "startMs": 290000,
+        "endMs": 293000,
+        "speed": 2
+      },
+      {
+        "id": "speed-21",
+        "startMs": 305000,
+        "endMs": 308000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-22",
+        "startMs": 320000,
+        "endMs": 323000,
+        "speed": 2
+      },
+      {
+        "id": "speed-23",
+        "startMs": 335000,
+        "endMs": 338000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-24",
+        "startMs": 350000,
+        "endMs": 353000,
+        "speed": 2
+      },
+      {
+        "id": "speed-25",
+        "startMs": 365000,
+        "endMs": 368000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-26",
+        "startMs": 380000,
+        "endMs": 383000,
+        "speed": 2
+      },
+      {
+        "id": "speed-27",
+        "startMs": 395000,
+        "endMs": 398000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-28",
+        "startMs": 410000,
+        "endMs": 413000,
+        "speed": 2
+      },
+      {
+        "id": "speed-29",
+        "startMs": 425000,
+        "endMs": 428000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-30",
+        "startMs": 440000,
+        "endMs": 443000,
+        "speed": 2
+      },
+      {
+        "id": "speed-31",
+        "startMs": 455000,
+        "endMs": 458000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-32",
+        "startMs": 470000,
+        "endMs": 473000,
+        "speed": 2
+      },
+      {
+        "id": "speed-33",
+        "startMs": 485000,
+        "endMs": 488000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-34",
+        "startMs": 500000,
+        "endMs": 503000,
+        "speed": 2
+      },
+      {
+        "id": "speed-35",
+        "startMs": 515000,
+        "endMs": 518000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-36",
+        "startMs": 530000,
+        "endMs": 533000,
+        "speed": 2
+      },
+      {
+        "id": "speed-37",
+        "startMs": 545000,
+        "endMs": 548000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-38",
+        "startMs": 560000,
+        "endMs": 563000,
+        "speed": 2
+      },
+      {
+        "id": "speed-39",
+        "startMs": 575000,
+        "endMs": 578000,
+        "speed": 1.5
+      },
+      {
+        "id": "speed-40",
+        "startMs": 590000,
+        "endMs": 593000,
+        "speed": 2
+      }
+    ],
+    "annotationRegions": [
+      {
+        "id": "annotation-1",
+        "startMs": 2000,
+        "endMs": 7000,
+        "type": "text",
+        "content": "Fixture annotation 1",
+        "position": {
+          "x": 50,
+          "y": 20
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 0,
+        "trackIndex": 0
+      },
+      {
+        "id": "annotation-2",
+        "startMs": 22000,
+        "endMs": 27000,
+        "type": "text",
+        "content": "Fixture annotation 2",
+        "position": {
+          "x": 50,
+          "y": 40
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 1,
+        "trackIndex": 1
+      },
+      {
+        "id": "annotation-3",
+        "startMs": 42000,
+        "endMs": 47000,
+        "type": "text",
+        "content": "Fixture annotation 3",
+        "position": {
+          "x": 50,
+          "y": 60
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 2,
+        "trackIndex": 2
+      },
+      {
+        "id": "annotation-4",
+        "startMs": 62000,
+        "endMs": 67000,
+        "type": "text",
+        "content": "Fixture annotation 4",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 3,
+        "trackIndex": 0
+      },
+      {
+        "id": "annotation-5",
+        "startMs": 82000,
+        "endMs": 87000,
+        "type": "text",
+        "content": "Fixture annotation 5",
+        "position": {
+          "x": 50,
+          "y": 20
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 4,
+        "trackIndex": 1
+      },
+      {
+        "id": "annotation-6",
+        "startMs": 102000,
+        "endMs": 107000,
+        "type": "text",
+        "content": "Fixture annotation 6",
+        "position": {
+          "x": 50,
+          "y": 40
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 5,
+        "trackIndex": 2
+      },
+      {
+        "id": "annotation-7",
+        "startMs": 122000,
+        "endMs": 127000,
+        "type": "text",
+        "content": "Fixture annotation 7",
+        "position": {
+          "x": 50,
+          "y": 60
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 6,
+        "trackIndex": 0
+      },
+      {
+        "id": "annotation-8",
+        "startMs": 142000,
+        "endMs": 147000,
+        "type": "text",
+        "content": "Fixture annotation 8",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 7,
+        "trackIndex": 1
+      },
+      {
+        "id": "annotation-9",
+        "startMs": 162000,
+        "endMs": 167000,
+        "type": "text",
+        "content": "Fixture annotation 9",
+        "position": {
+          "x": 50,
+          "y": 20
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 8,
+        "trackIndex": 2
+      },
+      {
+        "id": "annotation-10",
+        "startMs": 182000,
+        "endMs": 187000,
+        "type": "text",
+        "content": "Fixture annotation 10",
+        "position": {
+          "x": 50,
+          "y": 40
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 9,
+        "trackIndex": 0
+      },
+      {
+        "id": "annotation-11",
+        "startMs": 202000,
+        "endMs": 207000,
+        "type": "text",
+        "content": "Fixture annotation 11",
+        "position": {
+          "x": 50,
+          "y": 60
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 10,
+        "trackIndex": 1
+      },
+      {
+        "id": "annotation-12",
+        "startMs": 222000,
+        "endMs": 227000,
+        "type": "text",
+        "content": "Fixture annotation 12",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 11,
+        "trackIndex": 2
+      },
+      {
+        "id": "annotation-13",
+        "startMs": 242000,
+        "endMs": 247000,
+        "type": "text",
+        "content": "Fixture annotation 13",
+        "position": {
+          "x": 50,
+          "y": 20
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 12,
+        "trackIndex": 0
+      },
+      {
+        "id": "annotation-14",
+        "startMs": 262000,
+        "endMs": 267000,
+        "type": "text",
+        "content": "Fixture annotation 14",
+        "position": {
+          "x": 50,
+          "y": 40
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 13,
+        "trackIndex": 1
+      },
+      {
+        "id": "annotation-15",
+        "startMs": 282000,
+        "endMs": 287000,
+        "type": "text",
+        "content": "Fixture annotation 15",
+        "position": {
+          "x": 50,
+          "y": 60
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 14,
+        "trackIndex": 2
+      },
+      {
+        "id": "annotation-16",
+        "startMs": 302000,
+        "endMs": 307000,
+        "type": "text",
+        "content": "Fixture annotation 16",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 15,
+        "trackIndex": 0
+      },
+      {
+        "id": "annotation-17",
+        "startMs": 322000,
+        "endMs": 327000,
+        "type": "text",
+        "content": "Fixture annotation 17",
+        "position": {
+          "x": 50,
+          "y": 20
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 16,
+        "trackIndex": 1
+      },
+      {
+        "id": "annotation-18",
+        "startMs": 342000,
+        "endMs": 347000,
+        "type": "text",
+        "content": "Fixture annotation 18",
+        "position": {
+          "x": 50,
+          "y": 40
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 17,
+        "trackIndex": 2
+      },
+      {
+        "id": "annotation-19",
+        "startMs": 362000,
+        "endMs": 367000,
+        "type": "text",
+        "content": "Fixture annotation 19",
+        "position": {
+          "x": 50,
+          "y": 60
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 18,
+        "trackIndex": 0
+      },
+      {
+        "id": "annotation-20",
+        "startMs": 382000,
+        "endMs": 387000,
+        "type": "text",
+        "content": "Fixture annotation 20",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 19,
+        "trackIndex": 1
+      },
+      {
+        "id": "annotation-21",
+        "startMs": 402000,
+        "endMs": 407000,
+        "type": "text",
+        "content": "Fixture annotation 21",
+        "position": {
+          "x": 50,
+          "y": 20
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 20,
+        "trackIndex": 2
+      },
+      {
+        "id": "annotation-22",
+        "startMs": 422000,
+        "endMs": 427000,
+        "type": "text",
+        "content": "Fixture annotation 22",
+        "position": {
+          "x": 50,
+          "y": 40
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 21,
+        "trackIndex": 0
+      },
+      {
+        "id": "annotation-23",
+        "startMs": 442000,
+        "endMs": 447000,
+        "type": "text",
+        "content": "Fixture annotation 23",
+        "position": {
+          "x": 50,
+          "y": 60
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 22,
+        "trackIndex": 1
+      },
+      {
+        "id": "annotation-24",
+        "startMs": 462000,
+        "endMs": 467000,
+        "type": "text",
+        "content": "Fixture annotation 24",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 23,
+        "trackIndex": 2
+      },
+      {
+        "id": "annotation-25",
+        "startMs": 482000,
+        "endMs": 487000,
+        "type": "text",
+        "content": "Fixture annotation 25",
+        "position": {
+          "x": 50,
+          "y": 20
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 24,
+        "trackIndex": 0
+      },
+      {
+        "id": "annotation-26",
+        "startMs": 502000,
+        "endMs": 507000,
+        "type": "text",
+        "content": "Fixture annotation 26",
+        "position": {
+          "x": 50,
+          "y": 40
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 25,
+        "trackIndex": 1
+      },
+      {
+        "id": "annotation-27",
+        "startMs": 522000,
+        "endMs": 527000,
+        "type": "text",
+        "content": "Fixture annotation 27",
+        "position": {
+          "x": 50,
+          "y": 60
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 26,
+        "trackIndex": 2
+      },
+      {
+        "id": "annotation-28",
+        "startMs": 542000,
+        "endMs": 547000,
+        "type": "text",
+        "content": "Fixture annotation 28",
+        "position": {
+          "x": 50,
+          "y": 80
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 27,
+        "trackIndex": 0
+      },
+      {
+        "id": "annotation-29",
+        "startMs": 562000,
+        "endMs": 567000,
+        "type": "text",
+        "content": "Fixture annotation 29",
+        "position": {
+          "x": 50,
+          "y": 20
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 28,
+        "trackIndex": 1
+      },
+      {
+        "id": "annotation-30",
+        "startMs": 582000,
+        "endMs": 587000,
+        "type": "text",
+        "content": "Fixture annotation 30",
+        "position": {
+          "x": 50,
+          "y": 40
+        },
+        "size": {
+          "width": 30,
+          "height": 12
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "backgroundColor": "#000000",
+          "fontSize": 32,
+          "fontFamily": "SF Pro Text",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "textDecoration": "none",
+          "textAlign": "center",
+          "borderRadius": 8
+        },
+        "zIndex": 29,
+        "trackIndex": 2
+      }
+    ],
+    "audioRegions": [
+      {
+        "id": "audio-1",
+        "startMs": 0,
+        "endMs": 10000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 0
+      },
+      {
+        "id": "audio-2",
+        "startMs": 30000,
+        "endMs": 40000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 1
+      },
+      {
+        "id": "audio-3",
+        "startMs": 60000,
+        "endMs": 70000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 0
+      },
+      {
+        "id": "audio-4",
+        "startMs": 90000,
+        "endMs": 100000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 1
+      },
+      {
+        "id": "audio-5",
+        "startMs": 120000,
+        "endMs": 130000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 0
+      },
+      {
+        "id": "audio-6",
+        "startMs": 150000,
+        "endMs": 160000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 1
+      },
+      {
+        "id": "audio-7",
+        "startMs": 180000,
+        "endMs": 190000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 0
+      },
+      {
+        "id": "audio-8",
+        "startMs": 210000,
+        "endMs": 220000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 1
+      },
+      {
+        "id": "audio-9",
+        "startMs": 240000,
+        "endMs": 250000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 0
+      },
+      {
+        "id": "audio-10",
+        "startMs": 270000,
+        "endMs": 280000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 1
+      },
+      {
+        "id": "audio-11",
+        "startMs": 300000,
+        "endMs": 310000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 0
+      },
+      {
+        "id": "audio-12",
+        "startMs": 330000,
+        "endMs": 340000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 1
+      },
+      {
+        "id": "audio-13",
+        "startMs": 360000,
+        "endMs": 370000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 0
+      },
+      {
+        "id": "audio-14",
+        "startMs": 390000,
+        "endMs": 400000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 1
+      },
+      {
+        "id": "audio-15",
+        "startMs": 420000,
+        "endMs": 430000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 0
+      },
+      {
+        "id": "audio-16",
+        "startMs": 450000,
+        "endMs": 460000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 1
+      },
+      {
+        "id": "audio-17",
+        "startMs": 480000,
+        "endMs": 490000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 0
+      },
+      {
+        "id": "audio-18",
+        "startMs": 510000,
+        "endMs": 520000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 1
+      },
+      {
+        "id": "audio-19",
+        "startMs": 540000,
+        "endMs": 550000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 0
+      },
+      {
+        "id": "audio-20",
+        "startMs": 570000,
+        "endMs": 580000,
+        "audioPath": "__FIXTURE_ROOT__/media/sidecars/primary.system.m4a",
+        "volume": 0.8,
+        "trackIndex": 1
+      }
+    ],
+    "autoCaptions": [
+      {
+        "id": "caption-1",
+        "startMs": 0,
+        "endMs": 2500,
+        "text": "Deterministic caption 1"
+      },
+      {
+        "id": "caption-2",
+        "startMs": 7500,
+        "endMs": 10000,
+        "text": "Deterministic caption 2"
+      },
+      {
+        "id": "caption-3",
+        "startMs": 15000,
+        "endMs": 17500,
+        "text": "Deterministic caption 3"
+      },
+      {
+        "id": "caption-4",
+        "startMs": 22500,
+        "endMs": 25000,
+        "text": "Deterministic caption 4"
+      },
+      {
+        "id": "caption-5",
+        "startMs": 30000,
+        "endMs": 32500,
+        "text": "Deterministic caption 5"
+      },
+      {
+        "id": "caption-6",
+        "startMs": 37500,
+        "endMs": 40000,
+        "text": "Deterministic caption 6"
+      },
+      {
+        "id": "caption-7",
+        "startMs": 45000,
+        "endMs": 47500,
+        "text": "Deterministic caption 7"
+      },
+      {
+        "id": "caption-8",
+        "startMs": 52500,
+        "endMs": 55000,
+        "text": "Deterministic caption 8"
+      },
+      {
+        "id": "caption-9",
+        "startMs": 60000,
+        "endMs": 62500,
+        "text": "Deterministic caption 9"
+      },
+      {
+        "id": "caption-10",
+        "startMs": 67500,
+        "endMs": 70000,
+        "text": "Deterministic caption 10"
+      },
+      {
+        "id": "caption-11",
+        "startMs": 75000,
+        "endMs": 77500,
+        "text": "Deterministic caption 11"
+      },
+      {
+        "id": "caption-12",
+        "startMs": 82500,
+        "endMs": 85000,
+        "text": "Deterministic caption 12"
+      },
+      {
+        "id": "caption-13",
+        "startMs": 90000,
+        "endMs": 92500,
+        "text": "Deterministic caption 13"
+      },
+      {
+        "id": "caption-14",
+        "startMs": 97500,
+        "endMs": 100000,
+        "text": "Deterministic caption 14"
+      },
+      {
+        "id": "caption-15",
+        "startMs": 105000,
+        "endMs": 107500,
+        "text": "Deterministic caption 15"
+      },
+      {
+        "id": "caption-16",
+        "startMs": 112500,
+        "endMs": 115000,
+        "text": "Deterministic caption 16"
+      },
+      {
+        "id": "caption-17",
+        "startMs": 120000,
+        "endMs": 122500,
+        "text": "Deterministic caption 17"
+      },
+      {
+        "id": "caption-18",
+        "startMs": 127500,
+        "endMs": 130000,
+        "text": "Deterministic caption 18"
+      },
+      {
+        "id": "caption-19",
+        "startMs": 135000,
+        "endMs": 137500,
+        "text": "Deterministic caption 19"
+      },
+      {
+        "id": "caption-20",
+        "startMs": 142500,
+        "endMs": 145000,
+        "text": "Deterministic caption 20"
+      },
+      {
+        "id": "caption-21",
+        "startMs": 150000,
+        "endMs": 152500,
+        "text": "Deterministic caption 21"
+      },
+      {
+        "id": "caption-22",
+        "startMs": 157500,
+        "endMs": 160000,
+        "text": "Deterministic caption 22"
+      },
+      {
+        "id": "caption-23",
+        "startMs": 165000,
+        "endMs": 167500,
+        "text": "Deterministic caption 23"
+      },
+      {
+        "id": "caption-24",
+        "startMs": 172500,
+        "endMs": 175000,
+        "text": "Deterministic caption 24"
+      },
+      {
+        "id": "caption-25",
+        "startMs": 180000,
+        "endMs": 182500,
+        "text": "Deterministic caption 25"
+      },
+      {
+        "id": "caption-26",
+        "startMs": 187500,
+        "endMs": 190000,
+        "text": "Deterministic caption 26"
+      },
+      {
+        "id": "caption-27",
+        "startMs": 195000,
+        "endMs": 197500,
+        "text": "Deterministic caption 27"
+      },
+      {
+        "id": "caption-28",
+        "startMs": 202500,
+        "endMs": 205000,
+        "text": "Deterministic caption 28"
+      },
+      {
+        "id": "caption-29",
+        "startMs": 210000,
+        "endMs": 212500,
+        "text": "Deterministic caption 29"
+      },
+      {
+        "id": "caption-30",
+        "startMs": 217500,
+        "endMs": 220000,
+        "text": "Deterministic caption 30"
+      },
+      {
+        "id": "caption-31",
+        "startMs": 225000,
+        "endMs": 227500,
+        "text": "Deterministic caption 31"
+      },
+      {
+        "id": "caption-32",
+        "startMs": 232500,
+        "endMs": 235000,
+        "text": "Deterministic caption 32"
+      },
+      {
+        "id": "caption-33",
+        "startMs": 240000,
+        "endMs": 242500,
+        "text": "Deterministic caption 33"
+      },
+      {
+        "id": "caption-34",
+        "startMs": 247500,
+        "endMs": 250000,
+        "text": "Deterministic caption 34"
+      },
+      {
+        "id": "caption-35",
+        "startMs": 255000,
+        "endMs": 257500,
+        "text": "Deterministic caption 35"
+      },
+      {
+        "id": "caption-36",
+        "startMs": 262500,
+        "endMs": 265000,
+        "text": "Deterministic caption 36"
+      },
+      {
+        "id": "caption-37",
+        "startMs": 270000,
+        "endMs": 272500,
+        "text": "Deterministic caption 37"
+      },
+      {
+        "id": "caption-38",
+        "startMs": 277500,
+        "endMs": 280000,
+        "text": "Deterministic caption 38"
+      },
+      {
+        "id": "caption-39",
+        "startMs": 285000,
+        "endMs": 287500,
+        "text": "Deterministic caption 39"
+      },
+      {
+        "id": "caption-40",
+        "startMs": 292500,
+        "endMs": 295000,
+        "text": "Deterministic caption 40"
+      },
+      {
+        "id": "caption-41",
+        "startMs": 300000,
+        "endMs": 302500,
+        "text": "Deterministic caption 41"
+      },
+      {
+        "id": "caption-42",
+        "startMs": 307500,
+        "endMs": 310000,
+        "text": "Deterministic caption 42"
+      },
+      {
+        "id": "caption-43",
+        "startMs": 315000,
+        "endMs": 317500,
+        "text": "Deterministic caption 43"
+      },
+      {
+        "id": "caption-44",
+        "startMs": 322500,
+        "endMs": 325000,
+        "text": "Deterministic caption 44"
+      },
+      {
+        "id": "caption-45",
+        "startMs": 330000,
+        "endMs": 332500,
+        "text": "Deterministic caption 45"
+      },
+      {
+        "id": "caption-46",
+        "startMs": 337500,
+        "endMs": 340000,
+        "text": "Deterministic caption 46"
+      },
+      {
+        "id": "caption-47",
+        "startMs": 345000,
+        "endMs": 347500,
+        "text": "Deterministic caption 47"
+      },
+      {
+        "id": "caption-48",
+        "startMs": 352500,
+        "endMs": 355000,
+        "text": "Deterministic caption 48"
+      },
+      {
+        "id": "caption-49",
+        "startMs": 360000,
+        "endMs": 362500,
+        "text": "Deterministic caption 49"
+      },
+      {
+        "id": "caption-50",
+        "startMs": 367500,
+        "endMs": 370000,
+        "text": "Deterministic caption 50"
+      },
+      {
+        "id": "caption-51",
+        "startMs": 375000,
+        "endMs": 377500,
+        "text": "Deterministic caption 51"
+      },
+      {
+        "id": "caption-52",
+        "startMs": 382500,
+        "endMs": 385000,
+        "text": "Deterministic caption 52"
+      },
+      {
+        "id": "caption-53",
+        "startMs": 390000,
+        "endMs": 392500,
+        "text": "Deterministic caption 53"
+      },
+      {
+        "id": "caption-54",
+        "startMs": 397500,
+        "endMs": 400000,
+        "text": "Deterministic caption 54"
+      },
+      {
+        "id": "caption-55",
+        "startMs": 405000,
+        "endMs": 407500,
+        "text": "Deterministic caption 55"
+      },
+      {
+        "id": "caption-56",
+        "startMs": 412500,
+        "endMs": 415000,
+        "text": "Deterministic caption 56"
+      },
+      {
+        "id": "caption-57",
+        "startMs": 420000,
+        "endMs": 422500,
+        "text": "Deterministic caption 57"
+      },
+      {
+        "id": "caption-58",
+        "startMs": 427500,
+        "endMs": 430000,
+        "text": "Deterministic caption 58"
+      },
+      {
+        "id": "caption-59",
+        "startMs": 435000,
+        "endMs": 437500,
+        "text": "Deterministic caption 59"
+      },
+      {
+        "id": "caption-60",
+        "startMs": 442500,
+        "endMs": 445000,
+        "text": "Deterministic caption 60"
+      },
+      {
+        "id": "caption-61",
+        "startMs": 450000,
+        "endMs": 452500,
+        "text": "Deterministic caption 61"
+      },
+      {
+        "id": "caption-62",
+        "startMs": 457500,
+        "endMs": 460000,
+        "text": "Deterministic caption 62"
+      },
+      {
+        "id": "caption-63",
+        "startMs": 465000,
+        "endMs": 467500,
+        "text": "Deterministic caption 63"
+      },
+      {
+        "id": "caption-64",
+        "startMs": 472500,
+        "endMs": 475000,
+        "text": "Deterministic caption 64"
+      },
+      {
+        "id": "caption-65",
+        "startMs": 480000,
+        "endMs": 482500,
+        "text": "Deterministic caption 65"
+      },
+      {
+        "id": "caption-66",
+        "startMs": 487500,
+        "endMs": 490000,
+        "text": "Deterministic caption 66"
+      },
+      {
+        "id": "caption-67",
+        "startMs": 495000,
+        "endMs": 497500,
+        "text": "Deterministic caption 67"
+      },
+      {
+        "id": "caption-68",
+        "startMs": 502500,
+        "endMs": 505000,
+        "text": "Deterministic caption 68"
+      },
+      {
+        "id": "caption-69",
+        "startMs": 510000,
+        "endMs": 512500,
+        "text": "Deterministic caption 69"
+      },
+      {
+        "id": "caption-70",
+        "startMs": 517500,
+        "endMs": 520000,
+        "text": "Deterministic caption 70"
+      },
+      {
+        "id": "caption-71",
+        "startMs": 525000,
+        "endMs": 527500,
+        "text": "Deterministic caption 71"
+      },
+      {
+        "id": "caption-72",
+        "startMs": 532500,
+        "endMs": 535000,
+        "text": "Deterministic caption 72"
+      },
+      {
+        "id": "caption-73",
+        "startMs": 540000,
+        "endMs": 542500,
+        "text": "Deterministic caption 73"
+      },
+      {
+        "id": "caption-74",
+        "startMs": 547500,
+        "endMs": 550000,
+        "text": "Deterministic caption 74"
+      },
+      {
+        "id": "caption-75",
+        "startMs": 555000,
+        "endMs": 557500,
+        "text": "Deterministic caption 75"
+      },
+      {
+        "id": "caption-76",
+        "startMs": 562500,
+        "endMs": 565000,
+        "text": "Deterministic caption 76"
+      },
+      {
+        "id": "caption-77",
+        "startMs": 570000,
+        "endMs": 572500,
+        "text": "Deterministic caption 77"
+      },
+      {
+        "id": "caption-78",
+        "startMs": 577500,
+        "endMs": 580000,
+        "text": "Deterministic caption 78"
+      },
+      {
+        "id": "caption-79",
+        "startMs": 585000,
+        "endMs": 587500,
+        "text": "Deterministic caption 79"
+      },
+      {
+        "id": "caption-80",
+        "startMs": 592500,
+        "endMs": 595000,
+        "text": "Deterministic caption 80"
+      }
+    ],
+    "webcam": {
+      "enabled": true,
+      "sourcePath": "__FIXTURE_ROOT__/media/sidecars/primary-webcam.mp4",
+      "layouts": [
+        {
+          "id": "webcam-layout-1",
+          "startMs": 0,
+          "endMs": 8000,
+          "mode": "fullscreen"
+        },
+        {
+          "id": "webcam-layout-2",
+          "startMs": 25000,
+          "endMs": 33000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-3",
+          "startMs": 50000,
+          "endMs": 58000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-4",
+          "startMs": 75000,
+          "endMs": 83000,
+          "mode": "fullscreen"
+        },
+        {
+          "id": "webcam-layout-5",
+          "startMs": 100000,
+          "endMs": 108000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-6",
+          "startMs": 125000,
+          "endMs": 133000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-7",
+          "startMs": 150000,
+          "endMs": 158000,
+          "mode": "fullscreen"
+        },
+        {
+          "id": "webcam-layout-8",
+          "startMs": 175000,
+          "endMs": 183000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-9",
+          "startMs": 200000,
+          "endMs": 208000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-10",
+          "startMs": 225000,
+          "endMs": 233000,
+          "mode": "fullscreen"
+        },
+        {
+          "id": "webcam-layout-11",
+          "startMs": 250000,
+          "endMs": 258000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-12",
+          "startMs": 275000,
+          "endMs": 283000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-13",
+          "startMs": 300000,
+          "endMs": 308000,
+          "mode": "fullscreen"
+        },
+        {
+          "id": "webcam-layout-14",
+          "startMs": 325000,
+          "endMs": 333000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-15",
+          "startMs": 350000,
+          "endMs": 358000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-16",
+          "startMs": 375000,
+          "endMs": 383000,
+          "mode": "fullscreen"
+        },
+        {
+          "id": "webcam-layout-17",
+          "startMs": 400000,
+          "endMs": 408000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-18",
+          "startMs": 425000,
+          "endMs": 433000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-19",
+          "startMs": 450000,
+          "endMs": 458000,
+          "mode": "fullscreen"
+        },
+        {
+          "id": "webcam-layout-20",
+          "startMs": 475000,
+          "endMs": 483000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-21",
+          "startMs": 500000,
+          "endMs": 508000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-22",
+          "startMs": 525000,
+          "endMs": 533000,
+          "mode": "fullscreen"
+        },
+        {
+          "id": "webcam-layout-23",
+          "startMs": 550000,
+          "endMs": 558000,
+          "mode": "default"
+        },
+        {
+          "id": "webcam-layout-24",
+          "startMs": 575000,
+          "endMs": 583000,
+          "mode": "default"
+        }
+      ]
+    },
+    "sourceAudioTrackSettingsByClip": {
+      "clip-1": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-2": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-3": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-4": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-5": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-6": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-7": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-8": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-9": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-10": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-11": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-12": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-13": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-14": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-15": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-16": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-17": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-18": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-19": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-20": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-21": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-22": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-23": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-24": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-25": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-26": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-27": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-28": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-29": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-30": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-31": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-32": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-33": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-34": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-35": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-36": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-37": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-38": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-39": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-40": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-41": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-42": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-43": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-44": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-45": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-46": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-47": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-48": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-49": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-50": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-51": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-52": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-53": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-54": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-55": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-56": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-57": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-58": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-59": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-60": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-61": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-62": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-63": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-64": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-65": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-66": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-67": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-68": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-69": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-70": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-71": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-72": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-73": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-74": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-75": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-76": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-77": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-78": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-79": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-80": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-81": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-82": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-83": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-84": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-85": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-86": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-87": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-88": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-89": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-90": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-91": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-92": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-93": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-94": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-95": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-96": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-97": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-98": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-99": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-100": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-101": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-102": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-103": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-104": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-105": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-106": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-107": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-108": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-109": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-110": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-111": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-112": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-113": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-114": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-115": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-116": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-117": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-118": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-119": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      },
+      "clip-120": {
+        "mic": {
+          "volume": 0.9,
+          "normalize": false
+        },
+        "system": {
+          "volume": 0.8,
+          "normalize": false
+        }
+      }
+    }
+  }
+}

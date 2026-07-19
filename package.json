@@ -40,6 +40,8 @@
 		"smoke:electron-main-cjs": "node scripts/smoke-electron-main-cjs.mjs",
 		"smoke:packaged-binaries": "node scripts/smoke-packaged-binaries.mjs",
 		"certify:electron-ui": "node scripts/certify-electron-ui.mjs",
+		"fixtures:release": "node scripts/generate-release-fixtures.mjs",
+		"fixtures:release:verify": "node scripts/generate-release-fixtures.mjs --verify",
 		"checksums:release": "node scripts/write-release-checksums.mjs",
 		"release:create": "node scripts/create-release.mjs",
 		"test": "vitest --run",

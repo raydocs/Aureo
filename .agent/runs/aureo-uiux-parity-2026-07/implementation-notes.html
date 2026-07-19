@@ -91,13 +91,13 @@
 
   <h2>Resume Here</h2>
   <ul>
-    <li><strong>Status:</strong> [done] Capture HUD. Plan, UI Foundation, Capture slices 1–7, accessibility, and responsive visual certification are complete on <code>feat/launch-menu-bar-upgrade</code>.</li>
-    <li><strong>Current phase:</strong> Capture HUD is certified; transition next to Editor Shell.</li>
+    <li><strong>Status:</strong> [doing] Production-readiness Phase 0 baseline and deterministic fixtures are established on top of the certified Capture HUD.</li>
+    <li><strong>Current phase:</strong> Finish the Phase 0 checkpoint, then implement Editor Shell Slice 1.1 from one derived discriminated shell state.</li>
     <li><strong>Completed:</strong> Typed/state foundation, source keyboard browsing versus activation, compound source anchor/expanded synchronization, webcam passthrough release, source close focus restoration, modal recording preflight, pointer-equivalent keyboard webcam resize, native state synchronization, idle and destructive native recording actions, Project Browser focus safety, countdown semantics, Area Selection keyboard access, and 1440/1280/960/880 DIP visual review.</li>
-    <li><strong>Active work:</strong> None in Capture. The next implementation phase is Editor Shell.</li>
+    <li><strong>Active work:</strong> A fixed non-user-data release fixture corpus and baseline evidence are present in the worktree. Independent read-only security and selection audits completed on local runner <code>aureo-local</code>, pinned to committed HEAD <code>aa1150a</code>; their release blockers are recorded and remain unresolved by design in this Phase 0 checkpoint.</li>
     <li><strong>Blockers:</strong> No implementation blocker in the healthy recovery clone at <code>/Users/ruirui/Downloads/recordlyx-recovery</code>. The original Documents repo remains preserved with APFS-damaged local objects; its seven local commits plus slice 7 were consolidated into recovery commit <code>cfbb73a</code>.</li>
-    <li><strong>Next action:</strong> Begin Editor Shell from the audited controller/header/inspector boundaries. Whisper runtime replacement remains explicitly deferred until the end.</li>
-    <li><strong>Last validation:</strong> Capture visual certification passed at 1440, 1280, 960, and 880 DIP. The final HUD has no clipping, overlap, detached overlays, or competing primary actions; 880 DIP collapses cleanly to icons. The audit fixed a clipped drag handle and demoted Close so Record remains the sole primary visual action.</li>
+    <li><strong>Next action:</strong> Commit the bounded Phase 0 fixture/evidence checkpoint after review, then add the first failing Editor Shell state-model test. Whisper runtime replacement remains explicitly deferred until the end.</li>
+    <li><strong>Last validation:</strong> Full Vitest 163 files / 1422 tests, production TypeScript, i18n, and non-Whisper Vite/Electron main smoke passed. Full Biome honestly fails on 111 existing errors / 18 warnings. Twelve release fixtures verify against a stable SHA-256 manifest; production npm audit reports one moderate transitive <code>js-yaml</code> advisory.</li>
     <li><strong>Protected paths:</strong> All untracked files matching <code>* 2.*</code>. They appear to be duplicate/backup files; do not delete, modify, stage, or use them as implementation sources without user approval.</li>
   </ul>
 
@@ -184,6 +184,10 @@
 
   <h2>Validation</h2>
   <ul>
+    <li>[validated] Production Phase 0 baseline at <code>aa1150a</code>: full Vitest 163 files / 1422 tests in 23.74 s, production TypeScript, i18n, and non-Whisper Vite/Electron main smoke passed.</li>
+    <li>[incomplete] Full repository Biome baseline reports 111 errors and 18 warnings across 613 files. These are existing formatting/import diagnostics; unrelated broad auto-formatting was not performed.</li>
+    <li>[validated] Deterministic release fixtures: 12 generated non-user-data media/project files verify against manifest SHA-256 <code>f1fd36e118372bf800b7d81a9782ce1d259c4cd865339b2092c810d8af6ae5bf</code>; regeneration is checksum-stable with the locked FFmpeg dependency. Independent review corrected the long timeline to use ten-minute primary/mic/system/webcam media and Aureo's actual sidecar/settings contracts.</li>
+    <li>[incomplete] Production dependency audit reports one moderate transitive <code>js-yaml</code> advisory. Lockfile metadata inventories 742 packages, with two unknown license fields requiring notice review.</li>
     <li>[done] Baseline commit: targeted launch tests 56/56.</li>
     <li>[done] Baseline commit: full Vitest suite 155 files / 1391 tests.</li>
     <li>[done] Baseline commit: Biome check passed for 18 touched launch files.</li>
@@ -212,6 +216,9 @@
 
   <h2>Evidence</h2>
   <ul>
+    <li>Phase 0 baseline, fixture inventory, release decisions, and blocker matrix: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/phase-0-baseline-aa1150a.md</code>.</li>
+    <li>Read-only Electron security evidence: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/security-audit-aa1150a.md</code>; independent runner review <a href="https://ampcode.com/threads/T-019f78e0-f364-75ec-a7ed-6b18f676b061">AUR-SEC-002</a>.</li>
+    <li>Read-only selection evidence: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/selection-audit-aa1150a.md</code>; independent runner review <a href="https://ampcode.com/threads/T-019f78e0-fd47-73c4-88fe-3e022ff30532">AUR-SEL-002</a>.</li>
     <li>Baseline commit: <code>e96ccfe Refine launch HUD source controls and webcam preview</code>.</li>
     <li>Amp Project: <a href="https://ampcode.com/@rw8/Aureo">rw8/Aureo</a>.</li>
     <li>Screen Studio benchmark orb: <a href="https://ampcode.com/threads/T-019f770a-306b-77c1-bc16-a396fe1f2a49">thread</a>.</li>
@@ -363,6 +370,13 @@
         phase: "production-readiness-handoff",
         actor: "agent+gpt-reviewers",
         summary: "Recorded the full post-Capture production roadmap: Editor Shell, unified selection/Inspector/Timeline, project recovery, Export, Capture reliability, Whisper-last, security/privacy/legal closure, Developer ID and Mac App Store distribution gates, RC certification, and a sole-writer Amp agent-to-agent protocol. No release-readiness claim was made and no push occurred."
+      },
+      {
+        ts: "2026-07-19T05:36:37Z",
+        status: "validated",
+        phase: "production-phase-0",
+        actor: "agent+gpt-auditors",
+        summary: "Established the production baseline and fixed release-v1 fixture corpus at aa1150a. Vitest 1422/1422, TypeScript, i18n, and non-Whisper build smoke passed; existing full-Biome drift and one moderate production advisory were classified. Twelve media/project fixtures reproduce a stable checksum manifest. Read-only security and selection audits were recorded and independent local-runner reviews dispatched."
       }
     ];
 

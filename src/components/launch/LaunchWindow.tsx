@@ -16,7 +16,7 @@ import {
 	XIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
-import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RxDragHandleDots2 } from "react-icons/rx";
 import { cn } from "@/lib/utils";
 import { useScopedT } from "../../contexts/I18nContext";
@@ -147,6 +147,7 @@ function LaunchWindowContent() {
 	const [sourcePopoverInitialMode, setSourcePopoverInitialMode] = useState<CaptureSourceType>(
 		selectedSourceType ?? "screen",
 	);
+	const sourcePopoverOpenerRef = useRef<HTMLButtonElement | null>(null);
 	useEffect(() => {
 		if (openId !== "sources") {
 			setSourcePopoverInitialMode(selectedSourceType ?? "screen");
@@ -234,6 +235,7 @@ function LaunchWindowContent() {
 		handleWebcamResizeHandlePointerDown,
 		handleWebcamResizeHandlePointerMove,
 		handleWebcamResizeHandlePointerUp,
+		handleWebcamResizeHandleKeyDown,
 		setWebcamPreviewNode,
 		setRecordingWebcamPreviewNode,
 	} = useWebcamPreviewOverlay({
@@ -273,39 +275,6 @@ function LaunchWindowContent() {
 	const webcamResizeHandleOffset =
 		computeResizeCornerInset(webcamPreviewAppearance.size, webcamPreviewAppearance.roundness) -
 		WEBCAM_RESIZE_HANDLE_SIZE / 2;
-	const handleWebcamResizeKeyDown = useCallback(
-		(
-			event: KeyboardEvent<HTMLDivElement>,
-			corner: "top-left" | "top-right" | "bottom-left" | "bottom-right",
-		) => {
-			const grows =
-				(event.key === "ArrowLeft" && corner.endsWith("left")) ||
-				(event.key === "ArrowRight" && corner.endsWith("right")) ||
-				(event.key === "ArrowUp" && corner.startsWith("top")) ||
-				(event.key === "ArrowDown" && corner.startsWith("bottom"));
-			const shrinks =
-				(event.key === "ArrowLeft" && corner.endsWith("right")) ||
-				(event.key === "ArrowRight" && corner.endsWith("left")) ||
-				(event.key === "ArrowUp" && corner.startsWith("bottom")) ||
-				(event.key === "ArrowDown" && corner.startsWith("top"));
-			if (!grows && !shrinks) return;
-
-			event.preventDefault();
-			event.stopPropagation();
-			const step = event.shiftKey ? 16 : 8;
-			updateWebcamPreviewAppearance({
-				size: Math.min(
-					WEBCAM_PREVIEW_SIZE_RANGE.max,
-					Math.max(
-						WEBCAM_PREVIEW_SIZE_RANGE.min,
-						webcamPreviewAppearance.size + (grows ? step : -step),
-					),
-				),
-			});
-		},
-		[updateWebcamPreviewAppearance, webcamPreviewAppearance.size],
-	);
-
 	useEffect(() => {
 		window.electronAPI?.hudOverlaySetWebcamPreviewVisible?.(showRecordingWebcamPreview);
 	}, [showRecordingWebcamPreview]);
@@ -338,6 +307,13 @@ function LaunchWindowContent() {
 			isWebcamPreviewResizingRef,
 			webcamPreviewDragStartRef,
 		});
+	useEffect(() => {
+		return window.electronAPI?.onHudOverlayOpenSource?.((sourceType) => {
+			setSourcePopoverInitialMode(sourceType);
+			beginInteractiveHudAction();
+			requestOpen("sources");
+		});
+	}, [beginInteractiveHudAction, requestOpen]);
 
 	useEffect(() => {
 		let mounted = true;
@@ -563,8 +539,8 @@ function LaunchWindowContent() {
 						key={mode}
 						type="button"
 						aria-current={isActive ? "true" : undefined}
-						aria-expanded={openId === "sources"}
-						aria-haspopup="listbox"
+						aria-expanded={openId === "sources" && sourcePopoverInitialMode === mode}
+						aria-haspopup="dialog"
 						aria-label={label}
 						title={label}
 						className={cn(
@@ -578,6 +554,7 @@ function LaunchWindowContent() {
 						onClick={(event) => {
 							event.stopPropagation();
 							beginInteractiveHudAction();
+							sourcePopoverOpenerRef.current = event.currentTarget;
 							setSourcePopoverInitialMode(mode);
 							requestOpen("sources");
 						}}
@@ -596,6 +573,17 @@ function LaunchWindowContent() {
 				selectedSource={selectedSource}
 				selectedSourceType={selectedSourceType}
 				initialMode={sourcePopoverInitialMode}
+				onModeChange={setSourcePopoverInitialMode}
+				onCloseAutoFocus={(event) => {
+					event.preventDefault();
+					const activeElement = document.activeElement;
+					if (
+						activeElement === document.body ||
+						activeElement?.closest('[role="dialog"]')
+					) {
+						sourcePopoverOpenerRef.current?.focus();
+					}
+				}}
 				onSourceSelect={handleSourceSelect}
 				onOpen={beginInteractiveHudAction}
 				trigger={sourceModeDock}
@@ -1001,7 +989,7 @@ function LaunchWindowContent() {
 										top: webcamResizeHandleOffset,
 									}}
 									onKeyDown={(event) =>
-										handleWebcamResizeKeyDown(event, "top-left")
+										handleWebcamResizeHandleKeyDown(event, "top-left")
 									}
 									onPointerDown={handleWebcamResizeHandlePointerDown("top-left")}
 									onPointerMove={handleWebcamResizeHandlePointerMove}
@@ -1025,7 +1013,7 @@ function LaunchWindowContent() {
 										top: webcamResizeHandleOffset,
 									}}
 									onKeyDown={(event) =>
-										handleWebcamResizeKeyDown(event, "top-right")
+										handleWebcamResizeHandleKeyDown(event, "top-right")
 									}
 									onPointerDown={handleWebcamResizeHandlePointerDown("top-right")}
 									onPointerMove={handleWebcamResizeHandlePointerMove}
@@ -1049,7 +1037,7 @@ function LaunchWindowContent() {
 										bottom: webcamResizeHandleOffset,
 									}}
 									onKeyDown={(event) =>
-										handleWebcamResizeKeyDown(event, "bottom-left")
+										handleWebcamResizeHandleKeyDown(event, "bottom-left")
 									}
 									onPointerDown={handleWebcamResizeHandlePointerDown(
 										"bottom-left",
@@ -1075,7 +1063,7 @@ function LaunchWindowContent() {
 										bottom: webcamResizeHandleOffset,
 									}}
 									onKeyDown={(event) =>
-										handleWebcamResizeKeyDown(event, "bottom-right")
+										handleWebcamResizeHandleKeyDown(event, "bottom-right")
 									}
 									onPointerDown={handleWebcamResizeHandlePointerDown(
 										"bottom-right",

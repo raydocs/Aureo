@@ -224,6 +224,9 @@
 		--surface-glass-regular: var(--surface-glass-solid);
 		--surface-glass-clear: var(--surface-glass-solid);
 		--hairline: var(--hairline-strong);
+		/* Redeclare aliases locally: inherited custom properties retain their computed value. */
+		--ui-material-floating: hsl(var(--surface-glass-solid));
+		--ui-separator: hsl(var(--hairline-strong));
 	}
 }
 

@@ -18,6 +18,8 @@ export function SourcePopover({
 	onSourceSelect,
 	onOpen,
 	initialMode,
+	onModeChange,
+	onCloseAutoFocus,
 }: {
 	trigger: ReactNode;
 	selectedSource: string;
@@ -25,6 +27,8 @@ export function SourcePopover({
 	onSourceSelect: (source: DesktopSource) => Promise<void> | void;
 	onOpen?: () => void;
 	initialMode?: CaptureSourceType;
+	onModeChange?: (mode: CaptureSourceType) => void;
+	onCloseAutoFocus?: (event: Event) => void;
 }) {
 	const { isOpen, requestOpen, requestClose } = useLaunchPopoverCoordinator();
 	const [sources, setSources] = useState<DesktopSource[]>([]);
@@ -85,6 +89,11 @@ export function SourcePopover({
 			onFetchSources={fetchSources}
 			open={open}
 			mode={viewMode}
+			onCloseAutoFocus={onCloseAutoFocus}
+			onModeChange={(nextMode) => {
+				setViewMode(nextMode);
+				onModeChange?.(nextMode);
+			}}
 			onOpenChange={(nextOpen) => {
 				if (!nextOpen) {
 					requestClose(POPOVER_ID);

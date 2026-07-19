@@ -25,6 +25,7 @@ export function RecordConfirmPopover({
 					requestClose(POPOVER_ID);
 				}
 			}}
+			modal
 			role="dialog"
 			aria-label={t("recording.recordConfirm", "Record confirmation")}
 			trigger={trigger}

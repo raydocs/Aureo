@@ -1,4 +1,11 @@
-import { type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+	type KeyboardEvent,
+	type PointerEvent,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { canShowFloatingWebcamPreview } from "../floatingWebcamPreview";
 import {
 	cacheWebcamPreviewAppearance,
@@ -21,7 +28,11 @@ import {
 	type WebcamPreviewPlacement,
 } from "../webcamPreviewPlacement";
 import { WEBCAM_PREVIEW_SNAP_SIZES } from "../webcamPreviewPresets";
-import { computeResizedPreviewBox, type WebcamResizeCorner } from "../webcamPreviewResize";
+import {
+	computeKeyboardResizedPreviewBox,
+	computeResizedPreviewBox,
+	type WebcamResizeCorner,
+} from "../webcamPreviewResize";
 
 const WEBCAM_PREVIEW_DRAG_THRESHOLD = 6;
 const DEFAULT_VIDEO_ASPECT = 16 / 9;
@@ -138,6 +149,7 @@ export function useWebcamPreviewOverlay({
 	const previewFramingResultRef = useRef<{ centerX: number; centerY: number } | null>(null);
 	const recordingWebcamPreviewVideoRef = useRef<HTMLVideoElement | null>(null);
 	const webcamPreviewSizePillRef = useRef<HTMLDivElement | null>(null);
+	const keyboardResizePillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const webcamPreviewPassthroughHeldRef = useRef(false);
 	const previewUnavailableNotifiedRef = useRef(false);
 	const onWebcamPreviewUnavailableRef = useRef(onWebcamPreviewUnavailable);
@@ -640,16 +652,13 @@ export function useWebcamPreviewOverlay({
 			}
 			previewDragPendingPointerRef.current = null;
 
-			const wasDragging = dragState.dragging;
 			webcamPreviewDragStartRef.current = null;
 			isWebcamPreviewDraggingRef.current = false;
 			setWebcamPreviewOffset({ ...webcamPreviewOffsetRef.current });
 			if (event.currentTarget.hasPointerCapture(event.pointerId)) {
 				event.currentTarget.releasePointerCapture(event.pointerId);
 			}
-			if (wasDragging) {
-				releaseHudPassthrough();
-			}
+			releaseHudPassthrough();
 		},
 		[applyPendingWebcamPreviewFraming, releaseHudPassthrough, updateWebcamPreviewAppearance],
 	);
@@ -825,6 +834,64 @@ export function useWebcamPreviewOverlay({
 			updateWebcamPreviewAppearance,
 		],
 	);
+
+	const handleWebcamResizeHandleKeyDown = useCallback(
+		(event: KeyboardEvent<HTMLDivElement>, corner: WebcamResizeCorner) => {
+			const viewport = { width: window.innerWidth, height: window.innerHeight };
+			const raw = computeKeyboardResizedPreviewBox({
+				corner,
+				key: event.key,
+				startSize: webcamPreviewAppearanceRef.current.size,
+				startOffset: webcamPreviewOffsetRef.current,
+				coarse: event.shiftKey,
+				centerScale: event.altKey,
+				snapSizes: WEBCAM_PREVIEW_SNAP_SIZES,
+				viewport,
+			});
+			if (!raw) return;
+
+			event.preventDefault();
+			event.stopPropagation();
+			const constrained = resolveViewportConstrainedPreview({
+				size: raw.size,
+				placement: {
+					offsetX: raw.offset.x,
+					offsetY: raw.offset.y,
+					visible: true,
+				},
+				viewport,
+			});
+			const nextOffset = {
+				x: constrained.placement.offsetX,
+				y: constrained.placement.offsetY,
+			};
+			webcamPreviewOffsetRef.current = nextOffset;
+			setWebcamPreviewOffset(nextOffset);
+			updateWebcamPreviewAppearance({ size: constrained.size });
+
+			const pill = webcamPreviewSizePillRef.current;
+			if (pill) {
+				pill.textContent = `${constrained.size} px`;
+				pill.setAttribute("data-visible", "");
+				if (keyboardResizePillTimerRef.current !== null) {
+					clearTimeout(keyboardResizePillTimerRef.current);
+				}
+				keyboardResizePillTimerRef.current = setTimeout(() => {
+					keyboardResizePillTimerRef.current = null;
+					pill.removeAttribute("data-visible");
+				}, 700);
+			}
+		},
+		[updateWebcamPreviewAppearance],
+	);
+
+	useEffect(() => {
+		return () => {
+			if (keyboardResizePillTimerRef.current !== null) {
+				clearTimeout(keyboardResizePillTimerRef.current);
+			}
+		};
+	}, []);
 
 	const syncVideoAspectFromNode = useCallback((videoElement: HTMLVideoElement) => {
 		const { videoWidth, videoHeight } = videoElement;
@@ -1126,6 +1193,7 @@ export function useWebcamPreviewOverlay({
 		handleWebcamResizeHandlePointerDown,
 		handleWebcamResizeHandlePointerMove,
 		handleWebcamResizeHandlePointerUp,
+		handleWebcamResizeHandleKeyDown,
 		setWebcamPreviewNode,
 		setWebcamPreviewBackdropNode,
 		setRecordingWebcamPreviewNode,

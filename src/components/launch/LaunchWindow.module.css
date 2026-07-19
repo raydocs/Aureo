@@ -141,7 +141,7 @@
 	border-radius: 10px;
 	background: transparent;
 	box-shadow: none;
-	color: var(--launch-text-muted);
+	color: var(--ui-label-secondary);
 	justify-content: flex-start;
 	transition:
 		background-color 0.16s ease,
@@ -151,30 +151,31 @@
 }
 
 .toolbarControl:hover {
-	border-color: var(--launch-border);
-	background: var(--launch-hover);
-	color: var(--launch-text);
+	border-color: var(--ui-separator);
+	background: var(--ui-control-hover);
+	color: var(--ui-label-primary);
 }
 
 .toolbarControl:active {
+	background: var(--ui-control-pressed);
 	transform: scale(0.985);
 }
 
 .toolbarControl:focus-visible {
-	outline: 2px solid var(--launch-accent);
+	outline: 2px solid var(--ui-focus-ring);
 	outline-offset: 1px;
 }
 
 .toolbarControlActive {
-	background: var(--launch-selected);
-	color: var(--launch-text);
-	border-color: var(--launch-border-strong);
+	background: var(--ui-control-selected);
+	color: var(--ui-label-primary);
+	border-color: var(--ui-separator-strong);
 }
 
 .toolbarControlEnabled {
-	border-color: var(--launch-border-strong);
-	background: var(--launch-hover);
-	color: var(--launch-text);
+	border-color: var(--ui-separator-strong);
+	background: var(--ui-control-hover);
+	color: var(--ui-label-primary);
 }
 
 .toolbarControlEnabled:hover {
@@ -183,9 +184,9 @@
 }
 
 .toolbarControlOpen {
-	background: var(--launch-selected);
-	color: var(--launch-text);
-	border-color: var(--launch-border-strong);
+	background: var(--ui-control-selected);
+	color: var(--ui-label-primary);
+	border-color: var(--ui-separator-strong);
 }
 
 .toolbarControlOpen:hover {
@@ -227,7 +228,7 @@
 	border: 1px solid transparent;
 	border-radius: 9px;
 	background: transparent;
-	color: var(--launch-text-muted);
+	color: var(--ui-label-secondary);
 	font-size: 10px;
 	line-height: 1;
 	font-weight: 600;
@@ -240,23 +241,24 @@
 }
 
 .sourceModeButton:hover {
-	background: var(--launch-hover);
-	color: var(--launch-text);
+	background: var(--ui-control-hover);
+	color: var(--ui-label-primary);
 }
 
 .sourceModeButton:focus-visible {
-	outline: 2px solid var(--launch-accent);
+	outline: 2px solid var(--ui-focus-ring);
 	outline-offset: 1px;
 }
 
 .sourceModeButton:active {
+	background: var(--ui-control-pressed);
 	transform: scale(0.985);
 }
 
 .sourceModeButtonActive {
-	background: var(--launch-selected);
-	color: var(--launch-text);
-	border-color: var(--launch-border-strong);
+	background: var(--ui-control-selected);
+	color: var(--ui-label-primary);
+	border-color: var(--ui-separator-strong);
 }
 
 .sourceModeButtonActive:hover {
@@ -265,9 +267,9 @@
 }
 
 .sourceModeButtonOpen {
-	background: var(--launch-selected);
-	color: var(--launch-text);
-	border-color: var(--launch-border-strong);
+	background: var(--ui-control-selected);
+	color: var(--ui-label-primary);
+	border-color: var(--ui-separator-strong);
 }
 
 .sourceModeLabel {
@@ -688,7 +690,7 @@
 	border: none;
 	background: transparent;
 	font-size: 12px;
-	color: var(--launch-text-muted);
+	color: var(--ui-label-secondary);
 	cursor: pointer;
 	transition:
 		color 0.12s ease,
@@ -698,13 +700,13 @@
 }
 
 .ddItem:hover {
-	background: var(--launch-hover);
-	color: var(--launch-text);
+	background: var(--ui-control-hover);
+	color: var(--ui-label-primary);
 }
 
 .ddItem:disabled {
 	cursor: not-allowed;
-	opacity: 0.5;
+	opacity: var(--ui-control-disabled-opacity);
 }
 
 .ddItem:disabled:hover {
@@ -713,16 +715,17 @@
 }
 
 .ddItem:active {
+	background: var(--ui-control-pressed);
 	transform: scale(0.98);
 }
 
 .ddItem:focus-visible {
-	outline: 2px solid var(--launch-accent);
+	outline: 2px solid var(--ui-focus-ring);
 	outline-offset: -2px;
 }
 
 .ddItemSelected {
-	background: var(--launch-selected);
+	background: var(--ui-control-selected);
 	color: #ffffff;
 }
 

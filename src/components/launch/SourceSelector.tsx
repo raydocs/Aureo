@@ -9,7 +9,7 @@ import {
 import * as React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { useScopedT } from "@/contexts/I18nContext";
 import { cn } from "@/lib/utils";
 import {
@@ -52,6 +52,10 @@ interface SourceSelectorProps {
 	onOpenChange?: (open: boolean) => void;
 	/** Optional controlled display mode for the popover tabs. When provided, overrides the mode derived from selectedSourceType. */
 	mode?: SourceMode;
+	/** Called when the user changes the popover's displayed source mode. */
+	onModeChange?: (mode: SourceMode) => void;
+	/** Restores focus after the controlled popover closes without a Radix trigger. */
+	onCloseAutoFocus?: (event: Event) => void;
 	/** Optional custom trigger element */
 	children?: React.ReactNode;
 }
@@ -119,6 +123,26 @@ async function enumerateVideoDevices(): Promise<MediaDeviceInfo[]> {
 }
 
 const allModes: SourceMode[] = ["screen", "window", "area", "device"];
+
+export function resolveSourceOptionNavigation(
+	key: string,
+	currentIndex: number,
+	sourceCount: number,
+): number | null {
+	if (sourceCount <= 0 || currentIndex < 0 || currentIndex >= sourceCount) return null;
+	switch (key) {
+		case "ArrowDown":
+			return (currentIndex + 1) % sourceCount;
+		case "ArrowUp":
+			return (currentIndex - 1 + sourceCount) % sourceCount;
+		case "Home":
+			return 0;
+		case "End":
+			return sourceCount - 1;
+		default:
+			return null;
+	}
+}
 
 function normalizeMode(mode: CaptureSourceType | undefined): SourceMode {
 	switch (mode) {
@@ -200,6 +224,7 @@ export const SourceSelectorContent = ({
 	loading = false,
 	open = false,
 	mode: controlledMode,
+	onModeChange,
 	onSourceSelect = () => undefined,
 	onOpenAreaSelector,
 }: Pick<
@@ -211,6 +236,7 @@ export const SourceSelectorContent = ({
 	| "loading"
 	| "onSourceSelect"
 	| "mode"
+	| "onModeChange"
 > & { open?: boolean; onOpenAreaSelector?: () => Promise<DesktopSource | null> }) => {
 	const t = useScopedT("launch");
 	const listRef = useRef<HTMLDivElement>(null);
@@ -228,6 +254,13 @@ export const SourceSelectorContent = ({
 	useEffect(() => {
 		setMode(controlledMode ?? normalizeMode(selectedSourceType));
 	}, [controlledMode, selectedSourceType]);
+	const changeMode = useCallback(
+		(nextMode: SourceMode) => {
+			setMode(nextMode);
+			onModeChange?.(nextMode);
+		},
+		[onModeChange],
+	);
 
 	const orderedSources = useMemo(() => {
 		switch (mode) {
@@ -305,31 +338,15 @@ export const SourceSelectorContent = ({
 		event: React.KeyboardEvent<HTMLButtonElement>,
 		source: DesktopSource,
 	) => {
-		let nextIndex: number | null = null;
 		const currentIndex = orderedSources.findIndex((candidate) => candidate.id === source.id);
-		if (currentIndex < 0) return;
-
-		switch (event.key) {
-			case "ArrowDown":
-				nextIndex = (currentIndex + 1) % orderedSources.length;
-				break;
-			case "ArrowUp":
-				nextIndex = (currentIndex - 1 + orderedSources.length) % orderedSources.length;
-				break;
-			case "Home":
-				nextIndex = 0;
-				break;
-			case "End":
-				nextIndex = orderedSources.length - 1;
-				break;
-			default:
-				return;
-		}
+		const nextIndex = resolveSourceOptionNavigation(
+			event.key,
+			currentIndex,
+			orderedSources.length,
+		);
+		if (nextIndex === null) return;
 
 		event.preventDefault();
-		const nextSource = orderedSources[nextIndex];
-		if (!nextSource) return;
-		onSourceSelect(nextSource);
 		const options = listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]');
 		options?.[nextIndex]?.focus();
 	};
@@ -344,7 +361,7 @@ export const SourceSelectorContent = ({
 		const delta = event.key === "ArrowRight" ? 1 : -1;
 		const nextIndex = (currentIndex + delta + allModes.length) % allModes.length;
 		const nextMode = allModes[nextIndex];
-		setMode(nextMode);
+		changeMode(nextMode);
 		const nextTab = tabsRef.current?.querySelector<HTMLButtonElement>(
 			`[data-mode="${nextMode}"]`,
 		);
@@ -388,7 +405,7 @@ export const SourceSelectorContent = ({
 							data-mode={tabMode}
 							aria-checked={mode === tabMode}
 							tabIndex={mode === tabMode ? 0 : -1}
-							onClick={() => setMode(tabMode)}
+							onClick={() => changeMode(tabMode)}
 							onKeyDown={(event) => handleTabKeyDown(event, tabMode)}
 							className={cn(
 								"source-selector-mode-tab",
@@ -587,6 +604,8 @@ export const SourceSelector = React.memo(function SourceSelector({
 	open: propsOpen,
 	onOpenChange: propsOnOpenChange,
 	mode: propsMode,
+	onModeChange,
+	onCloseAutoFocus,
 	children,
 }: SourceSelectorProps) {
 	const t = useScopedT("launch");
@@ -786,7 +805,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 
 	return (
 		<Popover open={open} onOpenChange={onOpenChange} modal={false}>
-			<PopoverTrigger asChild>{trigger}</PopoverTrigger>
+			<PopoverAnchor asChild>{trigger}</PopoverAnchor>
 			<PopoverContent
 				className="launch-theme launch-hud-theme w-80 p-0 source-selector-popover"
 				unstyled
@@ -798,6 +817,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 				collisionPadding={12}
 				usePortal={false}
 				onMouseEnter={onMouseEnter}
+				onCloseAutoFocus={onCloseAutoFocus}
 				role="dialog"
 				aria-labelledby="source-selector-header-title"
 			>
@@ -810,6 +830,7 @@ export const SourceSelector = React.memo(function SourceSelector({
 					loading={loading}
 					open={open}
 					mode={propsMode}
+					onModeChange={onModeChange}
 					onSourceSelect={onSourceSelect}
 					onOpenAreaSelector={onOpenAreaSelector}
 				/>

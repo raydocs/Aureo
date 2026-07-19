@@ -1,5 +1,5 @@
 import { MicrophoneIcon, MicrophoneSlashIcon } from "@phosphor-icons/react";
-import type { ReactElement, ReactNode } from "react";
+import { type KeyboardEvent, type ReactElement, type ReactNode, useCallback, useRef } from "react";
 import { AudioLevelMeter } from "@/components/ui/audio-level-meter";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAudioLevelMeter } from "@/hooks/useAudioLevelMeter";
@@ -7,6 +7,23 @@ import styles from "../LaunchWindow.module.css";
 import "../launchTheme.css";
 import { useHudInteraction } from "../contexts/HudInteractionContext";
 import type { DeviceOption } from "./launchPopoverTypes";
+
+const MENU_ITEM_SELECTOR =
+	'[role="menuitem"]:not(:disabled), [role="menuitemradio"]:not(:disabled), [role="menuitemcheckbox"]:not(:disabled)';
+
+export function resolveMenuNavigationIndex(
+	currentIndex: number,
+	itemCount: number,
+	key: string,
+): number | null {
+	if (itemCount <= 0) return null;
+	if (key === "Home") return 0;
+	if (key === "End") return itemCount - 1;
+	if (key === "ArrowDown") return currentIndex < 0 ? 0 : (currentIndex + 1) % itemCount;
+	if (key === "ArrowUp")
+		return currentIndex < 0 ? itemCount - 1 : (currentIndex - 1 + itemCount) % itemCount;
+	return null;
+}
 
 export function DropdownItem({
 	onClick,
@@ -30,6 +47,7 @@ export function DropdownItem({
 		<button
 			type="button"
 			role={role}
+			tabIndex={-1}
 			aria-checked={supportsCheckedState ? Boolean(selected) : undefined}
 			className={`${styles.ddItem} ${selected ? styles.ddItemSelected : ""}`}
 			disabled={disabled}
@@ -60,6 +78,7 @@ export function MicDeviceRow({
 		<button
 			type="button"
 			role="menuitemradio"
+			tabIndex={-1}
 			aria-checked={selected}
 			className={`${styles.ddItem} ${selected ? styles.ddItemSelected : ""}`}
 			onClick={onSelect}
@@ -81,6 +100,7 @@ export function HudPopover({
 	align = "center",
 	role = "menu",
 	ariaLabel,
+	modal = false,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -89,10 +109,44 @@ export function HudPopover({
 	align?: "start" | "center" | "end";
 	role?: "menu" | "dialog" | "region";
 	ariaLabel?: string;
+	modal?: boolean;
 }) {
 	const { onMouseEnter } = useHudInteraction();
+	const typeaheadRef = useRef({ value: "", at: 0 });
+	const handleMenuKeyDown = useCallback(
+		(event: KeyboardEvent<HTMLDivElement>) => {
+			if (role !== "menu") return;
+			const items = Array.from(
+				event.currentTarget.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR),
+			);
+			const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+			const nextIndex = resolveMenuNavigationIndex(currentIndex, items.length, event.key);
+			if (nextIndex !== null) {
+				event.preventDefault();
+				items[nextIndex]?.focus();
+				return;
+			}
+			if (event.key.length !== 1 || event.metaKey || event.ctrlKey || event.altKey) return;
+
+			const now = Date.now();
+			const nextValue =
+				now - typeaheadRef.current.at > 500
+					? event.key.toLocaleLowerCase()
+					: `${typeaheadRef.current.value}${event.key.toLocaleLowerCase()}`;
+			typeaheadRef.current = { value: nextValue, at: now };
+			const ordered = [...items.slice(currentIndex + 1), ...items.slice(0, currentIndex + 1)];
+			const match = ordered.find((item) =>
+				item.textContent?.trim().toLocaleLowerCase().startsWith(nextValue),
+			);
+			if (match) {
+				event.preventDefault();
+				match.focus();
+			}
+		},
+		[role],
+	);
 	return (
-		<Popover open={open} onOpenChange={onOpenChange} modal={false}>
+		<Popover open={open} onOpenChange={onOpenChange} modal={modal}>
 			<PopoverTrigger asChild>{trigger}</PopoverTrigger>
 			<PopoverContent
 				className={`launch-theme launch-hud-theme ${styles.menuCard} ${styles.electronNoDrag}`}
@@ -105,6 +159,21 @@ export function HudPopover({
 				collisionPadding={12}
 				usePortal={false}
 				onMouseEnter={onMouseEnter}
+				onOpenAutoFocus={(event) => {
+					if (role !== "menu") return;
+					event.preventDefault();
+					const content = event.currentTarget as HTMLElement;
+					queueMicrotask(() => {
+						const items = Array.from(
+							content.querySelectorAll<HTMLElement>(MENU_ITEM_SELECTOR),
+						);
+						(
+							items.find((item) => item.getAttribute("aria-checked") === "true") ??
+							items[0]
+						)?.focus();
+					});
+				}}
+				onKeyDown={handleMenuKeyDown}
 				role={role}
 				aria-label={ariaLabel}
 			>

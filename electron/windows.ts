@@ -321,6 +321,43 @@ function setHudOverlayMousePassthrough(ignore: boolean) {
 	hudOverlayWindow.setIgnoreMouseEvents(false);
 }
 
+export function prepareHudOverlayForNativeDialog(target: BrowserWindow): (() => void) | null {
+	if (target !== hudOverlayWindow || target.isDestroyed()) {
+		return null;
+	}
+
+	const wasFocusable = target.isFocusable();
+	const wasVisible = target.isVisible();
+	const requestedIgnoreBeforeDialog = hudOverlayIgnoringMouse;
+	const restore = () => {
+		if (target.isDestroyed()) return;
+		try {
+			setHudOverlayMousePassthrough(requestedIgnoreBeforeDialog);
+		} finally {
+			try {
+				target.setFocusable(wasFocusable);
+			} finally {
+				if (!wasVisible) target.hide();
+			}
+		}
+	};
+
+	try {
+		target.setFocusable(true);
+		target.setIgnoreMouseEvents(false);
+		target.show();
+	} catch (error) {
+		try {
+			restore();
+		} catch {
+			// Preserve the preparation error after attempting every restoration step.
+		}
+		throw error;
+	}
+
+	return restore;
+}
+
 ipcMain.on("hud-overlay-set-ignore-mouse", (_event, ignore: boolean) => {
 	setHudOverlayMousePassthrough(Boolean(ignore));
 });

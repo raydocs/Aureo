@@ -62,7 +62,7 @@
 	--ui-control-hover: rgba(255, 255, 255, 0.08);
 	--ui-control-pressed: rgba(255, 255, 255, 0.12);
 	--ui-control-selected: rgba(92, 153, 255, 0.24);
-	--ui-focus-ring: #3d8bff;
+	--ui-focus-ring: #2563eb;
 	--launch-surface-solid: #1a1a22;
 	--launch-hover-solid: #20202a;
 	--launch-selected-solid: #202a3d;
@@ -126,4 +126,13 @@
 	--launch-inner-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
 
 	color: var(--launch-text);
+}
+
+/* Keep semantic materials opaque when the preference lives on the theme node itself. */
+.launch-theme[data-reduce-transparency="true"],
+.launch-theme.reduce-transparency,
+[data-reduce-transparency="true"] .launch-theme,
+.reduce-transparency .launch-theme {
+	--ui-material-floating: var(--ui-material-opaque);
+	--ui-separator: var(--ui-separator-strong);
 }

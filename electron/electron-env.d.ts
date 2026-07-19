@@ -217,6 +217,11 @@ interface Window {
 				popoverId: import("../src/lib/launchPopoverIds").NativeOpenableLaunchPopoverId,
 			) => void,
 		) => () => void;
+		onHudOverlayOpenSource: (
+			callback: (
+				sourceType: import("../src/lib/launchPopoverIds").NativeCaptureSourceType,
+			) => void,
+		) => () => void;
 		getHudOverlayCaptureProtection: () => Promise<{ success: boolean; enabled: boolean }>;
 		getHudOverlayMousePassthroughSupported: () => Promise<{
 			success: boolean;
@@ -595,6 +600,9 @@ interface Window {
 			error?: string;
 		}>;
 		setRecordingState: (recording: boolean) => Promise<void>;
+		setRecorderUiState: (
+			state: import("../src/lib/recorderUiState").RecorderUiState,
+		) => Promise<{ success: boolean; error?: string }>;
 		getCursorTelemetry: (videoPath?: string) => Promise<{
 			success: boolean;
 			samples: CursorTelemetryPoint[];
@@ -615,7 +623,9 @@ interface Window {
 			cursors: Record<string, SystemCursorAsset>;
 			error?: string;
 		}>;
-		onStopRecordingFromTray: (callback: () => void) => () => void;
+		onRecorderMenuCommand: (
+			callback: (command: import("../src/lib/recorderUiState").RecorderMenuCommand) => void,
+		) => () => void;
 		onRecordingStateChanged: (
 			callback: (state: { recording: boolean; sourceName: string }) => void,
 		) => () => void;

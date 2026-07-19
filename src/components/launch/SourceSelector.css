@@ -123,7 +123,7 @@
 	border-radius: 8px;
 	border: 1px solid transparent;
 	background: transparent;
-	color: var(--launch-text-muted);
+	color: var(--ui-label-secondary);
 	font-size: 11px;
 	font-weight: 600;
 	cursor: pointer;
@@ -134,19 +134,19 @@
 }
 
 .source-selector-mode-tab:hover {
-	background: var(--launch-hover);
-	color: var(--launch-text);
+	background: var(--ui-control-hover);
+	color: var(--ui-label-primary);
 }
 
 .source-selector-mode-tab:focus-visible {
-	outline: 2px solid var(--launch-accent);
+	outline: 2px solid var(--ui-focus-ring);
 	outline-offset: -2px;
 }
 
 .source-selector-mode-tab-active {
-	background: var(--launch-selected);
-	color: var(--launch-text);
-	border-color: var(--launch-border-strong);
+	background: var(--ui-control-selected);
+	color: var(--ui-label-primary);
+	border-color: var(--ui-separator-strong);
 }
 
 .source-selector-mode-tab-active:hover {
@@ -231,7 +231,7 @@
 }
 
 .source-selector-item {
-	color: var(--launch-text-muted);
+	color: var(--ui-label-secondary);
 	border: 1px solid transparent;
 	transition:
 		color 0.12s ease,
@@ -241,23 +241,24 @@
 }
 
 .source-selector-item:hover {
-	background: var(--launch-hover);
-	color: var(--launch-text);
+	background: var(--ui-control-hover);
+	color: var(--ui-label-primary);
 }
 
 .source-selector-item:active {
+	background: var(--ui-control-pressed);
 	transform: scale(0.98);
 }
 
 .source-selector-item:focus-visible {
-	outline: 2px solid var(--launch-accent);
+	outline: 2px solid var(--ui-focus-ring);
 	outline-offset: -2px;
 }
 
 .source-selector-item-selected {
-	background: var(--launch-selected);
-	color: var(--launch-text);
-	border-color: var(--launch-border-strong);
+	background: var(--ui-control-selected);
+	color: var(--ui-label-primary);
+	border-color: var(--ui-separator-strong);
 }
 
 .source-selector-item-selected:hover {

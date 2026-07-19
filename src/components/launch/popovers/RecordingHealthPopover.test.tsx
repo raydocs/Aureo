@@ -2,6 +2,7 @@ import { type ReactNode, useMemo } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/contexts/I18nContext";
+import type { LaunchPopoverId } from "@/lib/launchPopoverIds";
 import { HudInteractionContext } from "../contexts/HudInteractionContext";
 import type { RecordingHealthSnapshot } from "../hooks/useRecordingHealth";
 import { LaunchPopoverCoordinatorContext } from "./LaunchPopoverCoordinator";
@@ -16,14 +17,14 @@ function MockCoordinator({
 	openId = null,
 }: {
 	children: ReactNode;
-	openId?: string | null;
+	openId?: LaunchPopoverId | null;
 }) {
 	const value = useMemo(
 		() => ({
 			openId,
-			requestOpen: vi.fn(),
-			requestClose: vi.fn(),
-			isOpen: (id: string) => openId === id,
+			requestOpen: vi.fn<(id: LaunchPopoverId) => void>(),
+			requestClose: vi.fn<(id: LaunchPopoverId) => void>(),
+			isOpen: (id: LaunchPopoverId) => openId === id,
 		}),
 		[openId],
 	);
@@ -34,7 +35,13 @@ function MockCoordinator({
 	);
 }
 
-function Wrapper({ children, openId }: { children: React.ReactNode; openId?: string | null }) {
+function Wrapper({
+	children,
+	openId,
+}: {
+	children: React.ReactNode;
+	openId?: LaunchPopoverId | null;
+}) {
 	return (
 		<I18nProvider>
 			<HudInteractionContext.Provider

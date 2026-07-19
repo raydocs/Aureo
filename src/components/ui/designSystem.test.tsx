@@ -36,6 +36,15 @@ describe("Aureo Design System", () => {
 			expect(buttonVariants({ variant: "toolbar" })).toContain("px-2.5");
 		});
 
+		it("uses the shared control-state contract", () => {
+			const classes = buttonVariants({ variant: "toolbar" });
+			expect(classes).toContain("--ui-control-hover");
+			expect(classes).toContain("--ui-control-pressed");
+			expect(classes).toContain("--ui-control-selected");
+			expect(classes).toContain("--ui-control-disabled-opacity");
+			expect(classes).toContain("--ui-focus-ring");
+		});
+
 		it("composes className with CVA", () => {
 			const className = buttonVariants({ className: "custom-class" });
 			expect(className).toContain("custom-class");

@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	createBrowserRecordingOptions,
 	createProcessedMicrophoneConstraints,
+	discardNativeRecording,
 	normalizeBrowserMicrophoneProfile,
 	resolveBrowserCaptureCursorPolicy,
 	resolveCaptureDeviceId,
 	shouldUseNativeMacScreenCaptureForSource,
 	shouldUseNativeWindowsCaptureForSource,
+	stopMediaRecorderAndWait,
 } from "./useScreenRecorder";
 
 type RecordingState = "inactive" | "recording" | "paused";
@@ -33,6 +35,60 @@ function createMockMediaRecorder(initialState: RecordingState = "inactive") {
 		}),
 	};
 }
+
+describe("stopMediaRecorderAndWait", () => {
+	it("does not resolve until the recorder emits stop", async () => {
+		const target = new EventTarget();
+		let state: RecordingState = "recording";
+		const recorder = {
+			addEventListener: target.addEventListener.bind(target),
+			get state() {
+				return state;
+			},
+			stop: vi.fn(() => {
+				state = "inactive";
+			}),
+		} as unknown as MediaRecorder;
+		let resolved = false;
+		const stopped = stopMediaRecorderAndWait(recorder).then(() => {
+			resolved = true;
+		});
+
+		expect(recorder.stop).toHaveBeenCalledOnce();
+		await Promise.resolve();
+		expect(resolved).toBe(false);
+
+		target.dispatchEvent(new Event("stop"));
+		await stopped;
+		expect(resolved).toBe(true);
+	});
+});
+
+describe("discardNativeRecording", () => {
+	it("reports deletion failure so restart does not start a replacement", async () => {
+		const deleteRecordingFile = vi.fn().mockResolvedValue({ success: false });
+
+		await expect(
+			discardNativeRecording(
+				() => Promise.resolve({ success: true, path: "/recordings/current.mp4" }),
+				deleteRecordingFile,
+			),
+		).resolves.toBe(false);
+		expect(deleteRecordingFile).toHaveBeenCalledWith("/recordings/current.mp4");
+	});
+
+	it("does not attempt deletion when native stop did not produce a recording", async () => {
+		const deleteRecordingFile = vi.fn();
+
+		await expect(
+			discardNativeRecording(
+				() => Promise.resolve({ success: false, error: "stop failed" }),
+				deleteRecordingFile,
+			),
+		).resolves.toBe(false);
+		expect(deleteRecordingFile).not.toHaveBeenCalled();
+	});
+});
 
 describe("createProcessedMicrophoneConstraints", () => {
 	it("requests browser voice processing with AGC for the default microphone", () => {

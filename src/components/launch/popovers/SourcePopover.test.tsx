@@ -2,6 +2,7 @@ import { type ReactNode, useMemo } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/contexts/I18nContext";
+import type { LaunchPopoverId } from "@/lib/launchPopoverIds";
 import { HudInteractionContext } from "../contexts/HudInteractionContext";
 import { LaunchPopoverCoordinatorContext } from "./LaunchPopoverCoordinator";
 import { SourcePopover } from "./SourcePopover";
@@ -11,14 +12,14 @@ function MockCoordinator({
 	openId = null,
 }: {
 	children: ReactNode;
-	openId?: string | null;
+	openId?: LaunchPopoverId | null;
 }) {
 	const value = useMemo(
 		() => ({
 			openId,
-			requestOpen: vi.fn(),
-			requestClose: vi.fn(),
-			isOpen: (id: string) => openId === id,
+			requestOpen: vi.fn<(id: LaunchPopoverId) => void>(),
+			requestClose: vi.fn<(id: LaunchPopoverId) => void>(),
+			isOpen: (id: LaunchPopoverId) => openId === id,
 		}),
 		[openId],
 	);
@@ -29,7 +30,13 @@ function MockCoordinator({
 	);
 }
 
-function Wrapper({ children, openId }: { children: React.ReactNode; openId?: string | null }) {
+function Wrapper({
+	children,
+	openId,
+}: {
+	children: React.ReactNode;
+	openId?: LaunchPopoverId | null;
+}) {
 	return (
 		<I18nProvider>
 			<HudInteractionContext.Provider
@@ -76,7 +83,8 @@ describe("SourcePopover", () => {
 		expect(html).toContain('aria-label="Window"');
 		expect(html).toContain('aria-label="Area"');
 		expect(html).toContain('aria-label="Device"');
-		expect(html).toContain('aria-expanded="false"');
+		expect(html).toContain('data-slot="popover-anchor"');
+		expect(html).not.toContain('data-slot="popover-trigger"');
 	});
 
 	it("opens the popover focused on the requested initial mode without selecting a fake source", () => {

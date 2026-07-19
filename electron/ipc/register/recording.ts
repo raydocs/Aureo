@@ -12,6 +12,7 @@ import {
 	shell,
 	systemPreferences,
 } from "electron";
+import { isRecorderUiState, type RecorderUiState } from "../../../src/lib/recorderUiState";
 import { showCursor } from "../../cursorHider";
 import { ALLOW_AUREO_WINDOW_CAPTURE } from "../constants";
 import { startWindowBoundsCapture, stopWindowBoundsCapture } from "../cursor/bounds";
@@ -630,6 +631,7 @@ async function resolveExistingPath(...candidates: Array<string | null | undefine
 
 export function registerRecordingHandlers(
 	onRecordingStateChange?: (recording: boolean, sourceName: string) => void,
+	onRecorderUiStateChange?: (state: RecorderUiState, sourceName: string) => void,
 ) {
 	ipcMain.handle(
 		"start-native-screen-recording",
@@ -2350,6 +2352,15 @@ export function registerRecordingHandlers(
 		if (onRecordingStateChange) {
 			onRecordingStateChange(recording, source.name);
 		}
+	});
+
+	ipcMain.handle("set-recorder-ui-state", (_, state: unknown) => {
+		if (!isRecorderUiState(state)) {
+			return { success: false, error: "Invalid recorder UI state" };
+		}
+		const source = selectedSource || { name: "Screen" };
+		onRecorderUiStateChange?.(state, source.name);
+		return { success: true };
 	});
 
 	ipcMain.handle("pause-cursor-capture", (_, pausedAtMs?: unknown) => {

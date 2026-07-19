@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	computeKeyboardResizedPreviewBox,
 	computeResizeCornerInset,
 	computeResizedPreviewBox,
 	type WebcamResizeCorner,
@@ -156,6 +157,74 @@ describe("computeResizedPreviewBox", () => {
 			offset: startOffset,
 			snappedTo: null,
 		});
+	});
+});
+
+describe("computeKeyboardResizedPreviewBox", () => {
+	it.each<{
+		corner: WebcamResizeCorner;
+		key: "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
+		expectedOffset: { x: number; y: number };
+	}>([
+		{ corner: "top-left", key: "ArrowLeft", expectedOffset: { x: 0, y: 0 } },
+		{ corner: "top-right", key: "ArrowRight", expectedOffset: { x: 8, y: 0 } },
+		{ corner: "bottom-left", key: "ArrowDown", expectedOffset: { x: 0, y: 8 } },
+		{ corner: "bottom-right", key: "ArrowRight", expectedOffset: { x: 8, y: 8 } },
+	])("grows $corner while preserving the opposite corner", ({ corner, key, expectedOffset }) => {
+		expect(
+			computeKeyboardResizedPreviewBox({
+				corner,
+				key,
+				startSize: 200,
+				startOffset: { x: 0, y: 0 },
+				coarse: false,
+				centerScale: false,
+				snapSizes: [],
+				viewport: VIEWPORT,
+			}),
+		).toEqual({ size: 208, offset: expectedOffset, snappedTo: null });
+	});
+
+	it("uses a 16px coarse step and keeps center scaling at the same announced size step", () => {
+		expect(
+			computeKeyboardResizedPreviewBox({
+				corner: "top-left",
+				key: "ArrowLeft",
+				startSize: 200,
+				startOffset: { x: 0, y: 0 },
+				coarse: true,
+				centerScale: true,
+				snapSizes: [],
+				viewport: VIEWPORT,
+			}),
+		).toEqual({ size: 216, offset: { x: 8, y: 8 }, snappedTo: null });
+	});
+
+	it("uses the pointer resize snap magnets and ignores unrelated keys", () => {
+		expect(
+			computeKeyboardResizedPreviewBox({
+				corner: "top-left",
+				key: "ArrowLeft",
+				startSize: 196,
+				startOffset: { x: 0, y: 0 },
+				coarse: false,
+				centerScale: false,
+				snapSizes: [208],
+				viewport: VIEWPORT,
+			}),
+		).toEqual({ size: 208, offset: { x: 0, y: 0 }, snappedTo: 208 });
+		expect(
+			computeKeyboardResizedPreviewBox({
+				corner: "top-left",
+				key: "Enter",
+				startSize: 200,
+				startOffset: { x: 0, y: 0 },
+				coarse: false,
+				centerScale: false,
+				snapSizes: [],
+				viewport: VIEWPORT,
+			}),
+		).toBeNull();
 	});
 });
 

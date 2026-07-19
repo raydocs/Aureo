@@ -14,7 +14,9 @@ Ledger path: `.agent/runs/aureo-uiux-parity-2026-07/`
 
 When creating or updating the matching `/goal`, include this ledger pointer in the goal objective:
 
-`Maintain the agent-owned ledger at /Users/ruirui/Documents/recordlyx/.agent/runs/aureo-uiux-parity-2026-07/ and keep implementation-notes.html current at checkpoints, before compaction, and before final handoff.`
+`Maintain the agent-owned ledger at /Users/ruirui/Downloads/recordlyx-recovery/.agent/runs/aureo-uiux-parity-2026-07/ and keep implementation-notes.html current at checkpoints, before compaction, and before final handoff.`
+
+The original `/Users/ruirui/Documents/recordlyx` checkout is preserved as read-only historical evidence after APFS object/inode failures. All subsequent work uses the healthy Downloads recovery clone.
 
 ## Finishing Criteria
 

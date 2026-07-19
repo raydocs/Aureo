@@ -192,6 +192,11 @@ import {
 	type ProjectSaveOperationToken,
 	type ProjectSaveOperationTracker,
 } from "./shell/ProjectSaveOperationTracker";
+import {
+	getInspectorBackgroundIsolationProps,
+	InspectorBackground,
+	ResponsiveInspector,
+} from "./shell/ResponsiveInspector";
 import { getDevOpenRecordingConfig, getSmokeExportConfig } from "./smokeExportConfig";
 import { createSmokeExportProgressSampler } from "./smokeExportProgress";
 import { APP_HEADER_ICON_BUTTON_CLASS, DiscordLinkButton, FeedbackDialog } from "./TutorialHelp";
@@ -6934,9 +6939,12 @@ export default function VideoEditor() {
 		);
 	}
 
+	const isInspectorModalOpen = !isInspectorDocked && inspectorOpen;
 	const closeInspectorOverlay = () => {
 		setInspectorOpen(false);
-		inspectorToggleRef.current?.focus();
+		window.requestAnimationFrame(() => {
+			inspectorToggleRef.current?.focus({ preventScroll: true });
+		});
 	};
 
 	const inspectorPanel =
@@ -7238,6 +7246,7 @@ export default function VideoEditor() {
 		<div className="editor-liquid-shell flex h-screen flex-col overflow-hidden bg-editor-bg text-foreground selection:bg-primary/30">
 			<EditorHeaderLayout
 				ariaLabel={t("editor.toolbar.commands", "Editor commands")}
+				backgroundInert={isInspectorModalOpen}
 				leading={
 					<div
 						className={`flex min-w-0 items-center gap-1.5 ${headerLeftControlsPaddingClass}`}
@@ -7311,7 +7320,9 @@ export default function VideoEditor() {
 									}}
 									disabled={!editorShellState.canSave || isSavingProjectName}
 									className="min-w-[10ch] max-w-[min(28vw,280px)] bg-transparent text-sm font-semibold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/60 disabled:cursor-wait"
-									style={{ width: `${Math.max(projectNameDraft.length, 10)}ch` }}
+									style={{
+										width: `${Math.max(projectNameDraft.length, 10)}ch`,
+									}}
 									aria-label={t("editor.project.renameInput", "Project name")}
 								/>
 								<span className="shrink-0 text-xs font-medium tracking-tight text-muted-foreground/70">
@@ -7812,8 +7823,11 @@ export default function VideoEditor() {
 
 			<div className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4">
 				<div className="flex min-h-0 flex-1 gap-3 overflow-hidden">
-					{/* Main workspace */}
-					<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+					<div
+						data-inspector-workspace="true"
+						{...getInspectorBackgroundIsolationProps(isInspectorModalOpen)}
+						className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden"
+					>
 						{/* Canvas */}
 						<div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-surface border border-hairline bg-editor-surface">
 							{/* Top canvas toolbar */}
@@ -8123,44 +8137,17 @@ export default function VideoEditor() {
 							/>
 						</div>
 					</div>
-
-					{/* Right inspector dock */}
-					{isInspectorDocked ? (
-						<div className="flex min-h-0 flex-shrink-0 flex-col gap-2">
-							{inspectorSectionSwitcher}
-							{inspectorPanel}
-						</div>
-					) : null}
-				</div>
-
-				{/* Collapsible inspector overlay for narrower windows */}
-				{!isInspectorDocked && inspectorOpen ? (
-					<div
-						id="editor-inspector"
-						className="absolute inset-y-4 right-4 z-40 flex w-[346px] flex-col gap-2 overflow-hidden rounded-surface border border-hairline bg-editor-bg p-3 shadow-aureo-3"
-						onKeyDown={(event) => {
-							if (event.key === "Escape") {
-								event.preventDefault();
-								closeInspectorOverlay();
-							}
-						}}
+					<ResponsiveInspector
+						isDocked={isInspectorDocked}
+						open={inspectorOpen}
+						label={t("editor.toolbar.inspector", "Inspector")}
+						closeLabel={t("common.actions.close", "Close inspector")}
+						onDismiss={closeInspectorOverlay}
+						sectionSwitcher={inspectorSectionSwitcher}
 					>
-						<div className="flex flex-shrink-0 items-center justify-end">
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon-sm"
-								onClick={closeInspectorOverlay}
-								title={t("common.actions.close", "Close inspector")}
-								aria-label={t("common.actions.close", "Close inspector")}
-							>
-								<X className="h-4 w-4" />
-							</Button>
-						</div>
-						{inspectorSectionSwitcher}
 						{inspectorPanel}
-					</div>
-				) : null}
+					</ResponsiveInspector>
+				</div>
 			</div>
 
 			<Dialog
@@ -8215,7 +8202,13 @@ export default function VideoEditor() {
 				isMac={isMac}
 			/>
 
-			<Toaster className="pointer-events-auto" />
+			<InspectorBackground
+				isolated={isInspectorModalOpen}
+				data-editor-notifications="true"
+				className="pointer-events-none absolute inset-0"
+			>
+				<Toaster className="pointer-events-auto" />
+			</InspectorBackground>
 		</div>
 	);
 }

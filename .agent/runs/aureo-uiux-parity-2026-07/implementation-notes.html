@@ -91,13 +91,13 @@
 
   <h2>Resume Here</h2>
   <ul>
-    <li><strong>Status:</strong> [done] Production Phase 0 is committed as <code>da450fd</code>; Editor Shell Slice 1.1 is committed as <code>bde3b2c</code> after full verification and independent approval.</li>
-    <li><strong>Current phase:</strong> Begin Editor Shell Slice 1.2: responsive Inspector ownership with one mounted panel across the 1280px breakpoint and a real modal sheet below it.</li>
+    <li><strong>Status:</strong> [validated] Production Phase 0 and Editor Shell Slice 1.1 remain committed; Slice 1.2 Responsive Inspector ownership is independently approved and has passed its final pre-commit matrix.</li>
+    <li><strong>Current phase:</strong> [checkpoint] Commit the approved Slice 1.2 thirteen-path checkpoint locally, verify a clean branch ahead 8 / behind 0, and do not push.</li>
     <li><strong>Completed:</strong> Typed/state foundation, source keyboard browsing versus activation, compound source anchor/expanded synchronization, webcam passthrough release, source close focus restoration, modal recording preflight, pointer-equivalent keyboard webcam resize, native state synchronization, idle and destructive native recording actions, Project Browser focus safety, countdown semantics, Area Selection keyboard access, and 1440/1280/960/880 DIP visual review.</li>
-    <li><strong>Active work:</strong> No implementation is currently in flight. The next writer should map the existing duplicated dock/overlay render branches in <code>VideoEditor.tsx</code>, write focused RED coverage for one-mount and modal focus behavior, then implement the smallest Slice 1.2 boundary without refactoring <code>SettingsPanel.tsx</code>.</li>
-    <li><strong>Blockers:</strong> No known Editor Shell Slice 1.1 blocker remains. The original Documents repo remains preserved with APFS-damaged local objects.</li>
-    <li><strong>Next action:</strong> Read the production roadmap’s Phase 1 Slice 1.2 contract; inspect <code>VideoEditor.tsx</code> around inspector layout state and the dock/overlay branches; add focused failing tests proving one Inspector mount plus initial focus, Tab containment, Escape/backdrop dismissal, inert background, and exact return focus. Do not push; Whisper runtime replacement remains explicitly deferred until the end.</li>
-    <li><strong>Last validation:</strong> Post-redesign focused Vitest passed 3 files / 18 tests; full Vitest passed 165 files / 1433 tests; production TypeScript, focused Biome, i18n structure, Vite production build, Electron main normalization/smoke, diff check, and protected <code>* 2.*</code> path check passed.</li>
+    <li><strong>Active work:</strong> One persistent ResponsiveInspector owns the sole SettingsPanel across 1279/1280. Narrow mode is modal and isolates the header, workspace, and notifications; portaled Radix layers retain their own keyboard authority. No implementation remains in flight.</li>
+    <li><strong>Blockers:</strong> No known Slice 1.2 blocker remains. The original Documents repo remains preserved with APFS-damaged local objects.</li>
+    <li><strong>Next action:</strong> After the local checkpoint, begin roadmap Phase 1 Slice 1.3 intentional shell states from the new clean HEAD. Map existing loading/empty/load-error/save-error paths, establish focused RED contracts, and preserve the Slice 1.1 save-ownership and Slice 1.2 Inspector boundaries.</li>
+    <li><strong>Last validation:</strong> Independent exact-diff re-review returned APPROVE. Focused shell Vitest passed 4 files / 17 tests; final full Vitest passed 166 files / 1443 tests; production TypeScript, focused Biome, i18n, direct Vite production build, Electron main normalization/smoke, diff check, runtime/visual matrix, and protected-path checks passed.</li>
     <li><strong>Protected paths:</strong> All untracked files matching <code>* 2.*</code>. They appear to be duplicate/backup files; do not delete, modify, stage, or use them as implementation sources without user approval.</li>
   </ul>
 
@@ -184,6 +184,11 @@
 
   <h2>Validation</h2>
   <ul>
+    <li>[validated] Editor Shell Slice 1.2 automation: focused shell Vitest 4 files / 17 tests; final full Vitest 166 files / 1443 tests; production TypeScript, focused Biome, i18n, direct Vite production build, Electron main normalization/smoke, diff check, and protected-path check passed.</li>
+    <li>[validated] Editor Shell Slice 1.2 real Electron: at 1279×720 the narrow Inspector is one modal dialog with close-first initial focus, Tab/Shift+Tab containment, Escape/backdrop dismissal, exact return to the opening toggle, inert header/workspace, and zero background pointer delivery. At 1280×720 it docks and normalizes open state; returning to 1279 keeps the same SettingsPanel DOM token and open Cursor Advanced state. At 1440×900 Export and all five transport actions remain visible and do not overlap the dock.</li>
+    <li>[validated] Editor Shell Slice 1.2 visual matrix: light, dark, reduced-transparency, high-contrast, and synthetic long-label screenshots cover 1279×720, 1280×720, and 1440×900. The unchanged SettingsPanel slider-track presentation remains visually dense at 320px, but the new ownership/modal boundary introduces no critical Save/Export/transport clipping or overlap.</li>
+    <li>[approved] Editor Shell Slice 1.2 independent exact-diff re-review returned APPROVE with no high-confidence blockers after the portal keyboard-ownership and notification-inert fixes.</li>
+    <li>[limitation] A final aggregate <code>npm run build</code> was invoked in error even though it includes deferred native-helper and Whisper work. It stopped at Whisper staging because CMake was unavailable. Immediate Git inventory proved no additional tracked or untracked path delta; no Whisper/model/runtime path was staged. The valid production gate was rerun directly with Vite plus Electron main normalization/smoke.</li>
     <li>[validated] Production Phase 0 baseline at <code>aa1150a</code>: full Vitest 163 files / 1422 tests in 23.74 s, production TypeScript, i18n, and non-Whisper Vite/Electron main smoke passed.</li>
     <li>[incomplete] Full repository Biome baseline reports 111 errors and 18 warnings across 613 files. These are existing formatting/import diagnostics; unrelated broad auto-formatting was not performed.</li>
     <li>[validated] Deterministic release fixtures: 12 generated non-user-data media/project files verify against manifest SHA-256 <code>f1fd36e118372bf800b7d81a9782ce1d259c4cd865339b2092c810d8af6ae5bf</code>; regeneration is checksum-stable with the locked FFmpeg dependency. Independent review corrected the long timeline to use ten-minute primary/mic/system/webcam media and Aureo's actual sidecar/settings contracts.</li>
@@ -216,6 +221,9 @@
 
   <h2>Evidence</h2>
   <ul>
+    <li>Editor Shell Slice 1.2 runtime contract and exact focus/breakpoint results: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/editor-inspector-runtime-5191073.json</code>, SHA-256 <code>e0ee646f6532c660f8f3934a7ec63536633f85b9e805a438702b4aadfb6a8710</code>.</li>
+    <li>Editor Shell Slice 1.2 visual evidence: <code>editor-inspector-1279x720-light-modal.png</code>, <code>editor-inspector-1279x720-dark-modal.png</code>, <code>editor-inspector-1279x720-reduced-transparency.png</code>, <code>editor-inspector-1280x720-high-contrast-docked.png</code>, and <code>editor-inspector-1440x900-long-labels-docked.png</code> in the goal evidence directory.</li>
+    <li>Editor Shell Slice 1.2 continuation handoff: <code>handoffs/2026-07-19-aureo-editor-shell-slice-1.2.md</code>.</li>
     <li>Phase 0 baseline, fixture inventory, release decisions, and blocker matrix: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/phase-0-baseline-aa1150a.md</code>.</li>
     <li>Read-only Electron security evidence: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/security-audit-aa1150a.md</code>; independent runner review <a href="https://ampcode.com/threads/T-019f78e0-f364-75ec-a7ed-6b18f676b061">AUR-SEC-002</a>.</li>
     <li>Read-only selection evidence: <code>.agent/runs/aureo-uiux-parity-2026-07/evidence/selection-audit-aa1150a.md</code>; independent runner review <a href="https://ampcode.com/threads/T-019f78e0-fd47-73c4-88fe-3e022ff30532">AUR-SEL-002</a>.</li>
@@ -419,6 +427,62 @@
         phase: "editor-shell-1.1-checkpoint",
         actor: "agent",
         summary: "Committed the independently approved six-file Editor Shell Slice 1.1 as bde3b2c. The branch remained unpushed and clean, protected * 2.* and Whisper/model/runtime paths were untouched, and the next dependency-ordered slice is Editor Shell 1.2 responsive Inspector ownership."
+      },
+      {
+        ts: "2026-07-19T08:06:26Z",
+        status: "doing",
+        phase: "editor-shell-1.2",
+        actor: "agent",
+        summary: "Started Responsive Inspector ownership from clean 5191073 (ahead 7, behind 0). Restored the canonical goal, ledger, production roadmap, release configuration, and Phase 0 baseline; mapping current ownership and modal patterns precedes RED tests. No push or protected/Whisper work."
+      },
+      {
+        ts: "2026-07-19T08:10:22Z",
+        status: "red",
+        phase: "editor-shell-1.2",
+        actor: "agent",
+        summary: "Mapped the two mutually exclusive VideoEditor Inspector insertion points and existing Project Browser/Radix modal patterns. Focused ResponsiveInspector Vitest now fails 6/6 for the intended absent mode semantics, modal dialog/backdrop/inert contract, and Tab wrap behavior after a minimal harness scaffold removed the initial missing-module error."
+      },
+      {
+        ts: "2026-07-19T08:18:08Z",
+        status: "validated",
+        phase: "editor-shell-1.2-green",
+        actor: "agent",
+        summary: "Integrated one persistent ResponsiveInspector host without changing SettingsPanel business logic. Narrow mode now has dialog/backdrop/inert semantics, close-first initial focus, document Escape and Tab containment, and deferred exact toggle focus restoration; docking normalizes open state without moving panel ownership. Focused 4 files / 15 tests, TypeScript, focused Biome, diff check, and protected-path check passed."
+      },
+      {
+        ts: "2026-07-19T08:26:02Z",
+        status: "validated",
+        phase: "editor-shell-1.2-certification",
+        actor: "agent",
+        summary: "Real Electron CDP passed the 1279/1280 ownership and modal-focus contract, including exact Escape/backdrop return focus, inert background interception, and preserved Cursor Advanced state on the same SettingsPanel DOM identity. Five appearance/viewport screenshots were recorded. Full Vitest 166 files / 1441 tests, TypeScript, focused Biome, i18n, Vite build, Electron main smoke, diff, and protected-path checks passed; exact-diff review is next."
+      },
+      {
+        ts: "2026-07-19T08:39:54Z",
+        status: "red",
+        phase: "editor-shell-1.2-review-fix",
+        actor: "independent-reviewer+agent",
+        summary: "Exact-diff review requested changes: document-level Tab/Escape trapping conflicts with SettingsPanel Radix portals, and the actionable Sonner Toaster remains outside modal inert scope. Focused regression run now fails 2/9 for precisely those missing event-ownership and auxiliary-background isolation behaviors."
+      },
+      {
+        ts: "2026-07-19T08:42:44Z",
+        status: "validated",
+        phase: "editor-shell-1.2-review-fix",
+        actor: "agent",
+        summary: "Scoped the keyboard trap to sheet-owned event targets and isolated the Sonner notification layer during narrow modality. Focused shell tests pass 4 files / 17 tests; TypeScript, focused Biome, rebuilt production bundles/Electron main smoke, diff, and protected checks pass. Real Electron Select and Shortcuts Dialog portals each own Escape, close independently, keep Inspector modal, and return focus inside; notification wrapper is inert."
+      },
+      {
+        ts: "2026-07-19T08:49:00Z",
+        status: "approved",
+        phase: "editor-shell-1.2-review",
+        actor: "independent-reviewer",
+        summary: "Independent read-only exact-diff re-review returned APPROVE with no high-confidence blockers. It accepted the stable one-mount ownership, portal keyboard authority, notification isolation, focus timing/return, breakpoint normalization, layering, tests, and runtime evidence."
+      },
+      {
+        ts: "2026-07-19T08:51:56Z",
+        status: "validated",
+        phase: "editor-shell-1.2-checkpoint",
+        actor: "agent",
+        summary: "Final pre-commit gates passed: focused 4 files / 17 tests, full 166 files / 1443 tests, TypeScript, focused Biome, i18n, direct Vite production build, Electron main normalization/smoke, diff, runtime/visual, and protected-path checks. The aggregate build was mistakenly invoked, stopped at deferred Whisper for missing CMake, and an immediate inventory confirmed no extra file delta or staged runtime/model path."
       }
     ];
 

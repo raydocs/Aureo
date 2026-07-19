@@ -42,4 +42,18 @@ describe("EditorHeaderLayout", () => {
 		);
 		expect(identityMatch?.[0]).toContain("justify-self-start");
 	});
+
+	it("can be isolated while the narrow Inspector is modal", () => {
+		const html = renderToStaticMarkup(
+			<EditorHeaderLayout
+				ariaLabel="Editor commands"
+				backgroundInert
+				leading={<button type="button">Projects</button>}
+				identity={<button type="button">Demo project</button>}
+				actions={<button type="button">Export</button>}
+			/>,
+		);
+
+		expect(html).toMatch(/<header[^>]*aria-hidden="true"[^>]*inert=""/);
+	});
 });

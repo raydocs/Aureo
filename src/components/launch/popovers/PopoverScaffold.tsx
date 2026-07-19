@@ -173,6 +173,18 @@ export function HudPopover({
 						)?.focus();
 					});
 				}}
+				onCloseAutoFocus={(event) => {
+					const activeElement = document.activeElement;
+					const content = event.currentTarget as HTMLElement | null;
+					if (
+						content &&
+						activeElement instanceof HTMLElement &&
+						activeElement !== document.body &&
+						!content.contains(activeElement)
+					) {
+						event.preventDefault();
+					}
+				}}
 				onKeyDown={handleMenuKeyDown}
 				role={role}
 				aria-label={ariaLabel}

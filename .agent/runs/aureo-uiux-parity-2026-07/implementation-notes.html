@@ -91,13 +91,13 @@
 
   <h2>Resume Here</h2>
   <ul>
-    <li><strong>Status:</strong> [doing] Capture HUD. Plan and UI Foundation are complete; commits through <code>4e14b04</code> are local on <code>feat/launch-menu-bar-upgrade</code>, and validated Capture slice 7 is ready to commit.</li>
+    <li><strong>Status:</strong> [doing] Capture HUD. Plan, UI Foundation, and Capture slices 1–7 are complete; APFS recovery commit <code>cfbb73a</code> is local on <code>feat/launch-menu-bar-upgrade</code>.</li>
     <li><strong>Current phase:</strong> Finish Capture HUD interaction architecture and evidence before moving to Editor Shell.</li>
     <li><strong>Completed:</strong> Typed/state foundation, source keyboard browsing versus activation, compound source anchor/expanded synchronization, webcam passthrough release, source close focus restoration, modal recording preflight, pointer-equivalent keyboard webcam resize, native state synchronization, idle New Recording source launch actions, and confirmed native Restart/Delete with renderer-owned recorder transitions.</li>
-    <li><strong>Active work:</strong> Commit validated Capture slice 7, then implement Project Browser modal focus trap, initial focus, return focus, and visible focus ring.</li>
-    <li><strong>Blockers:</strong> No implementation blocker. The APFS failure was isolated to two tracked working-tree inodes and the old dependency tree; exact tracked blobs were restored, a fresh lockfile dependency install was created without running postinstall/Whisper, and the damaged old <code>node_modules</code> tree remains preserved and locally ignored.</li>
-    <li><strong>Next action:</strong> Commit slice 7 as <code>Add confirmed recorder restart and delete actions</code> without pushing, then continue Project Browser focus safety. Whisper runtime replacement remains explicitly deferred until the end.</li>
-    <li><strong>Last validation:</strong> Slice 7 passed 3 targeted files / 74 tests, protected-file-excluding TypeScript, Biome on 7 touched files, diff check, and Vite renderer/main/preload build. Real macOS runtime proved tray/app-menu actions, an interactable sheet parented to window Aureo, Cancel/no-command, one-command confirm, one-sheet deduplication, stale-session suppression, and accessory activation-policy restoration. Stop/delete barriers and settings preservation are covered by focused tests and code-path review.</li>
+    <li><strong>Active work:</strong> Capture multi-viewport screenshots and complete the final Capture visual/accessibility review.</li>
+    <li><strong>Blockers:</strong> No implementation blocker in the healthy recovery clone at <code>/Users/ruirui/Downloads/recordlyx-recovery</code>. The original Documents repo remains preserved with APFS-damaged local objects; its seven local commits plus slice 7 were consolidated into recovery commit <code>cfbb73a</code>.</li>
+    <li><strong>Next action:</strong> Perform Capture multi-viewport visual review and record residual limitations. Whisper runtime replacement remains explicitly deferred until the end.</li>
+    <li><strong>Last validation:</strong> Capture accessibility passed 4 targeted files / 5 tests, TypeScript, Biome, diff check, and Vite renderer/main/preload build. Real Electron proved Project Browser modal initial focus, trapped Tab, Escape return to More, countdown assertive/atomic live text with auto-focused Cancel, and a focusable Area Selection keyboard form with numeric bounds and Cancel.</li>
     <li><strong>Protected paths:</strong> All untracked files matching <code>* 2.*</code>. They appear to be duplicate/backup files; do not delete, modify, stage, or use them as implementation sources without user approval.</li>
   </ul>
 
@@ -206,6 +206,7 @@
     <li>[validated] Capture slice 5: idle tray and macOS app menus expose a typed New Recording submenu in Display, Window, Area, Device order. Native source requests focus/show the HUD, set the source picker mode, and open the existing coordinated dialog rather than bypassing selection. AppleScript AXPress on Area produced one dialog with Area expanded and its internal Area radio active. Targeted 11 tests, TypeScript, Biome, production build, and diff check passed.</li>
     <li>[validated] Capture slice 6: shared launch command menus now use programmatic-only menuitem tab stops, focus the checked item (or first enabled item) on open, wrap ArrowUp/ArrowDown, support Home/End, and perform 500ms text-prefix typeahead while leaving Tab untrapped. Real Electron Quality menu opened on checked Ultra, ArrowDown wrapped to Standard, End/Home reached boundaries, and <code>h</code> focused High.</li>
     <li>[validated] Capture slice 7: tray and app menus add Restart/Delete with parented native confirmation and duplicate-dialog protection. Confirmation dispatch is scoped to the active recorder session generation. Renderer cancellation waits for screen, webcam, and native microphone-fallback recorder stop events; native restart only proceeds after helper stop and file deletion both succeed, preserving existing source and device preferences. The macOS HUD is temporarily made focusable/non-passthrough and, when needed, promoted from accessory to regular only for the sheet lifecycle; exact HUD, focus, and activation state is restored through exception-safe cleanup. Targeted 74 tests, protected-file-excluding TypeScript, Biome, diff check, Vite build, and real tray/sheet/command runtime checks passed.</li>
+    <li>[validated] Capture accessibility: Project Browser now uses modal semantics, initial focus, a Tab loop, visible focus rings, and return focus to the stable More control even when the originating menu item unmounts. Countdown exposes assertive atomic status text and an auto-focused Cancel button. Area Selection retains pointer dragging and adds a compact keyboard disclosure with numeric Left/Top/Width/Height, submit, Cancel, and polite status updates. Targeted 5 tests, TypeScript, Biome, Vite build, and real Electron keyboard/runtime checks passed.</li>
   </ul>
 
   <h2>Evidence</h2>
@@ -324,6 +325,20 @@
         phase: "capture-hud",
         actor: "agent",
         summary: "Validated Capture slice 7 after repairing APFS-damaged tracked/dependency inodes without running Whisper. Native Restart/Delete sheets are interactable and parented to Aureo, Cancel and stale sessions dispatch nothing, confirmation deduplicates, successful confirmation dispatches one typed command, and renderer stop/delete barriers preserve restart settings. Targeted 74 tests, TypeScript, Biome, build, diff check, and real macOS runtime checks passed."
+      },
+      {
+        ts: "2026-07-19T03:34:17Z",
+        status: "recovered",
+        phase: "capture-hud",
+        actor: "agent",
+        summary: "Migrated the readable worktree to a healthy Downloads clone after APFS damaged local-only Git objects. Consolidated the seven unreachable local commits and validated Capture slice 7 as cfbb73a; post-commit status is clean and ahead one, diff check passed, protected * 2.* files were excluded, and no push occurred."
+      },
+      {
+        ts: "2026-07-19T03:52:02Z",
+        status: "validated",
+        phase: "capture-accessibility",
+        actor: "agent",
+        summary: "Completed Capture accessibility: Project Browser modal focus containment and stable return focus, assertive countdown semantics with a focusable Cancel action, and a keyboard form alternative for Area Selection. Targeted tests, TypeScript, Biome, build, and real Electron focus/keyboard checks passed."
       }
     ];
 

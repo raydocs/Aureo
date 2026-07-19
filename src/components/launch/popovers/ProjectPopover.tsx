@@ -11,10 +11,12 @@ export function ProjectPopover({
 	trigger,
 	entries,
 	onOpenProject,
+	returnFocusRef,
 }: {
 	trigger: ReactElement;
 	entries: ProjectLibraryEntry[];
 	onOpenProject: (projectPath: string) => void;
+	returnFocusRef?: React.RefObject<HTMLElement | null>;
 }) {
 	const t = useScopedT("launch");
 	const { isOpen, requestOpen, requestClose } = useLaunchPopoverCoordinator();
@@ -32,6 +34,7 @@ export function ProjectPopover({
 			}}
 			role="dialog"
 			aria-label={t("recording.openProject")}
+			modal
 			trigger={trigger}
 			align="center"
 		>
@@ -41,6 +44,7 @@ export function ProjectPopover({
 					if (!nextOpen) requestClose(POPOVER_ID);
 				}}
 				entries={entries}
+				anchorRef={returnFocusRef}
 				renderMode="inline"
 				onOpenProject={(path) => {
 					onOpenProject(path);

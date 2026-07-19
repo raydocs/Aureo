@@ -132,6 +132,7 @@ function LaunchWindowContent() {
 	const recordingQualityPreset = getRecordingQualityPreset(recordingQualityPresetId);
 	const hudContentRef = useRef<HTMLDivElement>(null);
 	const hudBarRef = useRef<HTMLDivElement>(null);
+	const projectBrowserReturnFocusRef = useRef<HTMLButtonElement | null>(null);
 
 	const {
 		selectedSource,
@@ -767,6 +768,7 @@ function LaunchWindowContent() {
 				appVersion={appVersion}
 				trigger={
 					<Button
+						ref={projectBrowserReturnFocusRef}
 						variant="ghost"
 						title={t("recording.more")}
 						aria-label={t("recording.more")}
@@ -785,6 +787,7 @@ function LaunchWindowContent() {
 			<ProjectPopover
 				entries={projectLibraryEntries}
 				onOpenProject={openProjectFromLibrary}
+				returnFocusRef={projectBrowserReturnFocusRef}
 				trigger={<div className="pointer-events-none absolute inset-0 opacity-0" />}
 			/>
 		</div>

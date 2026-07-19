@@ -21,6 +21,18 @@ type ProjectBrowserDialogProps = {
 	onPanelHeightChange?: (height: number) => void;
 	renderMode?: "floating" | "inline";
 };
+
+const projectButtonClassName =
+	"group flex flex-col gap-1 rounded-lg bg-transparent p-0.5 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-editor-panel";
+
+function getFocusableElements(panel: HTMLElement): HTMLElement[] {
+	return Array.from(
+		panel.querySelectorAll<HTMLElement>(
+			'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+		),
+	).filter((element) => element.getAttribute("aria-hidden") !== "true");
+}
+
 export default function ProjectBrowserDialog({
 	open,
 	onOpenChange,
@@ -113,6 +125,37 @@ export default function ProjectBrowserDialog({
 			return;
 		}
 
+		const activeElement = document.activeElement;
+		const returnFocusTarget = activeElement instanceof HTMLElement ? activeElement : null;
+		const focusFrame = window.requestAnimationFrame(() => {
+			const panel = panelRef.current;
+			if (!panel) {
+				return;
+			}
+			const initialTarget = panel.querySelector<HTMLElement>(
+				"[data-project-browser-initial-focus]",
+			);
+			(initialTarget ?? getFocusableElements(panel)[0] ?? panel).focus({
+				preventScroll: true,
+			});
+		});
+
+		return () => {
+			window.cancelAnimationFrame(focusFrame);
+			const connectedReturnTarget = returnFocusTarget?.isConnected
+				? returnFocusTarget
+				: anchorRef?.current;
+			if (connectedReturnTarget?.isConnected) {
+				connectedReturnTarget.focus({ preventScroll: true });
+			}
+		};
+	}, [anchorRef, open]);
+
+	useEffect(() => {
+		if (!open) {
+			return;
+		}
+
 		const handlePointerDown = (event: PointerEvent) => {
 			const target = event.target;
 			if (!(target instanceof Node)) {
@@ -128,7 +171,31 @@ export default function ProjectBrowserDialog({
 
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (event.key === "Escape") {
+				event.preventDefault();
 				onOpenChange(false);
+				return;
+			}
+
+			if (event.key !== "Tab" || !panelRef.current) {
+				return;
+			}
+
+			const focusableElements = getFocusableElements(panelRef.current);
+			if (focusableElements.length === 0) {
+				event.preventDefault();
+				panelRef.current.focus({ preventScroll: true });
+				return;
+			}
+
+			const first = focusableElements[0];
+			const last = focusableElements[focusableElements.length - 1];
+			const active = document.activeElement;
+			if (event.shiftKey && (active === first || !panelRef.current.contains(active))) {
+				event.preventDefault();
+				last.focus({ preventScroll: true });
+			} else if (!event.shiftKey && (active === last || !panelRef.current.contains(active))) {
+				event.preventDefault();
+				first.focus({ preventScroll: true });
 			}
 		};
 
@@ -173,8 +240,10 @@ export default function ProjectBrowserDialog({
 			<div
 				ref={panelRef}
 				role="dialog"
+				aria-modal="true"
 				aria-label="Projects"
-				className="pointer-events-auto mb-1.5 w-[300px] max-h-[400px] overflow-hidden rounded-[14px] border border-foreground/[0.07] bg-editor-panel/[0.96] text-foreground shadow-[0_12px_32px_rgba(0,0,0,0.22),0_2px_10px_rgba(0,0,0,0.1)] animate-in fade-in-0 duration-150"
+				tabIndex={-1}
+				className="pointer-events-auto mb-1.5 w-[300px] max-h-[400px] overflow-hidden rounded-[14px] border border-foreground/[0.07] bg-editor-panel/[0.96] text-foreground shadow-[0_12px_32px_rgba(0,0,0,0.22),0_2px_10px_rgba(0,0,0,0.1)] outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-editor-panel animate-in fade-in-0 duration-150"
 			>
 				<div className="flex items-center justify-between gap-2 border-b border-foreground/10 px-3 py-2.5">
 					<div className="text-sm font-medium tracking-tight text-foreground">
@@ -184,7 +253,10 @@ export default function ProjectBrowserDialog({
 						<button
 							type="button"
 							onClick={onImportFile}
-							className="rounded-md px-2 py-1 text-xs font-medium text-foreground/70 transition hover:bg-foreground/10 hover:text-foreground"
+							data-project-browser-initial-focus={
+								visibleEntries.length === 0 ? "true" : undefined
+							}
+							className="rounded-md px-2 py-1 text-xs font-medium text-foreground/70 outline-none transition hover:bg-foreground/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-editor-panel"
 						>
 							Import
 						</button>
@@ -193,7 +265,7 @@ export default function ProjectBrowserDialog({
 				<div className="max-h-[360px] overflow-y-auto px-2.5 py-2.5">
 					{visibleEntries.length > 0 ? (
 						<div className="grid grid-cols-2 gap-2">
-							{visibleEntries.map((entry) => {
+							{visibleEntries.map((entry, index) => {
 								const thumbnailSrc = entry.thumbnailPath
 									? toFileUrl(entry.thumbnailPath)
 									: null;
@@ -202,7 +274,10 @@ export default function ProjectBrowserDialog({
 										key={entry.path}
 										type="button"
 										onClick={() => onOpenProject(entry.path)}
-										className="group flex flex-col gap-1 rounded-lg bg-transparent p-0.5 text-left outline-none transition focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+										data-project-browser-initial-focus={
+											index === 0 ? "true" : undefined
+										}
+										className={projectButtonClassName}
 									>
 										<div className="relative aspect-[16/10] w-full overflow-hidden rounded-[5px] bg-editor-dialog-alt shadow-[0_10px_18px_rgba(0,0,0,0.28)] transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_16px_30px_rgba(0,0,0,0.38)]">
 											{thumbnailSrc ? (
@@ -251,9 +326,11 @@ export default function ProjectBrowserDialog({
 			<div
 				ref={panelRef}
 				role="dialog"
+				aria-modal="true"
 				aria-label="Projects"
+				tabIndex={-1}
 				style={{ top: `${position.top}px`, left: `${position.left}px` }}
-				className="pointer-events-auto fixed w-[min(280px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-foreground/10 bg-editor-surface text-foreground shadow-2xl animate-in fade-in-0 duration-150"
+				className="pointer-events-auto fixed w-[min(280px,calc(100vw-24px))] overflow-hidden rounded-2xl border border-foreground/10 bg-editor-surface text-foreground shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-editor-panel animate-in fade-in-0 duration-150"
 			>
 				<div className="flex items-center justify-between gap-2 border-b border-foreground/10 px-3 py-2.5">
 					<div className="text-sm font-medium tracking-tight text-foreground">
@@ -263,7 +340,10 @@ export default function ProjectBrowserDialog({
 						<button
 							type="button"
 							onClick={onImportFile}
-							className="rounded-md px-2 py-1 text-xs font-medium text-foreground/70 transition hover:bg-foreground/10 hover:text-foreground"
+							data-project-browser-initial-focus={
+								visibleEntries.length === 0 ? "true" : undefined
+							}
+							className="rounded-md px-2 py-1 text-xs font-medium text-foreground/70 outline-none transition hover:bg-foreground/10 hover:text-foreground focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-editor-panel"
 						>
 							Import
 						</button>
@@ -275,7 +355,7 @@ export default function ProjectBrowserDialog({
 				>
 					{visibleEntries.length > 0 ? (
 						<div className="grid grid-cols-2 gap-2">
-							{visibleEntries.map((entry) => {
+							{visibleEntries.map((entry, index) => {
 								const thumbnailSrc = entry.thumbnailPath
 									? toFileUrl(entry.thumbnailPath)
 									: null;
@@ -284,7 +364,10 @@ export default function ProjectBrowserDialog({
 										key={entry.path}
 										type="button"
 										onClick={() => onOpenProject(entry.path)}
-										className="group flex flex-col gap-1 rounded-lg bg-transparent p-0.5 text-left outline-none transition focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+										data-project-browser-initial-focus={
+											index === 0 ? "true" : undefined
+										}
+										className={projectButtonClassName}
 									>
 										<div className="relative aspect-[16/10] w-full overflow-hidden rounded-[5px] bg-editor-dialog-alt shadow-[0_10px_18px_rgba(0,0,0,0.28)] transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_16px_30px_rgba(0,0,0,0.38)]">
 											{thumbnailSrc ? (
